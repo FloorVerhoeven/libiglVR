@@ -126,6 +126,7 @@ namespace igl {
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
 				Eigen::Vector3f hand_pos;
 				hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
+
 				if (inputState.Buttons & ovrButton_A) {
 					count = (prev_press == A) ? count + 1 : 1;
 					prev_press = A;
@@ -165,7 +166,6 @@ namespace igl {
 					touch_dir_lock.unlock();
 
 					if ((prev_press == NONE && count == 3 && prev_sent != NONE)) {
-						std::cout << "coming here" << std::endl;
 						update_screen_while_computing = true;
 						std::thread t1(callback_button_down, prev_press, hand_pos);
 						t1.detach();

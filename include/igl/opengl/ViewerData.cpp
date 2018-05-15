@@ -295,7 +295,6 @@ IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P,  c
   points.conservativeResize(points.rows() + P_temp.rows(),6);
   for (unsigned i=0; i<P_temp.rows(); ++i)
     points.row(lastid+i) << P_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows()-1);
-
   dirty |= MeshGL::DIRTY_OVERLAY_POINTS;
   overlay_lock.unlock();
 }
@@ -356,6 +355,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd&
 	for (unsigned i = 0; i < LP_temp.rows(); ++i) {
 		laser_points.row(lastid + i) << LP_temp.row(i);
 	}
+	std::cout << "inside data:" << laser_points << " end" << std::endl << std::endl;
 	dirty |= MeshGL::DIRTY_LASER;
 	overlay_lock.unlock();
 }
@@ -866,5 +866,35 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
       meshgl.points_V_colors_vbo.row(i) = data.points.block<1, 3>(i, 3).cast<float>();
       meshgl.points_F_vbo(i) = i;
     }
+  }
+
+  if (meshgl.dirty & MeshGL::DIRTY_STROKE)
+  {
+	  meshgl.stroke_points_V_vbo.resize(3, data.stroke_points.rows());
+	  meshgl.stroke_points_F_vbo.resize(1, data.stroke_points.rows());
+	  for (unsigned i = 0; i < data.stroke_points.rows(); ++i) {
+		  meshgl.stroke_points_V_vbo.col(i) = data.stroke_points.block<1, 3>(i, 0).transpose().cast<float>();
+		  meshgl.stroke_points_F_vbo(i) = i;
+	  }
+  }
+
+  if (meshgl.dirty & MeshGL::DIRTY_LASER) {
+	  meshgl.laser_points_V_vbo.resize(3, data.laser_points.rows());
+	  meshgl.laser_points_F_vbo.resize(1, data.laser_points.rows());
+	  for (unsigned i = 0; i < data.laser_points.rows(); ++i) {
+		  meshgl.laser_points_V_vbo.col(i) = data.laser_points.block<1, 3>(i, 0).transpose().cast<float>();
+		  meshgl.laser_points_F_vbo(i) = i;
+	  }
+  }
+
+  if (meshgl.dirty & MeshGL::DIRTY_HAND_POINT) {
+	  meshgl.hand_point_V_vbo.resize(3, data.hand_point.rows());
+	  meshgl.hand_point_V_colors_vbo.resize(3, data.hand_point.rows());
+	  meshgl.hand_point_F_vbo.resize(1, data.hand_point.rows());
+	  for (unsigned i = 0; i < data.hand_point.rows(); ++i) {
+		  meshgl.hand_point_V_vbo.col(i) = data.hand_point.block<1, 3>(i, 0).transpose().cast<float>();
+		  meshgl.hand_point_V_colors_vbo.col(i) = data.hand_point.block<1, 3>(i, 3).transpose().cast<float>();
+		  meshgl.hand_point_F_vbo(i) = i;
+	  }
   }
 }

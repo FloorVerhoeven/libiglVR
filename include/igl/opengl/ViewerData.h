@@ -99,12 +99,6 @@ public:
 	  shininess = other.shininess;
 
 	  id = other.id;
-
-
-	  /*overlay_lock.unlock();
-	  other.overlay_lock.unlock();
-	  base_data_lock.unlock();
-	  other.base_data_lock.unlock();*/
   }
 
   ViewerData(const ViewerData& other) {
@@ -174,13 +168,6 @@ public:
 	  shininess = other.shininess;
 
 	  id = other.id;
-
-
-	  /*overlay_lock.unlock();
-	  other.overlay_lock.unlock();
-	  base_data_lock.unlock();
-	  other.base_data_lock.unlock();
-	  */
   }
 
   // Empty all fields
