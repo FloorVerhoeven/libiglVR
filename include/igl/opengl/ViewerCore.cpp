@@ -321,8 +321,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			meshgl.draw_laser();
 		}
 	}
-
-
 }
 
 IGL_INLINE void igl::opengl::ViewerCore::draw_buffer(ViewerData& data,
@@ -451,6 +449,7 @@ IGL_INLINE igl::opengl::ViewerCore::ViewerCore()
   camera_eye << 0, 0, 5;
   camera_center << 0, 0, 0;
   camera_up << 0, 1, 0;
+
 
   depth_test = true;
 

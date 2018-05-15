@@ -658,6 +658,9 @@ namespace glfw
 
   IGL_INLINE bool Viewer::mouse_down(MouseButton button,int modifier)
   {
+	  if (button == MouseButton::Left) {
+		  down = true;
+	  }
     // Remember mouse location at down even if used by callback/plugin
     down_mouse_x = current_mouse_x;
     down_mouse_y = current_mouse_y;
@@ -670,7 +673,6 @@ namespace glfw
       if(plugins[i]->mouse_down(static_cast<int>(button),modifier))
         return true;
 
-    down = true;
 
     down_translation = core.model_translation;
 
