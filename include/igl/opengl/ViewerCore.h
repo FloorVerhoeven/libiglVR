@@ -135,7 +135,7 @@ public:
   // Draw everything
   //
   // data cannot be const because it is being set to "clean"
-  IGL_INLINE void draw(ViewerData& data, bool update_matrices = true);
+  IGL_INLINE void draw(ViewerData& data, bool update_matrices = true, bool oculusVR = false, Eigen::Matrix4f& view_ = NULL, Eigen::Matrix4f& proj_ = NULL);
   IGL_INLINE void draw_buffer(
     ViewerData& data,
     bool update_matrices,

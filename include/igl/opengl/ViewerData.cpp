@@ -26,8 +26,13 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   show_vertid(false),
   show_faceid(false),
   show_texture(false),
+  show_strokes(true),
+  show_laser(true),
   point_size(30),
   line_width(0.5f),
+  overlay_line_width(1.6f),
+  stroke_line_width(1.6f),
+  laser_line_width(1.6f),
   line_color(0,0,0,1),
   shininess(35.0f),
   id(-1)

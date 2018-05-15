@@ -96,7 +96,7 @@ IGL_INLINE void igl::opengl::ViewerCore::clear_framebuffers()
 
 IGL_INLINE void igl::opengl::ViewerCore::draw(
   ViewerData& data,
-  bool update_matrices)
+  bool update_matrices, bool oculusVR, Eigen::Matrix4f& view_, Eigen::Matrix4f& proj_)
 {
   using namespace std;
   using namespace Eigen;
@@ -143,26 +143,41 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
     view  = Eigen::Matrix4f::Identity();
     proj  = Eigen::Matrix4f::Identity();
 
-    // Set view
-    look_at( camera_eye, camera_center, camera_up, view);
+	if(!oculusVR){
+		// Set view
+		std::unique_lock<std::mutex> lock3(mu_view);
+		look_at( camera_eye, camera_center, camera_up, view);
+		lock3.unlock();
 
-    float width  = viewport(2);
-    float height = viewport(3);
+		float width  = viewport(2);
+		float height = viewport(3);
 
-    // Set projection
-    if (orthographic)
-    {
-      float length = (camera_eye - camera_center).norm();
-      float h = tan(camera_view_angle/360.0 * igl::PI) * (length);
-      ortho(-h*width/height, h*width/height, -h, h, camera_dnear, camera_dfar,proj);
-    }
-    else
-    {
-      float fH = tan(camera_view_angle / 360.0 * igl::PI) * camera_dnear;
-      float fW = fH * (double)width/(double)height;
-      frustum(-fW, fW, -fH, fH, camera_dnear, camera_dfar,proj);
-    }
-    // end projection
+		std::unique_lock<std::mutex> lock4(mu_proj);
+		// Set projection
+		if (orthographic)
+		{
+		  float length = (camera_eye - camera_center).norm();
+		  float h = tan(camera_view_angle/360.0 * igl::PI) * (length);
+		  ortho(-h*width/height, h*width/height, -h, h, camera_dnear, camera_dfar,proj);
+		}
+		else
+		{
+		  float fH = tan(camera_view_angle / 360.0 * igl::PI) * camera_dnear;
+		  float fW = fH * (double)width/(double)height;
+		  frustum(-fW, fW, -fH, fH, camera_dnear, camera_dfar,proj);
+		}
+		lock4.unlock();
+		// end projection
+	}else{
+		//oculusVR
+		std::unique_lock<std::mutex> lock3(mu_view);
+		view = view_;
+		lock3.unlock();
+
+		std::unique_lock<std::mutex> lock4(mu_proj);
+		proj = proj_;
+		lock4.unlock();
+	}
 
    
   }
@@ -250,9 +265,63 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
       data.meshgl.draw_overlay_points();
     }
+    
+    if (data.hand_point.rows() > 0) {
+			data.meshgl.bind_hand_point();
+			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points,"model");
+			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points,"view");
+			proji = glGetUniformLocation(data.meshgl.shader_overlay_points,"proj");
+
+			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
+			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
+			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+			//glEnable(GL_POINT_SMOOTH);
+			glPointSize(data.point_size);
+
+			data.meshgl.draw_hand_point();
+	}
 
     glEnable(GL_DEPTH_TEST);
   }
+
+	if (data.show_strokes) {
+		if (data.stroke_points.rows() > 0) {
+			data.meshgl.bind_stroke();
+			modeli = glGetUniformLocation(data.meshgl.shader_stroke_points,"model");
+			viewi = glGetUniformLocation(data.meshgl.shader_stroke_points,"view");
+			proji = glGetUniformLocation(data.meshgl.shader_stroke_points,"proj");
+
+			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
+			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
+			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+			// This must be enabled, otherwise glLineWidth has no effect
+			glEnable(GL_LINE_SMOOTH);
+			glLineWidth(data.stroke_line_width);
+
+			data.meshgl.draw_stroke();
+		}
+	}
+
+	if (data.show_laser) {
+		glEnable(GL_DEPTH_TEST);
+
+		if (data.laser_points.rows() > 0) {
+			data.meshgl.bind_laser();
+			modeli = glGetUniformLocation(data.meshgl.shader_laser_points,"model");
+			viewi = glGetUniformLocation(data.meshgl.shader_laser_points,"view");
+			proji = glGetUniformLocation(data.meshgl.shader_laser_points,"proj");
+
+			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
+			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
+			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+			// This must be enabled, otherwise glLineWidth has no effect
+			glEnable(GL_LINE_SMOOTH);
+			glLineWidth(data.laser_line_width);
+
+			meshgl.draw_laser();
+		}
+	}
+
 
 }
 
