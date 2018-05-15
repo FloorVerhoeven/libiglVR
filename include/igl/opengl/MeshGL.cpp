@@ -385,7 +385,7 @@ R"(#version 150
   }
 )";
 
-  /*std::string overlay_point_fragment_shader_string =
+  std::string overlay_point_fragment_shader_string =
 R"(#version 150
   in vec3 color_frag;
   out vec4 outColor;
@@ -395,21 +395,21 @@ R"(#version 150
       discard;
     outColor = vec4(color_frag, 1.0);
   }
-)"; */
+)"; 
 
 //Note: removed part that discards points that are on a coordinate that ain't big enough (otherwise it won't draw anything)
-  std::string overlay_point_fragment_shader_string =
-	  R"(#version 150\
+  /*std::string overlay_point_fragment_shader_string =
+	  R"(#version 150
 	  in vec3 color_frag;
 	  out vec4 outColor;
 	  void main()
 	  {
 	    outColor = vec4(color_frag, 1.0);
 	  }
-)";
+)";*/
 
   std::string overlay_stroke_fragment_shader_string =
-	  R"(#version 150\n
+	  R"(#version 150
 	  out vec4 outColor;
 	  void main()
 	  {
@@ -418,7 +418,7 @@ R"(#version 150
 )";
 
   std::string overlay_laser_fragment_shader_string =
-	  R"(#version 150\n
+	  R"(#version 150
 	  out vec4 outColor;
 	  void main()
 	  {
@@ -426,14 +426,25 @@ R"(#version 150
 	  }
 )";
 
-  std::string hand_fragment_shader_string =
-	  R"(#version 150\n
+ /* std::string hand_fragment_shader_string =
+	  R"(#version 150
 	  in vec3 color_frag;
 	  out vec4 outColor;
 	  void main()
 	  {
 	    outColor = vec4(color_frag, 1.0);
 	  }
+)";*/
+  std::string hand_fragment_shader_string =
+	  R"(#version 150
+  in vec3 color_frag;
+  out vec4 outColor;
+  void main()
+  {
+    if (length(gl_PointCoord - vec2(0.5)) > 0.5)
+      discard;
+    outColor = vec4(color_frag, 1.0);
+  }
 )";
 
   init_buffers();

@@ -38,8 +38,8 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   id(-1)
 {
   clear();
-  overlay_lock = std::unique_lock<std::mutex>(mu, std::defer_lock); //Could consider splitting these into a separate mutex for base data and overlay, but coreVR.draw will set the data and then needs both locks --> potential deadlock?
-  base_data_lock = std::unique_lock<std::mutex>(mu, std::defer_lock);
+  overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock); //Could consider splitting these into a separate mutex for base data and overlay, but coreVR.draw will set the data and then needs both locks --> potential deadlock?
+  base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
 };
 
 IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
@@ -98,17 +98,20 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
   base_data_lock.unlock();
 
 }
-//NOTE: locks for VR not implemented yet.
+
 IGL_INLINE void igl::opengl::ViewerData::set_vertices(const Eigen::MatrixXd& _V)
 {
+  base_data_lock.lock();
   V = _V;
   assert(F.size() == 0 || F.maxCoeff() < V.rows());
   dirty |= MeshGL::DIRTY_POSITION;
+  base_data_lock.unlock();
 }
-//NOTE: locks for VR not implemented yet.
+
 IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
 {
   using namespace std;
+  base_data_lock.lock();
   if (N.rows() == V.rows())
   {
     set_face_based(false);
@@ -122,12 +125,14 @@ IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
   else
     cerr << "ERROR (set_normals): Please provide a normal per face, per corner or per vertex."<<endl;
   dirty |= MeshGL::DIRTY_NORMAL;
+  base_data_lock.unlock();
 }
-//NOTE: locks for VR not implemented yet.
+
 IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
 {
   using namespace std;
   using namespace Eigen;
+  base_data_lock.lock();
   if(C.rows()>0 && C.cols() == 1)
   {
     Eigen::MatrixXd C3;
@@ -201,12 +206,14 @@ IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
   else
     cerr << "ERROR (set_colors): Please provide a single color, or a color per face or per vertex."<<endl;
   dirty |= MeshGL::DIRTY_DIFFUSE;
-
+  base_data_lock.unlock();
 }
-//NOTE: locks for VR not implemented yet.
+
 IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV)
 {
   using namespace std;
+  base_data_lock.lock();
+
   if (UV.rows() == V.rows())
   {
     set_face_based(false);
@@ -215,40 +222,46 @@ IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV)
   else
     cerr << "ERROR (set_UV): Please provide uv per vertex."<<endl;;
   dirty |= MeshGL::DIRTY_UV;
+  base_data_lock.unlock();
 }
-//NOTE: locks for VR not implemented yet.
+
 IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV_V, const Eigen::MatrixXi& UV_F)
 {
+  base_data_lock.lock();
   set_face_based(true);
   V_uv = UV_V.block(0,0,UV_V.rows(),2);
   F_uv = UV_F;
   dirty |= MeshGL::DIRTY_UV;
+  base_data_lock.unlock();
 }
 
-//NOTE: locks for VR not implemented yet.
 IGL_INLINE void igl::opengl::ViewerData::set_texture(
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B)
 {
+  base_data_lock.lock();
   texture_R = R;
   texture_G = G;
   texture_B = B;
   texture_A = Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>::Constant(R.rows(),R.cols(),255);
   dirty |= MeshGL::DIRTY_TEXTURE;
+  base_data_lock.unlock();
 }
-//NOTE: locks for VR not implemented yet.
+
 IGL_INLINE void igl::opengl::ViewerData::set_texture(
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& R,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A)
 {
+  base_data_lock.lock();
   texture_R = R;
   texture_G = G;
   texture_B = B;
   texture_A = A;
   dirty |= MeshGL::DIRTY_TEXTURE;
+  base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_points(
@@ -626,6 +639,10 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
   {
     meshgl.init();
   }
+
+  std::lock(*overlay_lock.mutex(), *base_data_lock.mutex());
+  std::lock_guard<std::mutex> lock1(*overlay_lock.mutex(), std::adopt_lock);
+  std::lock_guard<std::mutex> lock2(*base_data_lock.mutex(), std::adopt_lock);
 
   bool per_corner_uv = (data.F_uv.rows() == data.F.rows());
   bool per_corner_normals = (data.F_normals.rows() == 3 * data.F.rows());

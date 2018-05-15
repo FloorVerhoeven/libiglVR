@@ -33,12 +33,16 @@ public:
   ViewerData();
 
   ViewerData& operator = (const ViewerData& other) {
-	  std::lock(mu, other.mu);
+	  overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
+	  base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
+
+	  std::lock(mu, other.mu, *overlay_lock.mutex(), *other.overlay_lock.mutex(), *base_data_lock.mutex(), *other.base_data_lock.mutex());
 	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
-	  //TODO: in case of deadlocks it is possible that all of these locks need to be locked simultaneously in the first line
-	  std::lock(overlay_lock, other.overlay_lock);
-	  std::lock(base_data_lock, other.base_data_lock);
+	  std::lock_guard<std::mutex> self_lock1(*overlay_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock1(*other.overlay_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::mutex> self_lock2(*base_data_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock2(*other.base_data_lock.mutex(), std::adopt_lock);
 
 	  V = other.V;
 	  F = other.F;
@@ -77,6 +81,8 @@ public:
 	  show_overlay = other.show_overlay;
 	  show_overlay_depth = other.show_overlay_depth;
 	  show_texture = other.show_texture;
+	  show_strokes = other.show_strokes;
+	  show_laser = other.show_laser;
 	  show_faces = other.show_faces;
 	  show_lines = other.show_lines;
 	  show_vertid = other.show_vertid;
@@ -85,6 +91,9 @@ public:
 
 	  point_size = other.point_size;
 	  line_width = other.line_width;
+	  overlay_line_width = other.overlay_line_width;
+	  stroke_line_width = other.stroke_line_width;
+	  laser_line_width = other.laser_line_width;
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
@@ -92,19 +101,23 @@ public:
 	  id = other.id;
 
 
-	  overlay_lock.unlock();
+	  /*overlay_lock.unlock();
 	  other.overlay_lock.unlock();
 	  base_data_lock.unlock();
-	  other.base_data_lock.unlock();
+	  other.base_data_lock.unlock();*/
   }
 
   ViewerData(const ViewerData& other) {
-	  std::lock(mu, other.mu);
+	  overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
+	  base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
+
+	  std::lock(mu, other.mu, *overlay_lock.mutex(), *other.overlay_lock.mutex(), *base_data_lock.mutex(), *other.base_data_lock.mutex());
 	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
-	  //TODO: in case of deadlocks it is possible that all of these locks need to be locked simultaneously in the first line
-	  std::lock(overlay_lock, other.overlay_lock);
-	  std::lock(base_data_lock, other.base_data_lock);
+	  std::lock_guard<std::mutex> self_lock1(*overlay_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock1(*other.overlay_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::mutex> self_lock2(*base_data_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock2(*other.base_data_lock.mutex(), std::adopt_lock);
 
 	  V = other.V;
 	  F = other.F;
@@ -143,6 +156,8 @@ public:
 	  show_overlay = other.show_overlay;
 	  show_overlay_depth = other.show_overlay_depth;
 	  show_texture = other.show_texture;
+	  show_strokes = other.show_strokes;
+	  show_laser = other.show_laser;
 	  show_faces = other.show_faces;
 	  show_lines = other.show_lines;
 	  show_vertid = other.show_vertid;
@@ -151,6 +166,9 @@ public:
 
 	  point_size = other.point_size;
 	  line_width = other.line_width;
+	  overlay_line_width = other.overlay_line_width;
+	  stroke_line_width = other.stroke_line_width;
+	  laser_line_width = other.laser_line_width;
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
@@ -158,10 +176,11 @@ public:
 	  id = other.id;
 
 
-	  overlay_lock.unlock();
+	  /*overlay_lock.unlock();
 	  other.overlay_lock.unlock();
 	  base_data_lock.unlock();
 	  other.base_data_lock.unlock();
+	  */
   }
 
   // Empty all fields
@@ -284,6 +303,8 @@ public:
 
 
   mutable std::mutex mu;
+  mutable std::mutex mu_overlay;
+  mutable std::mutex mu_base;
   mutable std::unique_lock<std::mutex> overlay_lock;
   mutable std::unique_lock<std::mutex> base_data_lock;
 
@@ -350,6 +371,8 @@ public:
   bool show_overlay;
   bool show_overlay_depth;
   bool show_texture;
+  bool show_strokes;
+  bool show_laser;
   bool show_faces;
   bool show_lines;
   bool show_vertid;
@@ -359,6 +382,9 @@ public:
   // Point size / line width
   float point_size;
   float line_width;
+  float overlay_line_width;
+  float stroke_line_width;
+  float laser_line_width;
   Eigen::Vector4f line_color;
 
   // Shape material
@@ -416,6 +442,8 @@ namespace igl
       SERIALIZE_MEMBER(face_based);
       SERIALIZE_MEMBER(show_faces);
       SERIALIZE_MEMBER(show_lines);
+	  SERIALIZE_MEMBER(show_strokes);
+	  SERIALIZE_MEMBER(show_laser);
       SERIALIZE_MEMBER(invert_normals);
       SERIALIZE_MEMBER(show_overlay);
       SERIALIZE_MEMBER(show_overlay_depth);
@@ -424,6 +452,9 @@ namespace igl
       SERIALIZE_MEMBER(show_texture);
       SERIALIZE_MEMBER(point_size);
       SERIALIZE_MEMBER(line_width);
+	  SERIALIZE_MEMBER(overlay_line_width);
+	  SERIALIZE_MEMBER(stroke_line_width);
+	  SERIALIZE_MEMBER(laser_line_width);
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);
       SERIALIZE_MEMBER(id);

@@ -101,6 +101,9 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
   using namespace std;
   using namespace Eigen;
 
+
+  glDepthRange(0.1, 100.0);
+  glEnable(GL_FRAMEBUFFER_SRGB);
   if (depth_test)
     glEnable(GL_DEPTH_TEST);
   else
@@ -261,6 +264,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
       glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
       glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
       glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+	  //glEnable(GL_POINT_SMOOTH);
       glPointSize(data.point_size);
 
       data.meshgl.draw_overlay_points();
@@ -318,7 +322,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			glEnable(GL_LINE_SMOOTH);
 			glLineWidth(data.laser_line_width);
 
-			meshgl.draw_laser();
+			data.meshgl.draw_laser();
 		}
 	}
 }

@@ -151,6 +151,7 @@ namespace glfw
       return EXIT_FAILURE;
     }
     glfwWindowHint(GLFW_SAMPLES, 8);
+	glfwWindowHint(GLFW_DEPTH_BITS, 24);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     #ifdef __APPLE__
@@ -212,7 +213,9 @@ namespace glfw
     highdpi = width/width_window;
     glfw_window_size(window,width_window,height_window);
     //opengl.init();
-    core.align_camera_center(data().V,data().F);
+    //core.align_camera_center(data().V,data().F); //TODO: this is disabled because it is highly disruptive in VR (moves the camera/zoom while user does not)
+	glClearColor(core.background_color[0], core.background_color[1], core.background_color[2], 1.0f);
+	glEnable(GL_DEPTH_TEST);
     // Initialize IGL viewer
     init();
     return EXIT_SUCCESS;
@@ -254,7 +257,7 @@ namespace glfw
   IGL_INLINE bool Viewer::launch_rendering_oculus() {
 	  bool finish_loop = false;
 	  while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
-		  oculusVR.handle_input(update_screen_while_computing); //TODO: these 2 need to send in as a reference, so that OculusVR can see the most recent updated value (will be set inside the main application)
+		  oculusVR.handle_input(update_screen_while_computing);
 		  
 		  if (callback_pre_draw)
 		  {
