@@ -267,20 +267,22 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	  //glEnable(GL_POINT_SMOOTH);
       glPointSize(data.point_size);
 
+		std::cout << "model, view, proj in core.draw for points:" << std::endl << model << std::endl << std::endl << view << std::endl << std::endl << proj << std::endl << std::endl;
       data.meshgl.draw_overlay_points();
     }
     
     if (data.hand_point.rows() > 0) {
 			data.meshgl.bind_hand_point();
-			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points,"model");
-			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points,"view");
-			proji = glGetUniformLocation(data.meshgl.shader_overlay_points,"proj");
+			modeli = glGetUniformLocation(data.meshgl.shader_hand_point,"model");
+			viewi = glGetUniformLocation(data.meshgl.shader_hand_point,"view");
+			proji = glGetUniformLocation(data.meshgl.shader_hand_point,"proj");
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 			//glEnable(GL_POINT_SMOOTH);
 			glPointSize(data.point_size);
+		std::cout << "model, view, proj in core.draw for hand_point:" << std::endl << model << std::endl << std::endl << view << std::endl << std::endl << proj << std::endl << std::endl;
 
 			data.meshgl.draw_hand_point();
 	}

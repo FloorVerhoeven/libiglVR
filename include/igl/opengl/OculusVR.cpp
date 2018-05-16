@@ -212,7 +212,6 @@ namespace igl {
 					Eigen::Matrix4f proj = to_Eigen(proj_tmp);
 
 					for (int i = 0; i < data_list.size(); i++) {
-						//TODO: need to set some vars/data before calling draw()?
 						core.draw(data_list[i], true, true, view, proj);
 					}
 
