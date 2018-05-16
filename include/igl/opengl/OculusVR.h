@@ -20,11 +20,12 @@ public:
 			IGL_INLINE void init();
 			IGL_INLINE bool init_VR_buffers(int window_width, int window_height);
 			IGL_INLINE void on_render_start();
-			IGL_INLINE void handle_input(std::atomic<bool>& update_screen_while_computing);
+			IGL_INLINE void handle_input(std::atomic<bool>& update_screen_while_computing, ViewerData& current_data);
 			IGL_INLINE void request_recenter();
 			IGL_INLINE void draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing);
 			IGL_INLINE void submit_frame();
 			IGL_INLINE void blit_mirror();
+			IGL_INLINE void navigate(ovrVector2f& thumb_pos, ViewerData& current_data);
 
 			IGL_INLINE int eyeTextureWidth();
 			IGL_INLINE int eyeTextureHeight();

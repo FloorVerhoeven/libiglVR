@@ -35,6 +35,8 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   laser_line_width(1.6f),
   line_color(0,0,0,1),
   shininess(35.0f),
+  mesh_trackball_angle(Eigen::Quaternionf::Identity()),
+  mesh_model_translation(Eigen::Vector3f::Zero()),
   id(-1)
 {
   clear();
@@ -51,6 +53,12 @@ IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
     face_based = newvalue;
     dirty = MeshGL::DIRTY_ALL;
   }
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_mesh_model_translation() {
+	Eigen::RowVector3d min_point = V.colwise().minCoeff();
+	Eigen::RowVector3d max_point = V.colwise().maxCoeff();
+	mesh_model_translation = -(0.5*(min_point + max_point)).eval().cast<float>();
 }
 
 // Helpers that draws the most common meshes
@@ -498,6 +506,8 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
   stroke_points			  = Eigen::MatrixXd (0,3);
   laser_points			  = Eigen::MatrixXd (0,3);
   hand_point			  = Eigen::MatrixXd (0,3);
+  mesh_trackball_angle	  = Eigen::Quaternionf::Identity();
+  mesh_model_translation  = Eigen::Vector3f::Zero();
   labels_strings.clear();
 
   face_based = false;

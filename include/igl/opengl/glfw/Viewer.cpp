@@ -257,7 +257,7 @@ namespace glfw
   IGL_INLINE bool Viewer::launch_rendering_oculus() {
 	  bool finish_loop = false;
 	  while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
-		  oculusVR.handle_input(update_screen_while_computing);
+		  oculusVR.handle_input(update_screen_while_computing, data_list[selected_data_index]);
 		  
 		  if (callback_pre_draw)
 		  {

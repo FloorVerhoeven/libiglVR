@@ -496,6 +496,9 @@ IGL_INLINE void igl::opengl::MeshGL::free()
     free(shader_mesh);
     free(shader_overlay_lines);
     free(shader_overlay_points);
+	free(shader_stroke_points);
+	free(shader_laser_points);
+	free(shader_hand_point);
     free_buffers();
   }
 }

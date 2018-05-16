@@ -132,7 +132,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		model = Eigen::Matrix4f::Identity();
 		// Set model transformation
 		float mat[16];
-		igl::quat_to_mat(trackball_angle.coeffs().data(), mat);
+		igl::quat_to_mat((data.mesh_trackball_angle*trackball_angle).coeffs().data(), mat); //TODO: here we multiply with a mesh-specific trackball_angle. Document this
 
 		for (unsigned i = 0; i < 4; ++i)
 			for (unsigned j = 0; j < 4; ++j)
@@ -141,7 +141,9 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		// Why not just use Eigen::Transform<double,3,Projective> for model...?
 		model.topLeftCorner(3, 3) *= camera_zoom;
 		model.topLeftCorner(3, 3) *= model_zoom;
-		model.col(3).head(3) += model.topLeftCorner(3, 3)*model_translation;
+		//model.col(3).head(3) += model.topLeftCorner(3, 3)*model_translation;
+		model.col(3).head(3) += model.topLeftCorner(3, 3)*data.mesh_model_translation; //TODO: document the fact that we here multiply with mesh-specific model_translation.
+		cout << "model matrix:" << endl << model << endl << endl;
 		lock2.unlock();
 
 		view = Eigen::Matrix4f::Identity();

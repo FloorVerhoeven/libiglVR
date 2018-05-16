@@ -13,6 +13,7 @@
 #include <cassert>
 #include <cstdint>
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 #include <memory>
 #include <vector>
 #include <mutex>
@@ -98,6 +99,9 @@ public:
 
 	  shininess = other.shininess;
 
+	  mesh_trackball_angle = other.mesh_trackball_angle;
+	  mesh_model_translation = other.mesh_model_translation;
+
 	  id = other.id;
   }
 
@@ -167,11 +171,16 @@ public:
 
 	  shininess = other.shininess;
 
+	  mesh_trackball_angle = other.mesh_trackball_angle;
+	  mesh_model_translation = other.mesh_model_translation;
+
 	  id = other.id;
   }
 
   // Empty all fields
   IGL_INLINE void clear();
+
+  IGL_INLINE void set_mesh_model_translation();
 
   // Change the visualization mode, invalidating the cache if necessary
   IGL_INLINE void set_face_based(bool newvalue);
@@ -377,6 +386,11 @@ public:
   // Shape material
   float shininess;
 
+  // Trackball rotator for the mesh
+  Eigen::Quaternionf mesh_trackball_angle;
+  Eigen::Vector3f mesh_model_translation;
+
+
   // Unique identifier
   int id;
 
@@ -444,10 +458,9 @@ namespace igl
 	  SERIALIZE_MEMBER(laser_line_width);
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);
+	  SERIALIZE_MEMBER(mesh_trackball_angle);
+	  SERIALIZE_MEMBER(mesh_model_translation);
       SERIALIZE_MEMBER(id);
-//	  SERIALIZE_MEMBER(mu);
-	//  SERIALIZE_MEMBER(overlay_lock);
-	  //SERIALIZE_MEMBER(base_data_lock);
     }
     template<>
     inline void serialize(const igl::opengl::ViewerData& obj, std::vector<char>& buffer)

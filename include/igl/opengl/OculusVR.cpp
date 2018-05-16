@@ -10,6 +10,7 @@
 #define FAIL(X) throw std::runtime_error(X)
 
 #include <igl/igl_inline.h>
+#include <igl/two_axis_valuator_fixed_up.h>
 #include <OVR_CAPI.h>
 #include <OVR_CAPI_GL.h>
 #include <Extras/OVR_CAPI_Util.h>
@@ -113,7 +114,7 @@ namespace igl {
 			ovr_GetEyePoses(session, frame, ovrTrue, HmdToEyePose, EyeRenderPose, &sensorSampleTime);
 		}
 
-		IGL_INLINE void OculusVR::handle_input(std::atomic<bool>& update_screen_while_computing) {
+		IGL_INLINE void OculusVR::handle_input(std::atomic<bool>& update_screen_while_computing, ViewerData& data) {
 			ovr_GetSessionStatus(session, &sessionStatus);
 			if (sessionStatus.ShouldRecenter) {
 				request_recenter();
@@ -153,7 +154,7 @@ namespace igl {
 					prev_press = TRIG;
 				}
 				else if (inputState.Thumbstick[ovrHand_Right].x > 0.1f || inputState.Thumbstick[ovrHand_Right].x < -0.1f || inputState.Thumbstick[ovrHand_Right].y > 0.1f || inputState.Thumbstick[ovrHand_Right].y < -0.1f) {
-					//navigate(inputState.Thumbstick[ovrHand_Right]);
+					navigate(inputState.Thumbstick[ovrHand_Right], data);
 				}
 				else if (inputState.HandTrigger[ovrHand_Right] <= 0.2f && inputState.IndexTrigger[ovrHand_Right] <= 0.2f && !(inputState.Buttons & ovrButton_A) && !(inputState.Buttons & ovrButton_B) && !(inputState.Buttons & ovrButton_X) && !(inputState.Buttons & ovrButton_Y)) {
 					count = (prev_press == NONE) ? count + 1 : 1;
@@ -180,7 +181,6 @@ namespace igl {
 				}
 			}
 		}
-
 
 		IGL_INLINE void OculusVR::draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing) {
 			do {
@@ -271,7 +271,6 @@ namespace igl {
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, eyeTextureSize.w, eyeTextureSize.h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
 		}
 
-
 		IGL_INLINE void OculusVR::OVR_buffer::OnRender() {
 			int currentIndex;
 			ovr_GetTextureSwapChainCurrentIndex(session, swapTextureChain, &currentIndex);
@@ -335,6 +334,13 @@ namespace igl {
 			eye_pos_lock.unlock();
 		}
 
+		IGL_INLINE void OculusVR::navigate(ovrVector2f& thumb_pos, ViewerData& data) {
+			data.set_mesh_model_translation();
+			std::cout << data.mesh_model_translation << std::endl << std::endl;
+			Eigen::Quaternionf old_rotation = data.mesh_trackball_angle;
+			igl::two_axis_valuator_fixed_up(2 * 1000, 2 * 1000, 0.2, old_rotation, 0, 0, thumb_pos.x * 1000, thumb_pos.y * 1000, data.mesh_trackball_angle); //Multiply width, heigth, x-pos and y-pos with 1000 because function takes ints
+		}
+
 		Eigen::Vector3f OculusVR::to_Eigen(OVR::Vector3f& vec) {
 			Eigen::Vector3f result;
 			result << vec[0], vec[1], vec[2];
@@ -352,6 +358,7 @@ namespace igl {
 		IGL_INLINE int OculusVR::eyeTextureWidth() {
 			return eye_buffers[0]->eyeTextureSize.w;
 		}
+	
 		IGL_INLINE int OculusVR::eyeTextureHeight() {
 			return eye_buffers[0]->eyeTextureSize.h;
 		}
