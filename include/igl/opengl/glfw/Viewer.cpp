@@ -369,7 +369,7 @@ namespace glfw
     scroll_position = 0.0f;
 
     // Per face
-    data().set_face_based(false);
+	data().set_face_based(false);
 
 	update_screen_while_computing = false;
 

@@ -150,6 +150,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_overlay_points()
 
   glBindVertexArray(vao_overlay_points);
   glUseProgram(shader_overlay_points);
+
  bind_vertex_attrib_array(shader_overlay_points,"position", vbo_points_V, points_V_vbo, is_dirty);
  bind_vertex_attrib_array(shader_overlay_points,"color", vbo_points_V_colors, points_V_colors_vbo, is_dirty);
 
@@ -197,7 +198,6 @@ IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 
 	glBindVertexArray(vao_hand_point);  
 	glUseProgram(shader_hand_point);
-
 	bind_vertex_attrib_array(shader_hand_point, "position", vbo_hand_point_V, hand_point_V_vbo, is_dirty);
 	bind_vertex_attrib_array(shader_hand_point,"color", vbo_hand_point_V_colors, hand_point_V_colors_vbo, is_dirty);
 
@@ -238,17 +238,17 @@ IGL_INLINE void igl::opengl::MeshGL::draw_overlay_points()
 
 IGL_INLINE void igl::opengl::MeshGL::draw_stroke()
 {
-	glDrawElements(GL_LINE_STRIP, stroke_points_F_vbo.cols(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_LINE_STRIP, stroke_points_F_vbo.rows(), GL_UNSIGNED_INT, 0);
 }
 
 IGL_INLINE void igl::opengl::MeshGL::draw_laser()
 {
-	glDrawElements(GL_LINE_STRIP, laser_points_F_vbo.cols(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_LINE_STRIP, laser_points_F_vbo.rows(), GL_UNSIGNED_INT, 0);
 }
 
 IGL_INLINE void igl::opengl::MeshGL::draw_hand_point()
 {
-	glDrawElements(GL_POINTS, hand_point_F_vbo.cols(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_POINTS, hand_point_F_vbo.rows(), GL_UNSIGNED_INT, 0);
 }
 
 IGL_INLINE void igl::opengl::MeshGL::init()
@@ -426,7 +426,7 @@ R"(#version 150
 	  }
 )";
 
- /* std::string hand_fragment_shader_string =
+  std::string hand_fragment_shader_string =
 	  R"(#version 150
 	  in vec3 color_frag;
 	  out vec4 outColor;
@@ -434,8 +434,8 @@ R"(#version 150
 	  {
 	    outColor = vec4(color_frag, 1.0);
 	  }
-)";*/
-  std::string hand_fragment_shader_string =
+)";
+ /* std::string hand_fragment_shader_string =
 	  R"(#version 150
   in vec3 color_frag;
   out vec4 outColor;
@@ -445,7 +445,7 @@ R"(#version 150
       discard;
     outColor = vec4(color_frag, 1.0);
   }
-)";
+)";*/
 
   init_buffers();
   create_shader_program(

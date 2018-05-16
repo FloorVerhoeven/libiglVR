@@ -355,7 +355,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd&
 	for (unsigned i = 0; i < LP_temp.rows(); ++i) {
 		laser_points.row(lastid + i) << LP_temp.row(i);
 	}
-	std::cout << "inside data:" << laser_points << " end" << std::endl << std::endl;
+
 	dirty |= MeshGL::DIRTY_LASER;
 	overlay_lock.unlock();
 }
@@ -497,6 +497,7 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
   labels_positions        = Eigen::MatrixXd (0,3);
   stroke_points			  = Eigen::MatrixXd (0,3);
   laser_points			  = Eigen::MatrixXd (0,3);
+  hand_point			  = Eigen::MatrixXd (0,3);
   labels_strings.clear();
 
   face_based = false;
@@ -870,30 +871,30 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 
   if (meshgl.dirty & MeshGL::DIRTY_STROKE)
   {
-	  meshgl.stroke_points_V_vbo.resize(3, data.stroke_points.rows());
-	  meshgl.stroke_points_F_vbo.resize(1, data.stroke_points.rows());
+	  meshgl.stroke_points_V_vbo.resize(data.stroke_points.rows(),3);
+	  meshgl.stroke_points_F_vbo.resize(data.stroke_points.rows(),1);
 	  for (unsigned i = 0; i < data.stroke_points.rows(); ++i) {
-		  meshgl.stroke_points_V_vbo.col(i) = data.stroke_points.block<1, 3>(i, 0).transpose().cast<float>();
+		  meshgl.stroke_points_V_vbo.row(i) = data.stroke_points.block<1, 3>(i, 0).transpose().cast<float>();
 		  meshgl.stroke_points_F_vbo(i) = i;
 	  }
   }
 
   if (meshgl.dirty & MeshGL::DIRTY_LASER) {
-	  meshgl.laser_points_V_vbo.resize(3, data.laser_points.rows());
-	  meshgl.laser_points_F_vbo.resize(1, data.laser_points.rows());
+	  meshgl.laser_points_V_vbo.resize(data.laser_points.rows(),3);
+	  meshgl.laser_points_F_vbo.resize(data.laser_points.rows(),1);
 	  for (unsigned i = 0; i < data.laser_points.rows(); ++i) {
-		  meshgl.laser_points_V_vbo.col(i) = data.laser_points.block<1, 3>(i, 0).transpose().cast<float>();
+		  meshgl.laser_points_V_vbo.row(i) = data.laser_points.block<1, 3>(i, 0).transpose().cast<float>();
 		  meshgl.laser_points_F_vbo(i) = i;
 	  }
   }
 
   if (meshgl.dirty & MeshGL::DIRTY_HAND_POINT) {
-	  meshgl.hand_point_V_vbo.resize(3, data.hand_point.rows());
-	  meshgl.hand_point_V_colors_vbo.resize(3, data.hand_point.rows());
-	  meshgl.hand_point_F_vbo.resize(1, data.hand_point.rows());
+	  meshgl.hand_point_V_vbo.resize(data.hand_point.rows(),3);
+	  meshgl.hand_point_V_colors_vbo.resize(data.hand_point.rows(),3);
+	  meshgl.hand_point_F_vbo.resize(data.hand_point.rows(),1);
 	  for (unsigned i = 0; i < data.hand_point.rows(); ++i) {
-		  meshgl.hand_point_V_vbo.col(i) = data.hand_point.block<1, 3>(i, 0).transpose().cast<float>();
-		  meshgl.hand_point_V_colors_vbo.col(i) = data.hand_point.block<1, 3>(i, 3).transpose().cast<float>();
+		  meshgl.hand_point_V_vbo.row(i) = data.hand_point.block<1, 3>(i, 0).transpose().cast<float>();
+		  meshgl.hand_point_V_colors_vbo.row(i) = data.hand_point.block<1, 3>(i, 3).transpose().cast<float>();
 		  meshgl.hand_point_F_vbo(i) = i;
 	  }
   }
