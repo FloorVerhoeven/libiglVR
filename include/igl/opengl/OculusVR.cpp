@@ -175,7 +175,6 @@ namespace igl {
 						callback_button_down(prev_press, hand_pos);
 					}
 
-
 					count = 3; //Avoid overflow
 					prev_sent = prev_press;
 				}
@@ -335,10 +334,15 @@ namespace igl {
 		}
 
 		IGL_INLINE void OculusVR::navigate(ovrVector2f& thumb_pos, ViewerData& data) {
+			Eigen::Quaternionf old_rotation = Eigen::Quaternionf::Identity();// data.mesh_trackball_angle;
 			data.set_mesh_model_translation();
-			std::cout << data.mesh_model_translation << std::endl << std::endl;
-			Eigen::Quaternionf old_rotation = data.mesh_trackball_angle;
+			data.set_mesh_translation();
 			igl::two_axis_valuator_fixed_up(2 * 1000, 2 * 1000, 0.2, old_rotation, 0, 0, thumb_pos.x * 1000, thumb_pos.y * 1000, data.mesh_trackball_angle); //Multiply width, heigth, x-pos and y-pos with 1000 because function takes ints
+			std::cout << "trackball angle" << std::endl << data.mesh_trackball_angle.coeffs() << std::endl << std::endl;
+			data.rotate(data.mesh_trackball_angle);
+			data.compute_normals();
+			callback_button_down(THUMB_MOVE, Eigen::Vector3f());
+			prev_sent = THUMB_MOVE;
 		}
 
 		Eigen::Vector3f OculusVR::to_Eigen(OVR::Vector3f& vec) {

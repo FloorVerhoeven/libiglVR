@@ -261,6 +261,7 @@ IGL_INLINE void igl::opengl::MeshGL::init()
   std::string mesh_vertex_shader_string =
 R"(#version 150
   uniform mat4 model;
+  //uniform mat4 model_trans;
   uniform mat4 view;
   uniform mat4 proj;
   in vec3 position;
@@ -278,8 +279,8 @@ R"(#version 150
 
   void main()
   {
-    position_eye = vec3 (view * model * vec4 (position, 1.0));
-    normal_eye = vec3 (view * model * vec4 (normal, 0.0));
+    position_eye = vec3 (view * model * vec4 (position, 1.0)); //TODO: document that model_trans was added here
+    normal_eye = vec3 (view * model * vec4 (normal, 0.0)); //TODO: document that model_trans was added here
     normal_eye = normalize(normal_eye);
     gl_Position = proj * vec4 (position_eye, 1.0); //proj * view * model * vec4(position, 1.0);
     Kai = Ka;
@@ -336,6 +337,7 @@ R"(#version 150
   std::string overlay_vertex_shader_string =
 R"(#version 150
   uniform mat4 model;
+ // uniform mat4 model_trans;
   uniform mat4 view;
   uniform mat4 proj;
   in vec3 position;
@@ -344,7 +346,7 @@ R"(#version 150
 
   void main()
   {
-    gl_Position = proj * view * model * vec4 (position, 1.0);
+    gl_Position = proj * view * model * vec4 (position, 1.0); //TODO: document that model_trans was added here
     color_frag = color;
   }
 )";
@@ -358,7 +360,7 @@ R"(#version 150
 
 	  void main()
 	  {
-	    gl_Position = proj * view * model * vec4 (position, 1.0);
+	    gl_Position = proj * view * model * vec4 (position, 1.0); //TODO: document that model_trans was added here
 	  }
 )";
 
@@ -371,7 +373,7 @@ R"(#version 150
 
 	  void main()
 	  {
-	    gl_Position = proj * view * model * vec4 (position, 1.0);
+	    gl_Position = proj * view * model * vec4 (position, 1.0); //TODO: document that model_trans was added here
 	  }
 )";
 

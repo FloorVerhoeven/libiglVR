@@ -48,7 +48,7 @@ public:
 			std::unique_lock<std::mutex> eye_pos_lock;
 			std::unique_lock<std::mutex> touch_dir_lock;
 
-			enum ButtonCombo { A, B, THUMB, TRIG, GRIP, GRIPTRIG, NONE };
+			enum ButtonCombo { A, B, THUMB, THUMB_MOVE, TRIG, GRIP, GRIPTRIG, NONE};
 
 			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos)> callback_button_down;
 

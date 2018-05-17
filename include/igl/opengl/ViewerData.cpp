@@ -12,6 +12,7 @@
 #include "../material_colors.h"
 #include "../parula.h"
 #include "../per_vertex_normals.h"
+#include "../quat_to_mat.h"
 
 #include <iostream>
 
@@ -36,7 +37,8 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   line_color(0,0,0,1),
   shininess(35.0f),
   mesh_trackball_angle(Eigen::Quaternionf::Identity()),
-  mesh_model_translation(Eigen::Vector3f::Zero()),
+  mesh_translation(Eigen::Vector3f::Zero()),
+  mesh_model_translation(Eigen::Matrix4f::Identity()),
   id(-1)
 {
   clear();
@@ -55,10 +57,14 @@ IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
   }
 }
 
-IGL_INLINE void igl::opengl::ViewerData::set_mesh_model_translation() {
+IGL_INLINE void igl::opengl::ViewerData::set_mesh_translation() {
 	Eigen::RowVector3d min_point = V.colwise().minCoeff();
 	Eigen::RowVector3d max_point = V.colwise().maxCoeff();
-	mesh_model_translation = -(0.5*(min_point + max_point)).eval().cast<float>();
+	mesh_translation = -(0.5*(min_point + max_point)).eval().cast<float>();
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_mesh_model_translation() {
+	mesh_model_translation.col(3).head(3) = -mesh_translation;
 }
 
 // Helpers that draws the most common meshes
@@ -507,7 +513,8 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
   laser_points			  = Eigen::MatrixXd (0,3);
   hand_point			  = Eigen::MatrixXd (0,3);
   mesh_trackball_angle	  = Eigen::Quaternionf::Identity();
-  mesh_model_translation  = Eigen::Vector3f::Zero();
+  mesh_translation  = Eigen::Vector3f::Zero();
+  mesh_model_translation  = Eigen::Matrix4f::Identity();
   labels_strings.clear();
 
   face_based = false;
@@ -908,4 +915,27 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 		  meshgl.hand_point_F_vbo(i) = i;
 	  }
   }
+}
+
+IGL_INLINE void igl::opengl::ViewerData::rotate(Eigen::Quaternionf trackball_rotation) { //Takes the trackball rotation as parameter to ensure it has been updated
+	std::lock(*overlay_lock.mutex(), *base_data_lock.mutex());
+	std::lock_guard<std::mutex> lock1(*overlay_lock.mutex(), std::adopt_lock);
+	std::lock_guard<std::mutex> lock2(*base_data_lock.mutex(), std::adopt_lock);
+
+	float mat[16];
+	igl::quat_to_mat((trackball_rotation).coeffs().data(), mat);
+	Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
+	for (unsigned i = 0; i < 4; ++i) {
+		for (unsigned j = 0; j < 4; ++j) {
+			rotation(i, j) = mat[i + 4 * j];
+		}
+	}
+	rotation.col(3).head(3) += rotation.topLeftCorner(3, 3)*mesh_translation;
+	Eigen::Matrix4f place_back = Eigen::Matrix4f::Identity();
+	place_back.col(3).head(3) = -mesh_translation;
+	Eigen::MatrixXd V_tmp(4, V.rows());
+	V_tmp.block(0, 0, 3, V.rows()) = V.transpose();
+	V_tmp.row(3) = Eigen::RowVectorXd::Constant(V.rows(),1);
+	V = ((place_back.cast<double>()*rotation.cast<double>()*V_tmp).topRows(3)).transpose();
+	dirty |= MeshGL::DIRTY_ALL;
 }

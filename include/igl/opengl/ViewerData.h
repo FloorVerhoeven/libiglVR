@@ -100,6 +100,7 @@ public:
 	  shininess = other.shininess;
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
+	  mesh_translation = other.mesh_translation;
 	  mesh_model_translation = other.mesh_model_translation;
 
 	  id = other.id;
@@ -172,6 +173,7 @@ public:
 	  shininess = other.shininess;
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
+	  mesh_translation = other.mesh_translation;
 	  mesh_model_translation = other.mesh_model_translation;
 
 	  id = other.id;
@@ -180,6 +182,9 @@ public:
   // Empty all fields
   IGL_INLINE void clear();
 
+  //Takes care of translating the mesh to the world origin so it can safely be rotated around its axes.
+  IGL_INLINE void set_mesh_translation();
+  // Takes care of moving the mesh back to its original position after temporarily translating it to the origin for rotation.
   IGL_INLINE void set_mesh_model_translation();
 
   // Change the visualization mode, invalidating the cache if necessary
@@ -297,6 +302,7 @@ public:
   // Generates a default grid texture
   IGL_INLINE void grid_texture();
 
+  IGL_INLINE void rotate(Eigen::Quaternionf trackball_rotation);
 
   mutable std::mutex mu;
   mutable std::mutex mu_overlay;
@@ -388,7 +394,8 @@ public:
 
   // Trackball rotator for the mesh
   Eigen::Quaternionf mesh_trackball_angle;
-  Eigen::Vector3f mesh_model_translation;
+  Eigen::Vector3f mesh_translation;
+  Eigen::Matrix4f mesh_model_translation;
 
 
   // Unique identifier
@@ -459,6 +466,7 @@ namespace igl
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);
 	  SERIALIZE_MEMBER(mesh_trackball_angle);
+	  SERIALIZE_MEMBER(mesh_translation);
 	  SERIALIZE_MEMBER(mesh_model_translation);
       SERIALIZE_MEMBER(id);
     }
