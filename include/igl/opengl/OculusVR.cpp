@@ -206,7 +206,7 @@ namespace igl {
 			}
 		}
 
-		IGL_INLINE void OculusVR::handle_avatar_messages(Viewer* viewer) {
+		IGL_INLINE void OculusVR::handle_avatar_messages(igl::opengl::glfw::Viewer* viewer) {
 			while (ovrAvatarMessage* message = ovrAvatarMessage_Pop()){
 				switch (ovrAvatarMessage_GetType(message)){
 					case ovrAvatarMessageType_AvatarSpecification:
@@ -463,7 +463,7 @@ namespace igl {
 			printf("Loading %d assets...\r\n", _loadingAssets);
 		}
 
-		IGL_INLINE void OculusVR::handle_asset_loaded(const ovrAvatarMessage_AssetLoaded* message, Viewer* viewer){
+		IGL_INLINE void OculusVR::handle_asset_loaded(const ovrAvatarMessage_AssetLoaded* message, igl::opengl::glfw::Viewer* viewer){
 			// Determine the type of the asset that got loaded
 			ovrAvatarAssetType assetType = ovrAvatarAsset_GetType(message->asset);
 			void* data = nullptr;
@@ -504,11 +504,11 @@ namespace igl {
 			printf("Loading %d assets...\r\n", _loadingAssets);
 		}
 
-		IGL_INLINE void OculusVR::loadMesh(const ovrAvatarMeshAssetData* data, Viewer* viewer){
+		IGL_INLINE void OculusVR::loadMesh(const ovrAvatarMeshAssetData* data, igl::opengl::glfw::Viewer* viewer){
 			std::cout << "Check if jointCount is every more than 0: " <<  data->skinnedBindPose.jointCount << std::endl;
 			//MeshData* mesh = new MeshData();
 			viewer->append_mesh();
-			viewer.data().
+			viewer->data();
 
 			// Create the vertex array and buffer
 			glGenVertexArrays(1, &mesh->vertexArray);
