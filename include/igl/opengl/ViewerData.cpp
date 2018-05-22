@@ -278,6 +278,14 @@ IGL_INLINE void igl::opengl::ViewerData::set_texture(
   base_data_lock.unlock();
 }
 
+
+IGL_INLINE void igl::opengl::ViewerData::set_avatar() {
+	base_data_lock.lock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
+
+	dirty |= MeshGL::DIRTY_AVATAR;
+	base_data_lock.unlock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
+}
+
 IGL_INLINE void igl::opengl::ViewerData::set_points(
   const Eigen::MatrixXd& P,
   const Eigen::MatrixXd& C)

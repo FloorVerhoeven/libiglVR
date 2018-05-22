@@ -189,11 +189,9 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 	// Send transformations to the GPU
 	GLint modeli = glGetUniformLocation(data.meshgl.shader_mesh, "model");
-	//GLint modeltransi = glGetUniformLocation(data.meshgl.shader_mesh, "model_trans");
 	GLint viewi = glGetUniformLocation(data.meshgl.shader_mesh, "view");
 	GLint proji = glGetUniformLocation(data.meshgl.shader_mesh, "proj");
 	glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-//	glUniformMatrix4fv(modeltransi, 1, GL_FALSE, data.mesh_model_translation.data());
 	glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 	glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 
@@ -245,12 +243,10 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		{
 			data.meshgl.bind_overlay_lines();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_lines, "model");
-			//modeltransi = glGetUniformLocation(data.meshgl.shader_overlay_lines, "model_trans");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_lines, "view");
 			proji = glGetUniformLocation(data.meshgl.shader_overlay_lines, "proj");
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-			//glUniformMatrix4fv(modeltransi, 1, GL_FALSE, data.mesh_model_translation.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 			// This must be enabled, otherwise glLineWidth has no effect
@@ -264,12 +260,10 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		{
 			data.meshgl.bind_overlay_points();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
-			//modeltransi = glGetUniformLocation(data.meshgl.shader_overlay_points, "model_trans");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
 			proji = glGetUniformLocation(data.meshgl.shader_overlay_points, "proj");
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-			//glUniformMatrix4fv(modeltransi, 1, GL_FALSE, data.mesh_model_translation.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 			//glEnable(GL_POINT_SMOOTH);
@@ -281,12 +275,10 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		if (data.hand_point.rows() > 0) {
 			data.meshgl.bind_hand_point();
 			modeli = glGetUniformLocation(data.meshgl.shader_hand_point, "model");
-			//modeltransi = glGetUniformLocation(data.meshgl.shader_hand_point, "model_trans");
 			viewi = glGetUniformLocation(data.meshgl.shader_hand_point, "view");
 			proji = glGetUniformLocation(data.meshgl.shader_hand_point, "proj");
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-			//glUniformMatrix4fv(modeltransi, 1, GL_FALSE, data.mesh_model_translation.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 			//glEnable(GL_POINT_SMOOTH);
@@ -302,12 +294,10 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		if (data.stroke_points.rows() > 0) {
 			data.meshgl.bind_stroke();
 			modeli = glGetUniformLocation(data.meshgl.shader_stroke_points, "model");
-		//	modeltransi = glGetUniformLocation(data.meshgl.shader_stroke_points, "model_trans");
 			viewi = glGetUniformLocation(data.meshgl.shader_stroke_points, "view");
 			proji = glGetUniformLocation(data.meshgl.shader_stroke_points, "proj");
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-			//glUniformMatrix4fv(modeltransi, 1, GL_FALSE, data.mesh_model_translation.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 			// This must be enabled, otherwise glLineWidth has no effect
@@ -322,14 +312,12 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		glEnable(GL_DEPTH_TEST);
 
 		if (data.laser_points.rows() > 0) {
-			data.meshgl.bind_laser();
+			data.meshgl.bind_laser();	
 			modeli = glGetUniformLocation(data.meshgl.shader_laser_points, "model");
-		//	modeltransi = glGetUniformLocation(data.meshgl.shader_laser_points, "model_trans");
 			viewi = glGetUniformLocation(data.meshgl.shader_laser_points, "view");
 			proji = glGetUniformLocation(data.meshgl.shader_laser_points, "proj");
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-			//glUniformMatrix4fv(modeltransi, 1, GL_FALSE, data.mesh_model_translation.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 			// This must be enabled, otherwise glLineWidth has no effect

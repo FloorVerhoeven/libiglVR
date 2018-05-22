@@ -12,9 +12,16 @@
 #include "ViewerData.h"
 #include <Eigen/Geometry>
 #include "Extras/OVR_Math.h"
+#include "igl/opengl/glfw/Viewer.h"
+
+#include <OVR_Avatar.h>
+#include <OVR_Platform.h>
 
 namespace igl{
 	namespace opengl{
+		namespace glfw {
+			class Viewer;
+		}
 		class OculusVR{
 public:
 			IGL_INLINE void init();
@@ -22,10 +29,17 @@ public:
 			IGL_INLINE void on_render_start();
 			IGL_INLINE void handle_input(std::atomic<bool>& update_screen_while_computing, ViewerData& current_data);
 			IGL_INLINE void request_recenter();
+			IGL_INLINE void handle_avatar_messages(igl::opengl::glfw::Viewer* viewer);
 			IGL_INLINE void draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing);
 			IGL_INLINE void submit_frame();
 			IGL_INLINE void blit_mirror();
+			IGL_INLINE void update_avatar();
+			IGL_INLINE void ovrAvatarTransform_from_OVR(const ovrVector3f& position, const ovrQuatf& orientation, ovrAvatarTransform* target);
+			IGL_INLINE void ovrAvatarHandInputState_from_OVR(const ovrAvatarTransform& transform, const ovrInputState& inputState, ovrHandType hand, ovrAvatarHandInputState* state);
+			IGL_INLINE void handle_avatar_specification(const ovrAvatarMessage_AvatarSpecification* message);
+			IGL_INLINE void handle_asset_loaded(const ovrAvatarMessage_AssetLoaded* message, igl::opengl::glfw::Viewer* viewer);
 			IGL_INLINE void navigate(ovrVector2f& thumb_pos, ViewerData& current_data);
+			IGL_INLINE void loadMesh(const ovrAvatarMeshAssetData* data, igl::opengl::glfw::Viewer* viewer);
 
 			IGL_INLINE int eyeTextureWidth();
 			IGL_INLINE int eyeTextureHeight();

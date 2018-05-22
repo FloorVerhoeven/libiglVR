@@ -142,7 +142,7 @@ namespace glfw
 	  launch_shut();
 	  return EXIT_SUCCESS;
   }
-
+  
   IGL_INLINE int  Viewer::launch_init(bool resizable,bool fullscreen)
   {
     glfwSetErrorCallback(glfw_error_callback);
@@ -257,6 +257,9 @@ namespace glfw
   IGL_INLINE bool Viewer::launch_rendering_oculus() {
 	  bool finish_loop = false;
 	  while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window)) {
+		  int cur_selected_data_index = selected_data_index;
+		  oculusVR.handle_avatar_messages(this); //Needs access to data_list in case extra assets get loaded
+		  selected_data_index = cur_selected_data_index; //Reset this to point to the main mesh
 		  oculusVR.handle_input(update_screen_while_computing, data_list[selected_data_index]);
 		  
 		  if (callback_pre_draw)

@@ -8,6 +8,7 @@
 #endif
 
 #define FAIL(X) throw std::runtime_error(X)
+#define MIRROR_SAMPLE_APP_ID "2094457250596307"
 
 #include <igl/igl_inline.h>
 #include <igl/two_axis_valuator_fixed_up.h>
@@ -34,12 +35,27 @@ namespace igl {
 		static double sensorSampleTime;
 		static GLuint _mirrorFbo{ 0 };
 
+		static ovrAvatar* _avatar;
+		static bool _combineMeshes = true;
+		static bool _waitingOnCombinedMesh = false;
+		static size_t _loadingAssets;
+		static ovrAvatarAssetID _avatarCombinedMeshAlpha = 0;
+		static ovrAvatarVector4f _avatarCombinedMeshAlphaOffset;
+		static std::map<ovrAvatarAssetID, void*> _assetMap;
+
+
+
+
 
 		IGL_INLINE void OculusVR::init() {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
 			touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
 			callback_button_down = nullptr;
 
+			// Initialize the OVR Platform module
+			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(MIRROR_SAMPLE_APP_ID))) {
+				FAIL("Failed to initialize the Oculus platform");
+			}
 
 			// Create OVR Session Object
 			if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
@@ -58,6 +74,15 @@ namespace igl {
 			if (!init_VR_buffers(windowSize.w, windowSize.h)) {
 				FAIL("Something went wrong when initializing VR buffers");
 			}
+
+			// Initialize the avatar module
+			ovrAvatar_Initialize(MIRROR_SAMPLE_APP_ID);
+			ovrID userID = ovr_GetLoggedInUserID();
+
+			auto requestSpec = ovrAvatarSpecificationRequest_Create(userID);
+			ovrAvatarSpecificationRequest_SetCombineMeshes(requestSpec, _combineMeshes);
+			ovrAvatar_RequestAvatarSpecificationFromSpecRequest(requestSpec);
+			ovrAvatarSpecificationRequest_Destroy(requestSpec);
 
 			ovr_SetTrackingOriginType(session, ovrTrackingOrigin_FloorLevel);
 			ovr_RecenterTrackingOrigin(session);
@@ -181,6 +206,20 @@ namespace igl {
 			}
 		}
 
+		IGL_INLINE void OculusVR::handle_avatar_messages(Viewer* viewer) {
+			while (ovrAvatarMessage* message = ovrAvatarMessage_Pop()){
+				switch (ovrAvatarMessage_GetType(message)){
+					case ovrAvatarMessageType_AvatarSpecification:
+						handle_avatar_specification(ovrAvatarMessage_GetAvatarSpecification(message));
+						break;
+					case ovrAvatarMessageType_AssetLoaded:
+						handle_asset_loaded(ovrAvatarMessage_GetAssetLoaded(message), viewer);
+						break;
+				}
+				ovrAvatarMessage_Free(message);
+			}
+		}
+
 		IGL_INLINE void OculusVR::draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing) {
 			do {
 				/*// Keyboard inputs to adjust player orientation
@@ -197,6 +236,10 @@ namespace igl {
 				if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)   Pos2 += OVR::Matrix4f::RotationY(Yaw).Transform(OVR::Vector3f(-0.05f, 0, 0));*/
 
 				on_render_start();
+				if (_avatar) {
+					update_avatar();
+				}
+
 				for (int eye = 0; eye < 2; eye++)
 				{
 					eye_buffers[eye]->OnRender();
@@ -324,6 +367,273 @@ namespace igl {
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		}
 
+		IGL_INLINE void OculusVR::update_avatar() {
+			// Convert the OVR inputs into Avatar SDK inputs
+			ovrInputState touchState;
+			ovr_GetInputState(session, ovrControllerType_Active, &touchState);
+			ovrTrackingState trackingState = ovr_GetTrackingState(session, 0.0, false);
+
+			ovrAvatarTransform hmd;
+			ovrAvatarTransform_from_OVR(trackingState.HeadPose.ThePose.Position, trackingState.HeadPose.ThePose.Orientation, &hmd);
+
+			ovrAvatarTransform left;
+			ovrAvatarTransform_from_OVR(trackingState.HandPoses[ovrHand_Left].ThePose.Position, trackingState.HandPoses[ovrHand_Left].ThePose.Orientation, &left);
+
+			ovrAvatarTransform right;
+			ovrAvatarTransform_from_OVR(trackingState.HandPoses[ovrHand_Right].ThePose.Position, trackingState.HandPoses[ovrHand_Right].ThePose.Orientation, &right);
+
+			ovrAvatarHandInputState inputStateLeft;
+			ovrAvatarHandInputState_from_OVR(left, touchState, ovrHand_Left, &inputStateLeft);
+
+			ovrAvatarHandInputState inputStateRight;
+			ovrAvatarHandInputState_from_OVR(right, touchState, ovrHand_Right, &inputStateRight);
+
+			// Update the avatar pose from the inputs
+			ovrAvatarPose_UpdateBody(_avatar, hmd);
+			ovrAvatarPose_UpdateHands(_avatar, inputStateLeft, inputStateRight);
+			ovrAvatarPose_Finalize(_avatar, 0.0f); //TODO: might need to set deltaseconds here
+		}
+
+		IGL_INLINE void OculusVR::ovrAvatarTransform_from_OVR(const ovrVector3f& position, const ovrQuatf& orientation, ovrAvatarTransform* target) {
+			target->position.x = position.x;
+			target->position.y = position.y;
+			target->position.z = position.z;
+			target->orientation.x = orientation.x;
+			target->orientation.y = orientation.y;
+			target->orientation.z = orientation.z;
+			target->orientation.w = orientation.w;
+			target->scale.x = 1.0f; //Scale is fixed at 1
+			target->scale.y = 1.0f;
+			target->scale.z = 1.0f;
+		}
+
+		IGL_INLINE void OculusVR::ovrAvatarHandInputState_from_OVR(const ovrAvatarTransform& transform, const ovrInputState& inputState, ovrHandType hand, ovrAvatarHandInputState* state)
+		{
+			state->transform = transform;
+			state->buttonMask = 0;
+			state->touchMask = 0;
+			state->joystickX = inputState.Thumbstick[hand].x;
+			state->joystickY = inputState.Thumbstick[hand].y;
+			state->indexTrigger = inputState.IndexTrigger[hand];
+			state->handTrigger = inputState.HandTrigger[hand];
+			state->isActive = false;
+			if (hand == ovrHand_Left)
+			{
+				if (inputState.Buttons & ovrButton_X) state->buttonMask |= ovrAvatarButton_One;
+				if (inputState.Buttons & ovrButton_Y) state->buttonMask |= ovrAvatarButton_Two;
+				if (inputState.Buttons & ovrButton_Enter) state->buttonMask |= ovrAvatarButton_Three;
+				if (inputState.Buttons & ovrButton_LThumb) state->buttonMask |= ovrAvatarButton_Joystick;
+				if (inputState.Touches & ovrTouch_X) state->touchMask |= ovrAvatarTouch_One;
+				if (inputState.Touches & ovrTouch_Y) state->touchMask |= ovrAvatarTouch_Two;
+				if (inputState.Touches & ovrTouch_LThumb) state->touchMask |= ovrAvatarTouch_Joystick;
+				if (inputState.Touches & ovrTouch_LThumbRest) state->touchMask |= ovrAvatarTouch_ThumbRest;
+				if (inputState.Touches & ovrTouch_LIndexTrigger) state->touchMask |= ovrAvatarTouch_Index;
+				if (inputState.Touches & ovrTouch_LIndexPointing) state->touchMask |= ovrAvatarTouch_Pointing;
+				if (inputState.Touches & ovrTouch_LThumbUp) state->touchMask |= ovrAvatarTouch_ThumbUp;
+				state->isActive = (inputState.ControllerType & ovrControllerType_LTouch) != 0;
+			}
+			else if (hand == ovrHand_Right)
+			{
+				if (inputState.Buttons & ovrButton_A) state->buttonMask |= ovrAvatarButton_One;
+				if (inputState.Buttons & ovrButton_B) state->buttonMask |= ovrAvatarButton_Two;
+				if (inputState.Buttons & ovrButton_Home) state->buttonMask |= ovrAvatarButton_Three;
+				if (inputState.Buttons & ovrButton_RThumb) state->buttonMask |= ovrAvatarButton_Joystick;
+				if (inputState.Touches & ovrTouch_A) state->touchMask |= ovrAvatarTouch_One;
+				if (inputState.Touches & ovrTouch_B) state->touchMask |= ovrAvatarTouch_Two;
+				if (inputState.Touches & ovrTouch_RThumb) state->touchMask |= ovrAvatarTouch_Joystick;
+				if (inputState.Touches & ovrTouch_RThumbRest) state->touchMask |= ovrAvatarTouch_ThumbRest;
+				if (inputState.Touches & ovrTouch_RIndexTrigger) state->touchMask |= ovrAvatarTouch_Index;
+				if (inputState.Touches & ovrTouch_RIndexPointing) state->touchMask |= ovrAvatarTouch_Pointing;
+				if (inputState.Touches & ovrTouch_RThumbUp) state->touchMask |= ovrAvatarTouch_ThumbUp;
+				state->isActive = (inputState.ControllerType & ovrControllerType_RTouch) != 0;
+			}
+		}
+
+		IGL_INLINE void OculusVR::handle_avatar_specification(const ovrAvatarMessage_AvatarSpecification* message){
+			// Create the avatar instance
+			_avatar = ovrAvatar_Create(message->avatarSpec, ovrAvatarCapability_Hands);
+
+			// Trigger load operations for all of the assets referenced by the avatar
+			uint32_t refCount = ovrAvatar_GetReferencedAssetCount(_avatar);
+			for (uint32_t i = 0; i < refCount; ++i){
+				ovrAvatarAssetID id = ovrAvatar_GetReferencedAsset(_avatar, i);
+				ovrAvatarAsset_BeginLoading(id);
+				++_loadingAssets;
+			}
+			printf("Loading %d assets...\r\n", _loadingAssets);
+		}
+
+		IGL_INLINE void OculusVR::handle_asset_loaded(const ovrAvatarMessage_AssetLoaded* message, Viewer* viewer){
+			// Determine the type of the asset that got loaded
+			ovrAvatarAssetType assetType = ovrAvatarAsset_GetType(message->asset);
+			void* data = nullptr;
+
+			// Call the appropriate loader function
+			switch (assetType){
+			case ovrAvatarAssetType_Mesh:
+				std::cout << "Mesh" << std::endl;
+				loadMesh(ovrAvatarAsset_GetMeshData(message->asset), viewer);
+				break;
+			case ovrAvatarAssetType_Texture:
+				std::cout << "texture" << std::endl;
+
+				//data = _loadTexture(ovrAvatarAsset_GetTextureData(message->asset));
+				break;
+			case ovrAvatarAssetType_CombinedMesh:
+				std::cout << "CombinedMesh" << std::endl;
+				//data = _loadCombinedMesh(ovrAvatarAsset_GetCombinedMeshData(message->asset));
+				break;
+			default:
+				break;
+			}
+
+			// Store the data that we loaded for the asset in the asset map
+			_assetMap[message->assetID] = data;
+
+			if (assetType == ovrAvatarAssetType_CombinedMesh){
+				std::cout << "unexpectedly encountered a CombinedMesh type. These do not work yet. " << std::endl;
+			//	uint32_t idCount = 0;
+				//ovrAvatarAsset_GetCombinedMeshIDs(message->asset, &idCount);
+				//_loadingAssets -= idCount;
+				//ovrAvatar_GetCombinedMeshAlphaData(_avatar, &_avatarCombinedMeshAlpha, &_avatarCombinedMeshAlphaOffset);
+			}
+			else{
+				--_loadingAssets;
+			}
+
+			printf("Loading %d assets...\r\n", _loadingAssets);
+		}
+
+		IGL_INLINE void OculusVR::loadMesh(const ovrAvatarMeshAssetData* data, Viewer* viewer){
+			std::cout << "Check if jointCount is every more than 0: " <<  data->skinnedBindPose.jointCount << std::endl;
+			//MeshData* mesh = new MeshData();
+			viewer->append_mesh();
+			viewer.data().
+
+			// Create the vertex array and buffer
+			glGenVertexArrays(1, &mesh->vertexArray);
+			glGenBuffers(1, &mesh->vertexBuffer);
+			glGenBuffers(1, &mesh->elementBuffer);
+
+			// Bind the vertex buffer and assign the vertex data	
+			glBindVertexArray(mesh->vertexArray);
+
+			glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer);
+			glBufferData(GL_ARRAY_BUFFER, data->vertexCount * sizeof(ovrAvatarMeshVertex), data->vertexBuffer, GL_STATIC_DRAW);
+
+			// Bind the index buffer and assign the index data
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->elementBuffer);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->indexCount * sizeof(GLushort), data->indexBuffer, GL_STATIC_DRAW);
+			mesh->elementCount = data->indexCount;
+
+			// Fill in the array attributes
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->x);
+			glEnableVertexAttribArray(0);
+			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->nx);
+			glEnableVertexAttribArray(1);
+			glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->tx);
+			glEnableVertexAttribArray(2);
+			glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->u);
+			glEnableVertexAttribArray(3);
+			glVertexAttribPointer(4, 4, GL_BYTE, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->blendIndices);
+			glEnableVertexAttribArray(4);
+			glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->blendWeights);
+			glEnableVertexAttribArray(5);
+
+			// Clean up
+			glBindVertexArray(0);
+
+			// Translate the bind pose
+			_computeWorldPose(data->skinnedBindPose, mesh->bindPose);
+			for (uint32_t i = 0; i < data->skinnedBindPose.jointCount; ++i)
+			{
+				mesh->inverseBindPose[i] = glm::inverse(mesh->bindPose[i]);
+			}
+			
+		}
+
+		/*static TextureData* _loadTexture(const ovrAvatarTextureAssetData* data)
+		{
+			// Create a texture
+			TextureData* texture = new TextureData();
+			glGenTextures(1, &texture->textureID);
+			glBindTexture(GL_TEXTURE_2D, texture->textureID);
+
+			// Load the image data
+			switch (data->format)
+			{
+				// Handle uncompressed image data
+			case ovrAvatarTextureFormat_RGB24:
+				for (uint32_t level = 0, offset = 0, width = data->sizeX, height = data->sizeY; level < data->mipCount; ++level)
+				{
+					glTexImage2D(GL_TEXTURE_2D, level, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data->textureData + offset);
+					offset += width * height * 3;
+					width /= 2;
+					height /= 2;
+				}
+				break;
+
+				// Handle compressed image data
+			case ovrAvatarTextureFormat_DXT1:
+			case ovrAvatarTextureFormat_DXT5:
+			{
+				GLenum glFormat;
+				int blockSize;
+				if (data->format == ovrAvatarTextureFormat_DXT1)
+				{
+					blockSize = 8;
+					glFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+				}
+				else
+				{
+					blockSize = 16;
+					glFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+				}
+
+				for (uint32_t level = 0, offset = 0, width = data->sizeX, height = data->sizeY; level < data->mipCount; ++level)
+				{
+					GLsizei levelSize = (width < 4 || height < 4) ? blockSize : blockSize * (width / 4) * (height / 4);
+					glCompressedTexImage2D(GL_TEXTURE_2D, level, glFormat, width, height, 0, levelSize, data->textureData + offset);
+					offset += levelSize;
+					width /= 2;
+					height /= 2;
+				}
+				break;
+			}
+
+			// Handle ASTC data
+			case ovrAvatarTextureFormat_ASTC_RGB_6x6_MIPMAPS:
+			{
+				const unsigned char * level = (const unsigned char*)data->textureData;
+
+				unsigned int w = data->sizeX;
+				unsigned int h = data->sizeY;
+				for (unsigned int i = 0; i < data->mipCount; i++)
+				{
+					int32_t blocksWide = (w + 5) / 6;
+					int32_t blocksHigh = (h + 5) / 6;
+					int32_t mipSize = 16 * blocksWide * blocksHigh;
+
+					glCompressedTexImage2D(GL_TEXTURE_2D, i, GL_COMPRESSED_RGBA_ASTC_6x6_KHR, w, h, 0, mipSize, level);
+
+					level += mipSize;
+
+					w >>= 1;
+					h >>= 1;
+					if (w < 1) { w = 1; }
+					if (h < 1) { h = 1; }
+				}
+				break;
+			}
+
+			}
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			return texture;
+		}
+		*/
 		IGL_INLINE void OculusVR::request_recenter() {
 			ovr_RecenterTrackingOrigin(session);
 			on_render_start();

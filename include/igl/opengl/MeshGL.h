@@ -42,7 +42,8 @@ public:
     DIRTY_ALL            = 0x03FF,
 	DIRTY_STROKE		 = 0x0800,
 	DIRTY_LASER			 = 0x1000,
-	DIRTY_HAND_POINT	 = 0x2000
+	DIRTY_HAND_POINT	 = 0x2000,
+	DIRTY_AVATAR		 = 0x4000
   };
 
   bool is_initialized = false;
@@ -52,6 +53,7 @@ public:
   GLuint vao_stroke_points;
   GLuint vao_laser_points;
   GLuint vao_hand_point;
+  GLuint vao_avatar;
 
   GLuint shader_mesh;
   GLuint shader_overlay_lines;
@@ -59,6 +61,7 @@ public:
   GLuint shader_stroke_points;
   GLuint shader_laser_points;
   GLuint shader_hand_point;
+  GLuint shader_avatar;
 
   GLuint vbo_V; // Vertices of the current mesh (#V x 3)
   GLuint vbo_V_uv; // UV coordinates for the current mesh (#V x 2)
@@ -83,6 +86,8 @@ public:
   GLuint vbo_hand_point_F;
   GLuint vbo_hand_point_V;
   GLuint vbo_hand_point_V_colors;
+  GLuint vbo_avatar_F;
+  GLuint vbo_avatar_V;
 
 
   // Temporary copy of the content of each VBO
@@ -102,6 +107,8 @@ public:
   RowMatrixXf laser_points_V_vbo;
   RowMatrixXf hand_point_V_vbo;
   RowMatrixXf hand_point_V_colors_vbo;
+  RowMatrixXf avatar_V_vbo;
+
 
   int tex_u;
   int tex_v;
@@ -113,6 +120,8 @@ public:
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> stroke_points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> laser_points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> hand_point_F_vbo;
+  Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> avatar_F_vbo;
+
 
   // Marks dirty buffers that need to be uploaded to OpenGL
   uint32_t dirty;
@@ -161,6 +170,8 @@ public:
 
   /// Draw the currently buffered overlay hand marker
   IGL_INLINE void draw_hand_point();
+
+  IGL_INLINE void bind_avatar();
 
   // Release the OpenGL buffer objects
   IGL_INLINE void free_buffers();

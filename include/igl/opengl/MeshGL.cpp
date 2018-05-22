@@ -59,6 +59,13 @@ IGL_INLINE void igl::opengl::MeshGL::init_buffers()
   glGenBuffers(1, &vbo_hand_point_V);
   glGenBuffers(1, &vbo_hand_point_V_colors);
 
+  // Avatar overlay
+  glGenVertexArrays(1, &vao_avatar);
+  glBindVertexArray(vao_avatar);
+  glGenBuffers(1, &vbo_avatar_F);
+  glGenBuffers(1, &vbo_avatar_V);
+
+
   dirty = MeshGL::DIRTY_ALL;
 }
 
@@ -72,6 +79,7 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteVertexArrays(1, &vao_stroke_points);
 	glDeleteVertexArrays(1, &vao_laser_points);
 	glDeleteVertexArrays(1, &vao_hand_point);
+	glDeleteVertexArrays(1, &vao_avatar);
 
     glDeleteBuffers(1, &vbo_V);
     glDeleteBuffers(1, &vbo_V_normals);
@@ -93,6 +101,9 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteBuffers(1, &vbo_hand_point_F);
 	glDeleteBuffers(1, &vbo_hand_point_V);
 	glDeleteBuffers(1, &vbo_hand_point_V_colors);
+	glDeleteBuffers(1, &vbo_avatar_F);
+	glDeleteBuffers(1, &vbo_avatar_V);
+
 
     glDeleteTextures(1, &vbo_tex);
   }
@@ -208,6 +219,21 @@ IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 	}
 
 	dirty &= ~MeshGL::DIRTY_HAND_POINT;
+}
+
+IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
+	bool is_dirty = dirty & MeshGL::DIRTY_AVATAR;
+	glBindVertexArray(vao_avatar);
+	glUseProgram(shader_avatar);
+	bind_vertex_attrib_array(shader_avatar, "position", vbo_avatar_V, avatar_V_vbo, is_dirty);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_avatar_F);
+
+	if (is_dirty) {
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*avatar_F_vbo.size(), avatar_F_vbo.data(), GL_DYNAMIC_DRAW);
+	}
+
+	dirty &= ~MeshGL::DIRTY_AVATAR;
 }
 
 IGL_INLINE void igl::opengl::MeshGL::draw_mesh(bool solid)
@@ -501,6 +527,7 @@ IGL_INLINE void igl::opengl::MeshGL::free()
 	free(shader_stroke_points);
 	free(shader_laser_points);
 	free(shader_hand_point);
+	free(shader_avatar);
     free_buffers();
   }
 }
