@@ -43,8 +43,6 @@ namespace igl {
 		static ovrAvatarAssetID _avatarCombinedMeshAlpha = 0;
 		static ovrAvatarVector4f _avatarCombinedMeshAlphaOffset;
 		static std::map<ovrAvatarAssetID, void*> _assetMap;
-		//static igl::opengl::glfw::Viewer test;
-
 
 
 
@@ -52,7 +50,6 @@ namespace igl {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
 			touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
 			callback_button_down = nullptr;
-			std::cout << "here" << std::endl;
 			// Initialize the OVR Platform module
 			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(MIRROR_SAMPLE_APP_ID))) {
 				FAIL("Failed to initialize the Oculus platform");
@@ -254,7 +251,7 @@ namespace igl {
 					OVR::Matrix4f proj_tmp = ovrMatrix4f_Projection(hmdDesc.DefaultEyeFov[eye], 0.01f, 1000.0f, (ovrProjection_ClipRangeOpenGL));
 					Eigen::Matrix4f proj = to_Eigen(proj_tmp);
 
-					for (int i = 0; i < data_list.size(); i++) {
+					for (int i = 0; i < data_list.size(); i++) { //TODO: this currently also goes over the avatar parts but doesn't draw them (it does bind them though...)
 						core.draw(data_list[i], true, true, view, proj);
 					}
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
@@ -675,8 +672,8 @@ namespace igl {
 				const bool useCombinedMeshProgram = _combineMeshes && bodyComponent == component;
 
 				// Compute the transform for this component
-			//	glm::mat4 world;
-		//		_glmFromOvrAvatarTransform(component->transform, &world);
+				Eigen::Matrix4f world;
+				EigenFromOvrAvatarTransform(component->transform, world);
 
 				// Render each render part attached to the component
 				for (uint32_t j = 0; j < component->renderPartCount; ++j)
@@ -687,7 +684,7 @@ namespace igl {
 					{
 					case ovrAvatarRenderPartType_SkinnedMeshRender:
 						std::cout << "First renderer" << std::endl;
-				//		_renderSkinnedMeshPart(useCombinedMeshProgram ? _combinedMeshProgram : _skinnedMeshProgram, ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
+						_renderSkinnedMeshPart(useCombinedMeshProgram ? _combinedMeshProgram : _skinnedMeshProgram, ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
 						break;
 					case ovrAvatarRenderPartType_SkinnedMeshRenderPBS:
 						std::cout << "second renderer" << std::endl;
@@ -702,6 +699,163 @@ namespace igl {
 					}
 				}
 			}
+		}
+
+		IGL_INLINE void OculusVR::_renderSkinnedMeshPart(GLuint shader, const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const glm::mat4 proj, const Eigen::Vector3f& viewPos, bool renderJoints)
+		{
+			// If this part isn't visible from the viewpoint we're rendering from, do nothing
+			if ((mesh->visibilityMask & visibilityMask) == 0)
+			{
+				return;
+			}
+
+			// Get the GL mesh data for this mesh's asset
+			MeshData* data = (MeshData*)_assetMap[mesh->meshAssetID];
+
+			glUseProgram(shader);
+
+			// Apply the vertex state
+			_setMeshState(shader, mesh->localTransform, data, mesh->skinnedPose, world, view, proj, viewPos);
+
+			// Apply the material state
+			_setMaterialState(shader, &mesh->materialState, nullptr);
+
+			// Draw the mesh
+			glBindVertexArray(data->vertexArray);
+			glDepthFunc(GL_LESS);
+
+			// Write to depth first for self-occlusion
+			if (mesh->visibilityMask & ovrAvatarVisibilityFlag_SelfOccluding)
+			{
+				glDepthMask(GL_TRUE);
+				glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+				glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
+				glDepthFunc(GL_EQUAL);
+			}
+
+			// Render to color buffer
+			glDepthMask(GL_FALSE);
+			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
+			glBindVertexArray(0);
+
+			if (renderJoints)
+			{
+				glm::mat4 local;
+				_glmFromOvrAvatarTransform(mesh->localTransform, &local);
+				glDepthFunc(GL_ALWAYS);
+				_renderPose(proj * view * world * local, mesh->skinnedPose);
+			}
+		}
+
+		IGL_INLINE void OculusVR::_setMeshState(
+			GLuint program,
+			const ovrAvatarTransform& localTransform,
+			const MeshData* data,
+			const ovrAvatarSkinnedMeshPose& skinnedPose,
+			const Eigen::Matrix4f& world,
+			const Eigen::Matrix4f& view,
+			const Eigen::Matrix4f proj,
+			const Eigen::Vector3f& viewPos
+		) {
+			// Compute the final world and viewProjection matrices for this part
+			Eigen::Matrix4f local;
+			_glmFromOvrAvatarTransform(localTransform, local);
+			Eigen::Matrix4f worldMat = world * local;
+			Eigen::Matrix4f viewProjMat = proj * view;
+
+			// Compute the skinned pose
+			std::vector<Eigen::Matrix4f> skinnedPoses;
+			skinnedPoses.resize(skinnedPose.jointCount);
+			_computeWorldPose(skinnedPose, skinnedPoses);
+			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i)
+			{
+				skinnedPoses[i] = skinnedPoses[i] * data->inverseBindPose[i];
+			}
+
+			// Pass the world view position to the shader for view-dependent rendering
+			glUniform3fv(glGetUniformLocation(program, "viewPos"), 1, viewPos.data());
+
+			// Assign the vertex uniforms
+			glUniformMatrix4fv(glGetUniformLocation(program, "world"), 1, 0, worldMat.data());
+			glUniformMatrix4fv(glGetUniformLocation(program, "viewProj"), 1, 0, viewProjMat.data());
+			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, skinnedPoses[0].data()); //TODO: not sure if last param is correct
+		}
+
+		IGL_INLINE void OculusVR::void _setMaterialState(GLuint program, const ovrAvatarMaterialState* state, glm::mat4* projectorInv)
+		{
+			// Assign the fragment uniforms
+			glUniform1i(glGetUniformLocation(program, "useAlpha"), state->alphaMaskTextureID != 0);
+			glUniform1i(glGetUniformLocation(program, "useNormalMap"), state->normalMapTextureID != 0);
+			glUniform1i(glGetUniformLocation(program, "useRoughnessMap"), state->roughnessMapTextureID != 0);
+
+			glUniform1f(glGetUniformLocation(program, "elapsedSeconds"), _elapsedSeconds);
+
+			if (projectorInv)
+			{
+				glUniform1i(glGetUniformLocation(program, "useProjector"), 1);
+				glUniformMatrix4fv(glGetUniformLocation(program, "projectorInv"), 1, 0, glm::value_ptr(*projectorInv));
+			}
+			else
+			{
+				glUniform1i(glGetUniformLocation(program, "useProjector"), 0);
+			}
+
+			int textureSlot = 1;
+			glUniform4fv(glGetUniformLocation(program, "baseColor"), 1, &state->baseColor.x);
+			glUniform1i(glGetUniformLocation(program, "baseMaskType"), state->baseMaskType);
+			glUniform4fv(glGetUniformLocation(program, "baseMaskParameters"), 1, &state->baseMaskParameters.x);
+			glUniform4fv(glGetUniformLocation(program, "baseMaskAxis"), 1, &state->baseMaskAxis.x);
+			_setTextureSampler(program, textureSlot++, "alphaMask", state->alphaMaskTextureID);
+			glUniform4fv(glGetUniformLocation(program, "alphaMaskScaleOffset"), 1, &state->alphaMaskScaleOffset.x);
+			_setTextureSampler(program, textureSlot++, "clothingAlpha", _avatarCombinedMeshAlpha);
+			glUniform4fv(glGetUniformLocation(program, "clothingAlphaScaleOffset"), 1, &_avatarCombinedMeshAlphaOffset.x);
+			_setTextureSampler(program, textureSlot++, "normalMap", state->normalMapTextureID);
+			glUniform4fv(glGetUniformLocation(program, "normalMapScaleOffset"), 1, &state->normalMapScaleOffset.x);
+			_setTextureSampler(program, textureSlot++, "parallaxMap", state->parallaxMapTextureID);
+			glUniform4fv(glGetUniformLocation(program, "parallaxMapScaleOffset"), 1, &state->parallaxMapScaleOffset.x);
+			_setTextureSampler(program, textureSlot++, "roughnessMap", state->roughnessMapTextureID);
+			glUniform4fv(glGetUniformLocation(program, "roughnessMapScaleOffset"), 1, &state->roughnessMapScaleOffset.x);
+
+			struct LayerUniforms {
+				int layerSamplerModes[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				int layerBlendModes[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				int layerMaskTypes[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				ovrAvatarVector4f layerColors[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				int layerSurfaces[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				ovrAvatarAssetID layerSurfaceIDs[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				ovrAvatarVector4f layerSurfaceScaleOffsets[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				ovrAvatarVector4f layerSampleParameters[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				ovrAvatarVector4f layerMaskParameters[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+				ovrAvatarVector4f layerMaskAxes[OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT];
+			} layerUniforms;
+			memset(&layerUniforms, 0, sizeof(layerUniforms));
+			for (uint32_t i = 0; i < state->layerCount; ++i)
+			{
+				const ovrAvatarMaterialLayerState& layerState = state->layers[i];
+				layerUniforms.layerSamplerModes[i] = layerState.sampleMode;
+				layerUniforms.layerBlendModes[i] = layerState.blendMode;
+				layerUniforms.layerMaskTypes[i] = layerState.maskType;
+				layerUniforms.layerColors[i] = layerState.layerColor;
+				layerUniforms.layerSurfaces[i] = textureSlot++;
+				layerUniforms.layerSurfaceIDs[i] = layerState.sampleTexture;
+				layerUniforms.layerSurfaceScaleOffsets[i] = layerState.sampleScaleOffset;
+				layerUniforms.layerSampleParameters[i] = layerState.sampleParameters;
+				layerUniforms.layerMaskParameters[i] = layerState.maskParameters;
+				layerUniforms.layerMaskAxes[i] = layerState.maskAxis;
+			}
+
+			glUniform1i(glGetUniformLocation(program, "layerCount"), state->layerCount);
+			glUniform1iv(glGetUniformLocation(program, "layerSamplerModes"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, layerUniforms.layerSamplerModes);
+			glUniform1iv(glGetUniformLocation(program, "layerBlendModes"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, layerUniforms.layerBlendModes);
+			glUniform1iv(glGetUniformLocation(program, "layerMaskTypes"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, layerUniforms.layerMaskTypes);
+			glUniform4fv(glGetUniformLocation(program, "layerColors"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, (float*)layerUniforms.layerColors);
+			_setTextureSamplers(program, "layerSurfaces", OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, layerUniforms.layerSurfaces, layerUniforms.layerSurfaceIDs);
+			glUniform4fv(glGetUniformLocation(program, "layerSurfaceScaleOffsets"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, (float*)layerUniforms.layerSurfaceScaleOffsets);
+			glUniform4fv(glGetUniformLocation(program, "layerSampleParameters"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, (float*)layerUniforms.layerSampleParameters);
+			glUniform4fv(glGetUniformLocation(program, "layerMaskParameters"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, (float*)layerUniforms.layerMaskParameters);
+			glUniform4fv(glGetUniformLocation(program, "layerMaskAxes"), OVR_AVATAR_MAX_MATERIAL_LAYER_COUNT, (float*)layerUniforms.layerMaskAxes);
+
 		}
 
 		IGL_INLINE void OculusVR::request_recenter() {

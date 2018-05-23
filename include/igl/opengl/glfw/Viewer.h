@@ -16,7 +16,6 @@
 #include "../MeshGL.h"
 #include "../ViewerCore.h"
 #include "../ViewerData.h"
-//#include "../OculusVR.h"
 #include "ViewerPlugin.h"
 
 #include <Eigen/Core>

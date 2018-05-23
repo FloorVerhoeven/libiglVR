@@ -332,6 +332,13 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		if (data.avatar_V.rows() > 0) {
 			glEnable(GL_DEPTH_TEST);
 			data.meshgl.bind_avatar();
+			// Pass the world view position to the shader for view-dependent rendering
+		/*	glUniform3fv(glGetUniformLocation(data.meshgl.shader_avatar, "viewPos"), 1, viewPos.data());
+
+			// Assign the vertex uniforms
+			glUniformMatrix4fv(glGetUniformLocation(program, "world"), 1, 0, worldMat.data());
+			glUniformMatrix4fv(glGetUniformLocation(program, "viewProj"), 1, 0, viewProjMat.data());
+			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, skinnedPoses.data());*/
 
 
 //			data.meshgl.draw_avatar();
