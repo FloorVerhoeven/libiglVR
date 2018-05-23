@@ -43,6 +43,7 @@
 #include <igl/snap_to_canonical_view_quat.h>
 #include <igl/unproject.h>
 #include <igl/serialize.h>
+#include "../OculusVR.h"
 
 // Internal global variables used for glfw event handling
 static igl::opengl::glfw::Viewer * __viewer;
@@ -358,13 +359,15 @@ namespace glfw
     }
   }
 
-  IGL_INLINE Viewer::Viewer():
+  IGL_INLINE Viewer::Viewer(OculusVR &test):
     data_list(1),
     selected_data_index(0),
-    next_data_id(1)
+    next_data_id(1),
+	oculusVR(test)
   {
     window = nullptr;
     data_list.front().id = 0;
+	//oculusVR = OculusVR();
 
     // Temporary variables initialization
     down = false;

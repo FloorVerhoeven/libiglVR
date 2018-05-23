@@ -329,13 +329,12 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	}
 
 	if (data.show_avatar) {
-		if (data.avatar_vertices.rows() > 0) {
+		if (data.avatar_V.rows() > 0) {
 			glEnable(GL_DEPTH_TEST);
 			data.meshgl.bind_avatar();
-			GLint 
 
 
-			data.meshgl.draw_avatar();
+//			data.meshgl.draw_avatar();
 		}
 	}
 }

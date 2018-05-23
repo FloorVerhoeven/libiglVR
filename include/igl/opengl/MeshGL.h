@@ -86,6 +86,13 @@ public:
   GLuint vbo_hand_point_F;
   GLuint vbo_hand_point_V;
   GLuint vbo_hand_point_V_colors;
+
+  GLuint vbo_avatar_V_normals;
+  GLuint vbo_avatar_V_tangents;
+  GLuint vbo_avatar_V_tex;
+  GLuint vbo_avatar_V_poseIndices;
+  GLuint vbo_avatar_V_poseWeights;
+  //GLuint vbo_avatar_V_colors;
   GLuint vbo_avatar_F;
   GLuint vbo_avatar_V;
 
@@ -107,8 +114,14 @@ public:
   RowMatrixXf laser_points_V_vbo;
   RowMatrixXf hand_point_V_vbo;
   RowMatrixXf hand_point_V_colors_vbo;
-  RowMatrixXf avatar_V_vbo;
 
+  RowMatrixXf avatar_V_vbo;
+  RowMatrixXf avatar_V_normals_vbo;
+  RowMatrixXf avatar_V_tangents_vbo;
+  RowMatrixXf avatar_V_tex_vbo;
+  RowMatrixXf avatar_V_poseIndices_vbo;
+  RowMatrixXf avatar_V_poseWeights_vbo;
+//  RowMatrixXf avatar_V_colors_vbo;
 
   int tex_u;
   int tex_v;
@@ -117,10 +130,10 @@ public:
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> lines_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> points_F_vbo;
+  Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> avatar_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> stroke_points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> laser_points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> hand_point_F_vbo;
-  Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> avatar_F_vbo;
 
 
   // Marks dirty buffers that need to be uploaded to OpenGL

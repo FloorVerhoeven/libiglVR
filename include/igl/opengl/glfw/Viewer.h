@@ -16,7 +16,7 @@
 #include "../MeshGL.h"
 #include "../ViewerCore.h"
 #include "../ViewerData.h"
-#include "../OculusVR.h"
+//#include "../OculusVR.h"
 #include "ViewerPlugin.h"
 
 #include <Eigen/Core>
@@ -39,6 +39,7 @@ namespace igl
 {
 namespace opengl
 {
+	 class OculusVR;
 namespace glfw
 {
   // GLFW-based mesh viewer
@@ -58,7 +59,7 @@ namespace glfw
 	IGL_INLINE void init_oculus();
     IGL_INLINE void init_plugins();
     IGL_INLINE void shutdown_plugins();
-    Viewer();
+    Viewer(OculusVR& test);
     ~Viewer();
     // Mesh IO
     IGL_INLINE bool load_mesh_from_file(const std::string & mesh_file_name);
@@ -131,7 +132,7 @@ namespace glfw
     // Stores all the viewing options
     ViewerCore core;
 	// Handles all Oculus VR input/output
-	OculusVR oculusVR;
+	OculusVR& oculusVR;
     // List of registered plugins
     std::vector<ViewerPlugin*> plugins;
     // Temporary data stored when the mouse button is pressed

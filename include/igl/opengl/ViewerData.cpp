@@ -29,6 +29,7 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   show_texture(false),
   show_strokes(true),
   show_laser(true),
+  show_avatar(true),
   point_size(30),
   line_width(0.5f),
   overlay_line_width(1.6f),
@@ -279,12 +280,26 @@ IGL_INLINE void igl::opengl::ViewerData::set_texture(
 }
 
 
-IGL_INLINE void igl::opengl::ViewerData::set_avatar(Eigen::MatrixXd& _V, Eigen::MatixXi& _F) {
+IGL_INLINE void igl::opengl::ViewerData::set_avatar(Eigen::MatrixXd& _V, Eigen::MatrixXi& _F, Eigen::MatrixXd& _normals, Eigen::MatrixXd& _tangents, Eigen::MatrixXd& _tex, Eigen::MatrixXi& _poseIndices, Eigen::MatrixXd& _poseWeights) {
 	base_data_lock.lock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
-	V_avatar = _V;
-	F_avatar = _F;
+	avatar_V = _V;
+	avatar_F = _F;
+	avatar_V_normals = _normals; // One normal per vertex
+	std::cout << _normals << std::endl;
+	avatar_V_tangents = _tangents;
+	avatar_V_tex = _tex;
+	avatar_V_poseIndices = _poseIndices;
+	avatar_V_poseWeights = _poseWeights;
+	std::cout << "did this" << std::endl;
 	dirty |= MeshGL::DIRTY_AVATAR;
 	base_data_lock.unlock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_inverse_bind_pose(std::vector<Eigen::Matrix4f> bindPoses) {
+	inverse_bind_pose.resize(bindPoses.size());
+	for (int i = 0; i < bindPoses.size(); i++) {
+		inverse_bind_pose[i] = bindPoses[i].inverse();
+	}
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_points(
@@ -926,15 +941,24 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
   }
 
   if (meshgl.dirty & MeshGL::DIRTY_AVATAR) { //TODO: split this up into dirty sections such as for regular mesh (so you don't always have to update every section)
-	  meshgl.avatar_V_vbo.resize(data.avatar_vertices.rows(), 3);
-	  meshgl.avatar_V_colors_vbo.resize(data.avatar_vertices.rows(), 3);
-	  meshgl.avatar_F_vbo.resize(data.avatar_vertices.rows(), 1);
+	  meshgl.avatar_V_vbo.resize(data.avatar_V.rows(), 3);
+	  meshgl.avatar_V_normals_vbo.resize(data.avatar_V.rows(), 3);
+	  meshgl.avatar_V_tangents_vbo.resize(data.avatar_V.rows(), 4);
+	  meshgl.avatar_V_tex_vbo.resize(data.avatar_V_tex.rows(), 2);
+	  meshgl.avatar_V_poseIndices_vbo.resize(data.avatar_V_poseIndices.rows(), 4);
+	  meshgl.avatar_V_poseWeights_vbo.resize(data.avatar_V_poseWeights.rows(), 4);
+	  //meshgl.avatar_V_colors_vbo.resize(data.avatar_V.rows(), 3);
 
-	  for (unsigned i = 0; i < data.avatar_vertices.rows(); ++i) {
-		  meshgl.avatar_V_vbo.row(i) = data.avatar_vertices.block<1, 3>(i, 0).cast<float>();
-		  meshgl.avatar_V_colors_vbo.row(i) = data.avatar_vertices.block<1, 3>(i, 3).cast<float>();
-		  meshgl.avatar_F_vbo(i) = i;
+	  for (unsigned i = 0; i < data.avatar_V.rows(); ++i) {
+		  meshgl.avatar_V_vbo.row(i) = data.avatar_V.block<1, 3>(i, 0).cast<float>();
+		  meshgl.avatar_V_normals_vbo.row(i) = data.avatar_V_normals.block<1, 3>(i, 0).cast<float>();
+		  meshgl.avatar_V_tangents_vbo.row(i) = data.avatar_V_tangents.block<1, 4>(i, 0).cast<float>();
+		  meshgl.avatar_V_tex_vbo.row(i) = data.avatar_V_tex.block<1, 2>(i, 0).cast<float>();
+		  meshgl.avatar_V_poseIndices_vbo.row(i) = data.avatar_V_poseIndices.block<1, 4>(i, 0).cast<float>();
+		  meshgl.avatar_V_poseWeights_vbo.row(i) = data.avatar_V_poseWeights.block<1, 4>(i, 0).cast<float>();
+		//  meshgl.avatar_V_colors_vbo.row(i) = data.avatar_V_colors.block<1, 3>(i, 0).cast<float>();
 	  }
+	  meshgl.avatar_F_vbo = data.avatar_F.cast<unsigned>();
 
   }
 }
