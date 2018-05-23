@@ -505,29 +505,28 @@ namespace igl {
 		}
 
 		IGL_INLINE void OculusVR::loadMesh(const ovrAvatarMeshAssetData* data, igl::opengl::glfw::Viewer* viewer){
-			std::cout << "Check if jointCount is every more than 0: " <<  data->skinnedBindPose.jointCount << std::endl;
+			std::cout << "Check if jointCount is ever more than 0: " <<  data->skinnedBindPose.jointCount << std::endl;
 			//MeshData* mesh = new MeshData();
-			viewer->append_mesh();
-			viewer->data();
+			viewer->append_mesh(); //All initialization will be done inside MeshGL (called the first time that core.draw is called on the new ViewerData)
 
 			// Create the vertex array and buffer
-			glGenVertexArrays(1, &mesh->vertexArray);
-			glGenBuffers(1, &mesh->vertexBuffer);
-			glGenBuffers(1, &mesh->elementBuffer);
+			//glGenVertexArrays(1, &mesh->vertexArray);
+			//glGenBuffers(1, &mesh->vertexBuffer);
+			//glGenBuffers(1, &mesh->elementBuffer);
 
 			// Bind the vertex buffer and assign the vertex data	
-			glBindVertexArray(mesh->vertexArray);
+			//glBindVertexArray(mesh->vertexArray);
 
-			glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer);
-			glBufferData(GL_ARRAY_BUFFER, data->vertexCount * sizeof(ovrAvatarMeshVertex), data->vertexBuffer, GL_STATIC_DRAW);
+			//glBindBuffer(GL_ARRAY_BUFFER, mesh->vertexBuffer);
+			//glBufferData(GL_ARRAY_BUFFER, data->vertexCount * sizeof(ovrAvatarMeshVertex), data->vertexBuffer, GL_STATIC_DRAW);
 
 			// Bind the index buffer and assign the index data
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->elementBuffer);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->indexCount * sizeof(GLushort), data->indexBuffer, GL_STATIC_DRAW);
-			mesh->elementCount = data->indexCount;
+			//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->elementBuffer);
+			//glBufferData(GL_ELEMENT_ARRAY_BUFFER, data->indexCount * sizeof(GLushort), data->indexBuffer, GL_STATIC_DRAW);
+			//mesh->elementCount = data->indexCount;
 
 			// Fill in the array attributes
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->x);
+			/*glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->x);
 			glEnableVertexAttribArray(0);
 			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(ovrAvatarMeshVertex), &((ovrAvatarMeshVertex*)0)->nx);
 			glEnableVertexAttribArray(1);
@@ -541,7 +540,7 @@ namespace igl {
 			glEnableVertexAttribArray(5);
 
 			// Clean up
-			glBindVertexArray(0);
+			glBindVertexArray(0);*/
 
 			// Translate the bind pose
 			_computeWorldPose(data->skinnedBindPose, mesh->bindPose);

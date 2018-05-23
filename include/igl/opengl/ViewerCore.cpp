@@ -327,6 +327,17 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			data.meshgl.draw_laser();
 		}
 	}
+
+	if (data.show_avatar) {
+		if (data.avatar_vertices.rows() > 0) {
+			glEnable(GL_DEPTH_TEST);
+			data.meshgl.bind_avatar();
+			GLint 
+
+
+			data.meshgl.draw_avatar();
+		}
+	}
 }
 
 IGL_INLINE void igl::opengl::ViewerCore::draw_buffer(ViewerData& data,

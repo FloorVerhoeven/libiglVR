@@ -279,9 +279,10 @@ IGL_INLINE void igl::opengl::ViewerData::set_texture(
 }
 
 
-IGL_INLINE void igl::opengl::ViewerData::set_avatar() {
+IGL_INLINE void igl::opengl::ViewerData::set_avatar(Eigen::MatrixXd& _V, Eigen::MatixXi& _F) {
 	base_data_lock.lock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
-
+	V_avatar = _V;
+	F_avatar = _F;
 	dirty |= MeshGL::DIRTY_AVATAR;
 	base_data_lock.unlock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
 }
@@ -922,6 +923,19 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 		  meshgl.hand_point_V_colors_vbo.row(i) = data.hand_point.block<1, 3>(i, 3).transpose().cast<float>();
 		  meshgl.hand_point_F_vbo(i) = i;
 	  }
+  }
+
+  if (meshgl.dirty & MeshGL::DIRTY_AVATAR) { //TODO: split this up into dirty sections such as for regular mesh (so you don't always have to update every section)
+	  meshgl.avatar_V_vbo.resize(data.avatar_vertices.rows(), 3);
+	  meshgl.avatar_V_colors_vbo.resize(data.avatar_vertices.rows(), 3);
+	  meshgl.avatar_F_vbo.resize(data.avatar_vertices.rows(), 1);
+
+	  for (unsigned i = 0; i < data.avatar_vertices.rows(); ++i) {
+		  meshgl.avatar_V_vbo.row(i) = data.avatar_vertices.block<1, 3>(i, 0).cast<float>();
+		  meshgl.avatar_V_colors_vbo.row(i) = data.avatar_vertices.block<1, 3>(i, 3).cast<float>();
+		  meshgl.avatar_F_vbo(i) = i;
+	  }
+
   }
 }
 
