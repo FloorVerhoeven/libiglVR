@@ -252,8 +252,9 @@ namespace igl {
 					Eigen::Matrix4f proj = to_Eigen(proj_tmp);
 
 					for (int i = 0; i < data_list.size(); i++) { //TODO: this currently also goes over the avatar parts but doesn't draw them (it does bind them though...)
-						if (data.avatar_V.rows() > 0) {
-							core.draw_avatar_part();
+						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh && data_list[i].avatar_V.rows() > 0) {
+							//prepare_avatar_draw(mesh->skinnedPose, world, view, proj, to_Eigen(shiftedEyePos));
+							//core.draw_avatar_part(data_list[i], view, proj, to_Eigen(shiftedEyePos));
 						}
 						else {
 							core.draw(data_list[i], true, true, view, proj);
@@ -458,7 +459,8 @@ namespace igl {
 		IGL_INLINE void OculusVR::handle_avatar_specification(const ovrAvatarMessage_AvatarSpecification* message){
 			// Create the avatar instance
 			_avatar = ovrAvatar_Create(message->avatarSpec, ovrAvatarCapability_Hands);
-			std::cout << "test" << std::endl;
+			ovrAvatar_SetLeftControllerVisibility(_avatar, 0);
+			ovrAvatar_SetRightControllerVisibility(_avatar, 0);
 			// Trigger load operations for all of the assets referenced by the avatar
 			uint32_t refCount = ovrAvatar_GetReferencedAssetCount(_avatar);
 			for (uint32_t i = 0; i < refCount; ++i){
@@ -472,13 +474,13 @@ namespace igl {
 		IGL_INLINE void OculusVR::handle_asset_loaded(const ovrAvatarMessage_AssetLoaded* message, igl::opengl::glfw::Viewer* viewer){
 			// Determine the type of the asset that got loaded
 			ovrAvatarAssetType assetType = ovrAvatarAsset_GetType(message->asset);
-		//	void* data = nullptr;
+			void* data = nullptr;
 
 			// Call the appropriate loader function
 			switch (assetType){
 			case ovrAvatarAssetType_Mesh:
 				std::cout << "Mesh" << std::endl;
-				loadMesh(ovrAvatarAsset_GetMeshData(message->asset), viewer);
+				data = loadMesh(ovrAvatarAsset_GetMeshData(message->asset), viewer);
 				break;
 			case ovrAvatarAssetType_Texture:
 				std::cout << "texture" << std::endl;
@@ -494,7 +496,7 @@ namespace igl {
 			}
 
 			// Store the data that we loaded for the asset in the asset map
-//			_assetMap[message->assetID] = data;
+			_assetMap[message->assetID] = data;
 
 			if (assetType == ovrAvatarAssetType_CombinedMesh){
 				std::cout << "unexpectedly encountered a CombinedMesh type. These do not work yet. " << std::endl;
@@ -510,11 +512,11 @@ namespace igl {
 			printf("Loading %d assets...\r\n", _loadingAssets);
 		}
 
-		 void OculusVR::loadMesh(const ovrAvatarMeshAssetData* data, glfw::Viewer* viewer){
+		IGL_INLINE ViewerData* OculusVR::loadMesh(const ovrAvatarMeshAssetData* data, glfw::Viewer* viewer){
 			std::cout << "Check if jointCount is ever more than 0: " <<  data->skinnedBindPose.jointCount << std::endl;
 			//MeshData* mesh = new MeshData();
-			(*viewer).append_mesh();
-			//viewer->append_mesh(); //All initialization will be done inside MeshGL (called the first time that core.draw is called on the new ViewerData)
+			//(*viewer).append_mesh();
+			ViewerData* mesh = new ViewerData();
 			Eigen::MatrixXd V(data->vertexCount,3);
 			Eigen::MatrixXi F(data->indexCount,3);
 			Eigen::MatrixXd normals(data->vertexCount, 3);
@@ -532,23 +534,17 @@ namespace igl {
 				poseIndices.row(i) << (int)data->vertexBuffer[i].blendIndices[0], (int)data->vertexBuffer[i].blendIndices[1], (int)data->vertexBuffer[i].blendIndices[2], (int)data->vertexBuffer[i].blendIndices[3];
 				poseWeights.row(i) << data->vertexBuffer[i].blendWeights[0], data->vertexBuffer[i].blendWeights[1], data->vertexBuffer[i].blendWeights[2], data->vertexBuffer[i].blendWeights[3];
 			}
-			viewer->data().set_avatar(V, F, normals, tangents, tex, poseIndices, poseWeights);
+			mesh->set_avatar(V, F, normals, tangents, tex, poseIndices, poseWeights);
 			
 
-			// Translate the bind pose
-			std::vector<Eigen::Matrix4f> bindPoses;
-			bindPoses.resize(data->skinnedBindPose.jointCount);
+			// Translate the bind pose from local to world
+			Eigen::Matrix4f* bindPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) *data->skinnedBindPose.jointCount);
 			_computeWorldPose(data->skinnedBindPose, bindPoses);
-			/*for (uint32_t i = 0; i < data->skinnedBindPose.jointCount; ++i)
-			{
-				mesh->inverseBindPose[i] = glm::inverse(mesh->bindPose[i]);
-			}*/
-
-			viewer->data().set_inverse_bind_pose(bindPoses);
-			
+			mesh->set_inverse_bind_pose(bindPoses, data->skinnedBindPose.jointCount);
+			return mesh;
 		}
 
-		 void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, std::vector<Eigen::Matrix4f>& worldPose)
+		 IGL_INLINE void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose)
 		 {
 			 for (uint32_t i = 0; i < localPose.jointCount; ++i)
 			 {
@@ -567,7 +563,7 @@ namespace igl {
 			 }
 		 }
 
-		  void OculusVR::EigenFromOvrAvatarTransform(const ovrAvatarTransform& transform, Eigen::Matrix4f& target) {
+		IGL_INLINE void OculusVR::EigenFromOvrAvatarTransform(const ovrAvatarTransform& transform, Eigen::Matrix4f& target) {
 			  Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
 			  scale.topLeftCorner(3,3) = Scaling(transform.scale.x, transform.scale.y, transform.scale.z);
 			  Eigen::Matrix4f translation = Eigen::Matrix4f::Zero();
@@ -667,19 +663,20 @@ namespace igl {
 			const ovrAvatarComponent* bodyComponent = nullptr;
 			if (const ovrAvatarBodyComponent* body = ovrAvatarPose_GetBodyComponent(avatar))
 			{
+				std::cout << "test" << std::endl;
 				bodyComponent = body->renderComponent;
 			}
 
 			for (uint32_t i = 0; i < componentCount; ++i)
 			{
 				const ovrAvatarComponent* component = ovrAvatarComponent_Get(avatar, i);
-
+				std::cout << (component->name) << std::endl;
 				const bool useCombinedMeshProgram = _combineMeshes && bodyComponent == component;
 
 				// Compute the transform for this component
 				Eigen::Matrix4f world;
 				EigenFromOvrAvatarTransform(component->transform, world);
-
+				std::cout << "renderpartCount: " << component->renderPartCount << std::endl;
 				// Render each render part attached to the component
 				for (uint32_t j = 0; j < component->renderPartCount; ++j)
 				{
@@ -689,7 +686,7 @@ namespace igl {
 					{
 					case ovrAvatarRenderPartType_SkinnedMeshRender:
 						std::cout << "First renderer" << std::endl;
-						_renderSkinnedMeshPart(useCombinedMeshProgram ? _combinedMeshProgram : _skinnedMeshProgram, ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
+//						_renderSkinnedMeshPart(useCombinedMeshProgram ? _combinedMeshProgram : _skinnedMeshProgram, ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
 						break;
 					case ovrAvatarRenderPartType_SkinnedMeshRenderPBS:
 						std::cout << "second renderer" << std::endl;
@@ -706,7 +703,24 @@ namespace igl {
 			}
 		}
 
-		IGL_INLINE void OculusVR::_renderSkinnedMeshPart(GLuint shader, const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const glm::mat4 proj, const Eigen::Vector3f& viewPos, bool renderJoints)
+		IGL_INLINE Eigen::Matrix4f* OculusVR::prepare_avatar_draw(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos) {
+			Eigen::Matrix4f local;
+			EigenFromOvrAvatarTransform(mesh->localTransform, local);
+			Eigen::Matrix4f worldMat = world * local;
+			Eigen::Matrix4f viewProjMat = proj * view;
+			ViewerData* data = (ViewerData*) _assetMap[mesh->meshAssetID];
+			// Compute the skinned pose
+			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * skinnedPose.jointCount);
+			_computeWorldPose(skinnedPose, skinnedPoses);
+			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i)
+			{
+				skinnedPoses[i] = skinnedPoses[i] * data->inverse_bind_pose[i];
+			}
+
+			return skinnedPoses;
+		}
+
+		IGL_INLINE void OculusVR::_renderSkinnedMeshPart(GLuint shader, const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints)
 		{
 			// If this part isn't visible from the viewpoint we're rendering from, do nothing
 			if ((mesh->visibilityMask & visibilityMask) == 0)
@@ -715,15 +729,15 @@ namespace igl {
 			}
 
 			// Get the GL mesh data for this mesh's asset
-			MeshData* data = (MeshData*)_assetMap[mesh->meshAssetID];
+			ViewerData* data = (ViewerData*)_assetMap[mesh->meshAssetID];
 
-			glUseProgram(shader);
+			glUseProgram(data->meshgl.shader_avatar);
 
 			// Apply the vertex state
-			_setMeshState(shader, mesh->localTransform, data, mesh->skinnedPose, world, view, proj, viewPos);
+			_setMeshState(data->meshgl.shader_avatar, mesh->localTransform, data, mesh->skinnedPose, world, view, proj, viewPos);
 
 			// Apply the material state
-			_setMaterialState(shader, &mesh->materialState, nullptr);
+			_setMaterialState(data->meshgl.shader_avatar, &mesh->materialState, nullptr);
 
 			// Draw the mesh
 			glBindVertexArray(data->vertexArray);
@@ -746,37 +760,27 @@ namespace igl {
 
 			if (renderJoints)
 			{
-				glm::mat4 local;
-				_glmFromOvrAvatarTransform(mesh->localTransform, &local);
+				Eigen::Matrix4f local;
+				EigenFromOvrAvatarTransform(mesh->localTransform, local);
 				glDepthFunc(GL_ALWAYS);
 				_renderPose(proj * view * world * local, mesh->skinnedPose);
 			}
 		}
 
-		IGL_INLINE void OculusVR::_setMeshState(
-			GLuint program,
-			const ovrAvatarTransform& localTransform,
-			const MeshData* data,
-			const ovrAvatarSkinnedMeshPose& skinnedPose,
-			const Eigen::Matrix4f& world,
-			const Eigen::Matrix4f& view,
-			const Eigen::Matrix4f proj,
-			const Eigen::Vector3f& viewPos
-		) {
+		IGL_INLINE void OculusVR::_setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const ViewerData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos){
 			// Compute the final world and viewProjection matrices for this part
 			Eigen::Matrix4f local;
-			_glmFromOvrAvatarTransform(localTransform, local);
+			EigenFromOvrAvatarTransform(localTransform, local);
 			Eigen::Matrix4f worldMat = world * local;
 			Eigen::Matrix4f viewProjMat = proj * view;
-
 			// Compute the skinned pose
-			std::vector<Eigen::Matrix4f> skinnedPoses;
-			skinnedPoses.resize(skinnedPose.jointCount);
+			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * skinnedPose.jointCount);
 			_computeWorldPose(skinnedPose, skinnedPoses);
 			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i)
 			{
-				skinnedPoses[i] = skinnedPoses[i] * data->inverseBindPose[i];
+				skinnedPoses[i] = skinnedPoses[i] * data->inverse_bind_pose[i];
 			}
+
 
 			// Pass the world view position to the shader for view-dependent rendering
 			glUniform3fv(glGetUniformLocation(program, "viewPos"), 1, viewPos.data());
@@ -784,10 +788,10 @@ namespace igl {
 			// Assign the vertex uniforms
 			glUniformMatrix4fv(glGetUniformLocation(program, "world"), 1, 0, worldMat.data());
 			glUniformMatrix4fv(glGetUniformLocation(program, "viewProj"), 1, 0, viewProjMat.data());
-			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, skinnedPoses[0].data()); //TODO: not sure if last param is correct
+			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, skinnedPoses->data()); //TODO: not sure if last param is correct
 		}
 
-		IGL_INLINE void OculusVR::void _setMaterialState(GLuint program, const ovrAvatarMaterialState* state, glm::mat4* projectorInv)
+		/*IGL_INLINE void OculusVR::void _setMaterialState(GLuint program, const ovrAvatarMaterialState* state, glm::mat4* projectorInv)
 		{
 			// Assign the fragment uniforms
 			glUniform1i(glGetUniformLocation(program, "useAlpha"), state->alphaMaskTextureID != 0);

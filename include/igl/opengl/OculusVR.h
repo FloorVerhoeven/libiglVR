@@ -43,10 +43,13 @@ public:
 			IGL_INLINE void handle_avatar_specification(const ovrAvatarMessage_AvatarSpecification* message);
 			IGL_INLINE void handle_asset_loaded(const ovrAvatarMessage_AssetLoaded* message, igl::opengl::glfw::Viewer* viewer);
 			IGL_INLINE void navigate(ovrVector2f& thumb_pos, ViewerData& current_data);
-			IGL_INLINE static void loadMesh(const ovrAvatarMeshAssetData* data, igl::opengl::glfw::Viewer* viewer);
+			IGL_INLINE static ViewerData* loadMesh(const ovrAvatarMeshAssetData* data, igl::opengl::glfw::Viewer* viewer);
 			IGL_INLINE void render_avatar(ovrAvatar* avatar, uint32_t visibilityMask, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints);
-			IGL_INLINE static void _computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, std::vector<Eigen::Matrix4f>& worldPose);
+			IGL_INLINE static void _computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose);
 			IGL_INLINE static void EigenFromOvrAvatarTransform(const ovrAvatarTransform& transform, Eigen::Matrix4f& target);
+			IGL_INLINE Eigen::Matrix4f* prepare_avatar_draw(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos);
+			IGL_INLINE void _setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const ViewerData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos);
+			IGL_INLINE void _renderSkinnedMeshPart(GLuint shader, const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints);
 			IGL_INLINE int eyeTextureWidth();
 			IGL_INLINE int eyeTextureHeight();
 

@@ -285,19 +285,17 @@ IGL_INLINE void igl::opengl::ViewerData::set_avatar(Eigen::MatrixXd& _V, Eigen::
 	avatar_V = _V;
 	avatar_F = _F;
 	avatar_V_normals = _normals; // One normal per vertex
-	std::cout << _normals << std::endl;
 	avatar_V_tangents = _tangents;
 	avatar_V_tex = _tex;
 	avatar_V_poseIndices = _poseIndices;
 	avatar_V_poseWeights = _poseWeights;
-	std::cout << "did this" << std::endl;
 	dirty |= MeshGL::DIRTY_AVATAR;
 	base_data_lock.unlock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
 }
 
-IGL_INLINE void igl::opengl::ViewerData::set_inverse_bind_pose(std::vector<Eigen::Matrix4f> bindPoses) {
-	inverse_bind_pose.resize(bindPoses.size());
-	for (int i = 0; i < bindPoses.size(); i++) {
+IGL_INLINE void igl::opengl::ViewerData::set_inverse_bind_pose(Eigen::Matrix4f* bindPoses, int jointCount) {
+	inverse_bind_pose.resize(jointCount);
+	for (int i = 0; i < jointCount; i++) {
 		inverse_bind_pose[i] = bindPoses[i].inverse();
 	}
 }
@@ -312,7 +310,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_points(
   add_points(P,C);
 }
 
-IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P,  const Eigen::MatrixXd& C)
+IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P, const Eigen::MatrixXd& C)
 {
 	if (!overlay_lock.owns_lock()) {
 		overlay_lock.lock();

@@ -144,6 +144,8 @@ public:
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
     Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A);
 
+  IGL_INLINE void draw_avatar_part(ViewerData& data, Eigen::Matrix4f& view, Eigen::Matrix4f& proj, Eigen::Vector3f& viewPos);
+
   // Trackball angle (quaternion)
   enum RotationType
   {
