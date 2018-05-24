@@ -328,21 +328,66 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		}
 	}
 
+	
+}
+
+IGL_INLINE void igl::opengl::ViewerCore::draw_avatar_part(Eigen::Matrix4f& view, Eigen::Matrix4f& proj, Eigen::Vector3f& viewPos) {
 	if (data.show_avatar) {
-		if (data.avatar_V.rows() > 0) {
 			glEnable(GL_DEPTH_TEST);
 			data.meshgl.bind_avatar();
+
+			Eigen::Matrix4f local;
+			_glmFromOvrAvatarTransform(localTransform, local);
+			Eigen::Matrix4f worldMat = world * local;
+			Eigen::Matrix4f viewProjMat = proj * view;
+
+			// Compute the skinned pose
+			std::vector<Eigen::Matrix4f> skinnedPoses;
+			skinnedPoses.resize(skinnedPose.jointCount);
+			_computeWorldPose(skinnedPose, skinnedPoses);
+			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i)
+			{
+				skinnedPoses[i] = skinnedPoses[i] * data->inverseBindPose[i];
+			}
+			
 			// Pass the world view position to the shader for view-dependent rendering
-		/*	glUniform3fv(glGetUniformLocation(data.meshgl.shader_avatar, "viewPos"), 1, viewPos.data());
+			glUniform3fv(glGetUniformLocation(data.meshgl.shader_avatar, "viewPos"), 1, viewPos.data());
 
 			// Assign the vertex uniforms
-			glUniformMatrix4fv(glGetUniformLocation(program, "world"), 1, 0, worldMat.data());
-			glUniformMatrix4fv(glGetUniformLocation(program, "viewProj"), 1, 0, viewProjMat.data());
-			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, skinnedPoses.data());*/
+			glUniformMatrix4fv(glGetUniformLocation(data.meshgl.shader_avatar, "world"), 1, 0, worldMat.data());
+			glUniformMatrix4fv(glGetUniformLocation(data.meshgl.shader_avatar, "viewProj"), 1, 0, viewProjMat.data());
+			glUniformMatrix4fv(glGetUniformLocation(data.meshgl.shader_avatar, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, skinnedPoses.data());
 
 
-//			data.meshgl.draw_avatar();
-		}
+			//			data.meshgl.draw_avatar();
+
+			// Draw the mesh
+			glBindVertexArray(data->vertexArray);
+			glDepthFunc(GL_LESS);
+
+			// Write to depth first for self-occlusion
+			/*if (mesh->visibilityMask & ovrAvatarVisibilityFlag_SelfOccluding)
+			{
+				glDepthMask(GL_TRUE);
+				glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+				glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
+				glDepthFunc(GL_EQUAL);
+			}*/
+
+			// Render to color buffer
+			glDepthMask(GL_FALSE);
+			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
+			glBindVertexArray(0);
+
+			if (renderJoints)
+			{
+				glm::mat4 local;
+				_glmFromOvrAvatarTransform(mesh->localTransform, &local);
+				glDepthFunc(GL_ALWAYS);
+				_renderPose(proj * view * world * local, mesh->skinnedPose);
+			}
+		
 	}
 }
 

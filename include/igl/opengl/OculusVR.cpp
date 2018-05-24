@@ -252,7 +252,12 @@ namespace igl {
 					Eigen::Matrix4f proj = to_Eigen(proj_tmp);
 
 					for (int i = 0; i < data_list.size(); i++) { //TODO: this currently also goes over the avatar parts but doesn't draw them (it does bind them though...)
-						core.draw(data_list[i], true, true, view, proj);
+						if (data.avatar_V.rows() > 0) {
+							core.draw_avatar_part();
+						}
+						else {
+							core.draw(data_list[i], true, true, view, proj);
+						}
 					}
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
@@ -658,7 +663,7 @@ namespace igl {
 		IGL_INLINE void OculusVR::render_avatar(ovrAvatar* avatar, uint32_t visibilityMask, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints){
 			// Traverse over all components on the avatar
 			uint32_t componentCount = ovrAvatarComponent_Count(avatar);
-
+			std::cout << "componentCount is: " << componentCount << std::endl;
 			const ovrAvatarComponent* bodyComponent = nullptr;
 			if (const ovrAvatarBodyComponent* body = ovrAvatarPose_GetBodyComponent(avatar))
 			{
