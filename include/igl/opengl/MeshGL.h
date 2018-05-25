@@ -26,7 +26,7 @@ public:
   typedef unsigned int GLuint;
 
   enum DirtyFlags
-  {
+  { //TODO: This isn't neat. Suspect that it will result in dirty never being NONE
     DIRTY_NONE           = 0x0000,
     DIRTY_POSITION       = 0x0001,
     DIRTY_UV             = 0x0002,
@@ -39,11 +39,12 @@ public:
     DIRTY_MESH           = 0x00FF,
     DIRTY_OVERLAY_LINES  = 0x0100,
     DIRTY_OVERLAY_POINTS = 0x0200,
-    DIRTY_ALL            = 0x03FF,
-	DIRTY_STROKE		 = 0x0800,
-	DIRTY_LASER			 = 0x1000,
-	DIRTY_HAND_POINT	 = 0x2000,
-	DIRTY_AVATAR		 = 0x4000
+   // DIRTY_ALL            = 0x03FF,
+	DIRTY_STROKE		 = 0x0400,
+	DIRTY_LASER			 = 0x0800,
+	DIRTY_HAND_POINT	 = 0x1000,
+	DIRTY_AVATAR		 = 0x2000,
+	DIRTY_ALL			 = 0x3FFF
   };
 
   bool is_initialized = false;

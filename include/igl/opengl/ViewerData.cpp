@@ -956,6 +956,7 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 		  meshgl.avatar_V_poseWeights_vbo.row(i) = data.avatar_V_poseWeights.block<1, 4>(i, 0).cast<float>();
 		//  meshgl.avatar_V_colors_vbo.row(i) = data.avatar_V_colors.block<1, 3>(i, 0).cast<float>();
 	  }
+
 	  meshgl.avatar_F_vbo = data.avatar_F.cast<unsigned>();
 
   }

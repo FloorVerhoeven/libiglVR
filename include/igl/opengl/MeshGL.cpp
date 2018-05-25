@@ -237,6 +237,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_avatar_F);
 
 	if (is_dirty) {
+		std::cout << "hit" << std::endl;
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*avatar_F_vbo.size(), avatar_F_vbo.data(), GL_DYNAMIC_DRAW);
 	}
 

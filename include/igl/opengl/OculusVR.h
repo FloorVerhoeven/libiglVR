@@ -22,12 +22,11 @@ namespace igl{
 		class OculusVR{
 public:
 	OculusVR() {};
-			//OculusVR& operator = (const OculusVR& other) {
 
-//			}
+			struct TextureData {
+				GLuint textureID;
+			};
 
-		//	OculusVR(const OculusVR& other) {
-		//	}
 			IGL_INLINE void init();
 			IGL_INLINE bool init_VR_buffers(int window_width, int window_height);
 			IGL_INLINE void on_render_start();
@@ -37,19 +36,23 @@ public:
 			IGL_INLINE void draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing);
 			IGL_INLINE void submit_frame();
 			IGL_INLINE void blit_mirror();
-			IGL_INLINE void update_avatar();
+			IGL_INLINE void update_avatar(float deltaSeconds);
 			IGL_INLINE void ovrAvatarTransform_from_OVR(const ovrVector3f& position, const ovrQuatf& orientation, ovrAvatarTransform* target);
 			IGL_INLINE void ovrAvatarHandInputState_from_OVR(const ovrAvatarTransform& transform, const ovrInputState& inputState, ovrHandType hand, ovrAvatarHandInputState* state);
 			IGL_INLINE void handle_avatar_specification(const ovrAvatarMessage_AvatarSpecification* message);
 			IGL_INLINE void handle_asset_loaded(const ovrAvatarMessage_AssetLoaded* message, igl::opengl::glfw::Viewer* viewer);
 			IGL_INLINE void navigate(ovrVector2f& thumb_pos, ViewerData& current_data);
-			IGL_INLINE static ViewerData* loadMesh(const ovrAvatarMeshAssetData* data, igl::opengl::glfw::Viewer* viewer);
+			IGL_INLINE static ViewerData* loadMesh(const ovrAvatarMeshAssetData* data);
+			IGL_INLINE static TextureData* loadTexture(const ovrAvatarTextureAssetData* data);
 			IGL_INLINE void render_avatar(ovrAvatar* avatar, uint32_t visibilityMask, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints);
 			IGL_INLINE static void _computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose);
 			IGL_INLINE static void EigenFromOvrAvatarTransform(const ovrAvatarTransform& transform, Eigen::Matrix4f& target);
 			IGL_INLINE Eigen::Matrix4f* prepare_avatar_draw(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos);
 			IGL_INLINE void _setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const ViewerData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos);
-			IGL_INLINE void _renderSkinnedMeshPart(GLuint shader, const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints);
+			IGL_INLINE void _renderSkinnedMeshPart(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints);
+			IGL_INLINE void _setMaterialState(GLuint program, const ovrAvatarMaterialState* state, Eigen::Matrix4f* projectorInv);
+			IGL_INLINE void _setTextureSampler(GLuint program, int textureUnit, const char uniformName[], ovrAvatarAssetID assetID);
+			IGL_INLINE void _setTextureSamplers(GLuint program, const char uniformName[], size_t count, const int textureUnits[], const ovrAvatarAssetID assetIDs[]);
 			IGL_INLINE int eyeTextureWidth();
 			IGL_INLINE int eyeTextureHeight();
 
@@ -104,6 +107,9 @@ private:
 			};
 
 			OVR_buffer *eye_buffers[2];
+			std::chrono::steady_clock::time_point lastTime;
+
+			
 		};
 	}
 }

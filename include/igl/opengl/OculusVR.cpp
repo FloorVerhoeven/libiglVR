@@ -43,7 +43,11 @@ namespace igl {
 		static ovrAvatarAssetID _avatarCombinedMeshAlpha = 0;
 		static ovrAvatarVector4f _avatarCombinedMeshAlphaOffset;
 		static std::map<ovrAvatarAssetID, void*> _assetMap;
+		static float _elapsedSeconds;
 
+		struct TextureData {
+			GLuint textureID;
+		};
 
 
 		IGL_INLINE void OculusVR::init() {
@@ -205,6 +209,7 @@ namespace igl {
 		}
 
 		IGL_INLINE void OculusVR::handle_avatar_messages(igl::opengl::glfw::Viewer* viewer) {
+			lastTime = std::chrono::steady_clock::now();
 			while (ovrAvatarMessage* message = ovrAvatarMessage_Pop()){
 				switch (ovrAvatarMessage_GetType(message)){
 					case ovrAvatarMessageType_AvatarSpecification:
@@ -232,10 +237,17 @@ namespace igl {
 				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)   Pos2 += OVR::Matrix4f::RotationY(Yaw).Transform(OVR::Vector3f(0, 0, +0.05f));
 				if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)   Pos2 += OVR::Matrix4f::RotationY(Yaw).Transform(OVR::Vector3f(+0.05f, 0, 0));
 				if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)   Pos2 += OVR::Matrix4f::RotationY(Yaw).Transform(OVR::Vector3f(-0.05f, 0, 0));*/
+			
+				// Compute how much time has elapsed since the last frame
+				std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+				std::chrono::duration<float> deltaTime = currentTime - lastTime;
+				float deltaSeconds = deltaTime.count();
+				lastTime = currentTime;
+				_elapsedSeconds += deltaSeconds;
 
 				on_render_start();
 				if (_avatar) {
-					update_avatar();
+					update_avatar(deltaSeconds);
 				}
 
 				for (int eye = 0; eye < 2; eye++)
@@ -251,6 +263,7 @@ namespace igl {
 					OVR::Matrix4f proj_tmp = ovrMatrix4f_Projection(hmdDesc.DefaultEyeFov[eye], 0.01f, 1000.0f, (ovrProjection_ClipRangeOpenGL));
 					Eigen::Matrix4f proj = to_Eigen(proj_tmp);
 
+				
 					for (int i = 0; i < data_list.size(); i++) { //TODO: this currently also goes over the avatar parts but doesn't draw them (it does bind them though...)
 						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh && data_list[i].avatar_V.rows() > 0) {
 							//prepare_avatar_draw(mesh->skinnedPose, world, view, proj, to_Eigen(shiftedEyePos));
@@ -260,7 +273,7 @@ namespace igl {
 							core.draw(data_list[i], true, true, view, proj);
 						}
 					}
-					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
+						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
 					}
 
@@ -374,7 +387,7 @@ namespace igl {
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 		}
 
-		IGL_INLINE void OculusVR::update_avatar() {
+		IGL_INLINE void OculusVR::update_avatar(float deltaSeconds) {
 			// Convert the OVR inputs into Avatar SDK inputs
 			ovrInputState touchState;
 			ovr_GetInputState(session, ovrControllerType_Active, &touchState);
@@ -398,7 +411,7 @@ namespace igl {
 			// Update the avatar pose from the inputs
 			ovrAvatarPose_UpdateBody(_avatar, hmd);
 			ovrAvatarPose_UpdateHands(_avatar, inputStateLeft, inputStateRight);
-			ovrAvatarPose_Finalize(_avatar, 0.0f); //TODO: might need to set deltaseconds here
+			ovrAvatarPose_Finalize(_avatar, deltaSeconds); //TODO: might need to set deltaseconds here
 		}
 
 		IGL_INLINE void OculusVR::ovrAvatarTransform_from_OVR(const ovrVector3f& position, const ovrQuatf& orientation, ovrAvatarTransform* target) {
@@ -480,12 +493,12 @@ namespace igl {
 			switch (assetType){
 			case ovrAvatarAssetType_Mesh:
 				std::cout << "Mesh" << std::endl;
-				data = loadMesh(ovrAvatarAsset_GetMeshData(message->asset), viewer);
+				data = loadMesh(ovrAvatarAsset_GetMeshData(message->asset));
 				break;
 			case ovrAvatarAssetType_Texture:
 				std::cout << "texture" << std::endl;
 
-				//data = _loadTexture(ovrAvatarAsset_GetTextureData(message->asset));
+				data = loadTexture(ovrAvatarAsset_GetTextureData(message->asset));
 				break;
 			case ovrAvatarAssetType_CombinedMesh:
 				std::cout << "CombinedMesh" << std::endl;
@@ -512,13 +525,14 @@ namespace igl {
 			printf("Loading %d assets...\r\n", _loadingAssets);
 		}
 
-		IGL_INLINE ViewerData* OculusVR::loadMesh(const ovrAvatarMeshAssetData* data, glfw::Viewer* viewer){
-			std::cout << "Check if jointCount is ever more than 0: " <<  data->skinnedBindPose.jointCount << std::endl;
+		IGL_INLINE ViewerData* OculusVR::loadMesh(const ovrAvatarMeshAssetData* data){
 			//MeshData* mesh = new MeshData();
 			//(*viewer).append_mesh();
+			std::cout << "nr f: " << data->indexCount << std::endl;
+			std::cout << "nr V: " << data->vertexCount << std::endl;
 			ViewerData* mesh = new ViewerData();
-			Eigen::MatrixXd V(data->vertexCount,3);
-			Eigen::MatrixXi F(data->indexCount,3);
+			Eigen::MatrixXd V(data->vertexCount, 3);
+			Eigen::MatrixXi F(data->indexCount/3, 3);
 			Eigen::MatrixXd normals(data->vertexCount, 3);
 			Eigen::MatrixXd tangents(data->vertexCount, 4);
 			Eigen::MatrixXd tex(data->vertexCount, 2);
@@ -527,12 +541,15 @@ namespace igl {
 
 			for (int i = 0; i < data->vertexCount; i++) {
 				V.row(i) << data->vertexBuffer[i].x, data->vertexBuffer[i].y, data->vertexBuffer[i].z;
-				F.row(i) << (int)data->indexBuffer[i * 3 + 0], (int)data->indexBuffer[i * 3 + 1], (int)data->indexBuffer[i * 3 + 2];
 				normals.row(i) << data->vertexBuffer[i].nx, data->vertexBuffer[i].ny, data->vertexBuffer[i].nz;
 				tangents.row(i) << data->vertexBuffer[i].tx, data->vertexBuffer[i].ty, data->vertexBuffer[i].tz, data->vertexBuffer[i].tw;
 				tex.row(i) << data->vertexBuffer[i].u, data->vertexBuffer[i].v;
 				poseIndices.row(i) << (int)data->vertexBuffer[i].blendIndices[0], (int)data->vertexBuffer[i].blendIndices[1], (int)data->vertexBuffer[i].blendIndices[2], (int)data->vertexBuffer[i].blendIndices[3];
 				poseWeights.row(i) << data->vertexBuffer[i].blendWeights[0], data->vertexBuffer[i].blendWeights[1], data->vertexBuffer[i].blendWeights[2], data->vertexBuffer[i].blendWeights[3];
+			}
+
+			for (int i = 0; i < data->indexCount / 3; i++) {
+				F.row(i) << (int)data->indexBuffer[i * 3 + 0], (int)data->indexBuffer[i * 3 + 1], (int)data->indexBuffer[i * 3 + 2];
 			}
 			mesh->set_avatar(V, F, normals, tangents, tex, poseIndices, poseWeights);
 			
@@ -544,7 +561,7 @@ namespace igl {
 			return mesh;
 		}
 
-		 IGL_INLINE void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose)
+		IGL_INLINE void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose)
 		 {
 			 for (uint32_t i = 0; i < localPose.jointCount; ++i)
 			 {
@@ -573,8 +590,7 @@ namespace igl {
 			  target = translation * rot * scale;
 		 }
 
-		/*static TextureData* _loadTexture(const ovrAvatarTextureAssetData* data)
-		{
+		IGL_INLINE OculusVR::TextureData* OculusVR::loadTexture(const ovrAvatarTextureAssetData* data) {
 			// Create a texture
 			TextureData* texture = new TextureData();
 			glGenTextures(1, &texture->textureID);
@@ -635,7 +651,7 @@ namespace igl {
 					int32_t blocksHigh = (h + 5) / 6;
 					int32_t mipSize = 16 * blocksWide * blocksHigh;
 
-					glCompressedTexImage2D(GL_TEXTURE_2D, i, GL_COMPRESSED_RGBA_ASTC_6x6_KHR, w, h, 0, mipSize, level);
+					//glCompressedTexImage2D(GL_TEXTURE_2D, i, GL_COMPRESSED_RGBA_ASTC_6x6_KHR, w, h, 0, mipSize, level);
 
 					level += mipSize;
 
@@ -654,29 +670,24 @@ namespace igl {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			return texture;
 		}
-		*/
-
+		
 		IGL_INLINE void OculusVR::render_avatar(ovrAvatar* avatar, uint32_t visibilityMask, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints){
 			// Traverse over all components on the avatar
 			uint32_t componentCount = ovrAvatarComponent_Count(avatar);
-			std::cout << "componentCount is: " << componentCount << std::endl;
 			const ovrAvatarComponent* bodyComponent = nullptr;
 			if (const ovrAvatarBodyComponent* body = ovrAvatarPose_GetBodyComponent(avatar))
 			{
-				std::cout << "test" << std::endl;
 				bodyComponent = body->renderComponent;
 			}
 
 			for (uint32_t i = 0; i < componentCount; ++i)
 			{
 				const ovrAvatarComponent* component = ovrAvatarComponent_Get(avatar, i);
-				std::cout << (component->name) << std::endl;
 				const bool useCombinedMeshProgram = _combineMeshes && bodyComponent == component;
 
 				// Compute the transform for this component
 				Eigen::Matrix4f world;
 				EigenFromOvrAvatarTransform(component->transform, world);
-				std::cout << "renderpartCount: " << component->renderPartCount << std::endl;
 				// Render each render part attached to the component
 				for (uint32_t j = 0; j < component->renderPartCount; ++j)
 				{
@@ -685,17 +696,12 @@ namespace igl {
 					switch (type)
 					{
 					case ovrAvatarRenderPartType_SkinnedMeshRender:
-						std::cout << "First renderer" << std::endl;
-//						_renderSkinnedMeshPart(useCombinedMeshProgram ? _combinedMeshProgram : _skinnedMeshProgram, ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
+						_renderSkinnedMeshPart(ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
 						break;
 					case ovrAvatarRenderPartType_SkinnedMeshRenderPBS:
-						std::cout << "second renderer" << std::endl;
-
 				//		_renderSkinnedMeshPartPBS(ovrAvatarRenderPart_GetSkinnedMeshRenderPBS(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
 						break;
 					case ovrAvatarRenderPartType_ProjectorRender:
-						std::cout << "third renderer" << std::endl;
-
 					//	_renderProjector(ovrAvatarRenderPart_GetProjectorRender(renderPart), avatar, visibilityMask, world, view, proj, viewPos);
 						break;
 					}
@@ -720,7 +726,7 @@ namespace igl {
 			return skinnedPoses;
 		}
 
-		IGL_INLINE void OculusVR::_renderSkinnedMeshPart(GLuint shader, const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints)
+		IGL_INLINE void OculusVR::_renderSkinnedMeshPart(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints)
 		{
 			// If this part isn't visible from the viewpoint we're rendering from, do nothing
 			if ((mesh->visibilityMask & visibilityMask) == 0)
@@ -730,9 +736,10 @@ namespace igl {
 
 			// Get the GL mesh data for this mesh's asset
 			ViewerData* data = (ViewerData*)_assetMap[mesh->meshAssetID];
-
+			data->updateGL(*data, false, data->meshgl);
 			glUseProgram(data->meshgl.shader_avatar);
-
+			//std::cout << "test" << data->meshgl.avatar_V_vbo << std::endl;
+			data->meshgl.bind_avatar();
 			// Apply the vertex state
 			_setMeshState(data->meshgl.shader_avatar, mesh->localTransform, data, mesh->skinnedPose, world, view, proj, viewPos);
 
@@ -740,31 +747,33 @@ namespace igl {
 			_setMaterialState(data->meshgl.shader_avatar, &mesh->materialState, nullptr);
 
 			// Draw the mesh
-			glBindVertexArray(data->vertexArray);
+		//	glBindVertexArray(data->vertexArray);
 			glDepthFunc(GL_LESS);
 
 			// Write to depth first for self-occlusion
 			if (mesh->visibilityMask & ovrAvatarVisibilityFlag_SelfOccluding)
 			{
-				glDepthMask(GL_TRUE);
-				glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-				glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
-				glDepthFunc(GL_EQUAL);
+			//	glDepthMask(GL_TRUE);
+			//	glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		//		std::cout << data->meshgl.avatar_F_vbo << std::endl;
+		//		std::cout << data->avatar_F.rows() << std::endl;
+				glDrawElements(GL_TRIANGLES, 3 * data->meshgl.avatar_F_vbo.rows(), GL_UNSIGNED_SHORT, 0);
+			//	glDepthFunc(GL_EQUAL);
 			}
 
 			// Render to color buffer
-			glDepthMask(GL_FALSE);
-			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
+		//	glDepthMask(GL_FALSE);
+		//	glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDrawElements(GL_TRIANGLES, 3 * data->meshgl.avatar_F_vbo.rows(), GL_UNSIGNED_SHORT, 0);
 			glBindVertexArray(0);
 
-			if (renderJoints)
+			/*if (renderJoints)
 			{
 				Eigen::Matrix4f local;
 				EigenFromOvrAvatarTransform(mesh->localTransform, local);
 				glDepthFunc(GL_ALWAYS);
 				_renderPose(proj * view * world * local, mesh->skinnedPose);
-			}
+			}*/
 		}
 
 		IGL_INLINE void OculusVR::_setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const ViewerData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos){
@@ -791,8 +800,7 @@ namespace igl {
 			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, skinnedPoses->data()); //TODO: not sure if last param is correct
 		}
 
-		/*IGL_INLINE void OculusVR::void _setMaterialState(GLuint program, const ovrAvatarMaterialState* state, glm::mat4* projectorInv)
-		{
+		IGL_INLINE void OculusVR::_setMaterialState(GLuint program, const ovrAvatarMaterialState* state, Eigen::Matrix4f* projectorInv){
 			// Assign the fragment uniforms
 			glUniform1i(glGetUniformLocation(program, "useAlpha"), state->alphaMaskTextureID != 0);
 			glUniform1i(glGetUniformLocation(program, "useNormalMap"), state->normalMapTextureID != 0);
@@ -803,7 +811,7 @@ namespace igl {
 			if (projectorInv)
 			{
 				glUniform1i(glGetUniformLocation(program, "useProjector"), 1);
-				glUniformMatrix4fv(glGetUniformLocation(program, "projectorInv"), 1, 0, glm::value_ptr(*projectorInv));
+				glUniformMatrix4fv(glGetUniformLocation(program, "projectorInv"), 1, 0, projectorInv->data());
 			}
 			else
 			{
@@ -867,6 +875,52 @@ namespace igl {
 
 		}
 
+		IGL_INLINE void OculusVR::_setTextureSampler(GLuint program, int textureUnit, const char uniformName[], ovrAvatarAssetID assetID){
+			GLuint textureID = 0;
+			if (assetID)
+			{
+				void* data = _assetMap[assetID];
+				TextureData* textureData = (TextureData*)data;
+				textureID = textureData->textureID;
+			}
+			glActiveTexture(GL_TEXTURE0 + textureUnit);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glUniform1i(glGetUniformLocation(program, uniformName), textureUnit);
+		}
+
+		IGL_INLINE void OculusVR::_setTextureSamplers(GLuint program, const char uniformName[], size_t count, const int textureUnits[], const ovrAvatarAssetID assetIDs[]){
+			for (int i = 0; i < count; ++i)
+			{
+				ovrAvatarAssetID assetID = assetIDs[i];
+
+				GLuint textureID = 0;
+				if (assetID)
+				{
+					void* data = _assetMap[assetID];
+					if (data)
+					{
+						TextureData* textureData = (TextureData*)data;
+						textureID = textureData->textureID;
+					}
+				}
+				glActiveTexture(GL_TEXTURE0 + textureUnits[i]);
+				glBindTexture(GL_TEXTURE_2D, textureID);
+			}
+			GLint uniformLocation = glGetUniformLocation(program, uniformName);
+			glUniform1iv(uniformLocation, (GLsizei)count, textureUnits);
+		}
+
+		/*IGL_INLINE void OculusVR::_renderPose(const Eigen::Matrix4f& worldViewProj, const ovrAvatarSkinnedMeshPose& pose)
+		{
+			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * pose.jointCount);
+			_computeWorldPose(pose, skinnedPoses);
+			for (uint32_t i = 1; i < pose.jointCount; ++i)
+			{
+				int parent = pose.jointParents[i];
+				_renderDebugLine(worldViewProj, glm::vec3(skinnedPoses[parent][3]), glm::vec3(skinnedPoses[i][3]), Eigen::Vector4f(1, 1, 1, 1), Eigen::Vector4f(1, 0, 0, 1));
+			}
+		}*/
+
 		IGL_INLINE void OculusVR::request_recenter() {
 			ovr_RecenterTrackingOrigin(session);
 			on_render_start();
@@ -877,7 +931,10 @@ namespace igl {
 		}
 
 		IGL_INLINE void OculusVR::navigate(ovrVector2f& thumb_pos, ViewerData& data) {
-			Eigen::Quaternionf old_rotation = Eigen::Quaternionf::Identity();// data.mesh_trackball_angle;
+			if (data.V.rows() == 0) {
+				return;
+			}
+			Eigen::Quaternionf old_rotation = Eigen::Quaternionf::Identity();
 			data.set_mesh_model_translation();
 			data.set_mesh_translation();
 			igl::two_axis_valuator_fixed_up(2 * 1000, 2 * 1000, 0.2, old_rotation, 0, 0, thumb_pos.x * 1000, thumb_pos.y * 1000, data.mesh_trackball_angle); //Multiply width, heigth, x-pos and y-pos with 1000 because function takes ints
