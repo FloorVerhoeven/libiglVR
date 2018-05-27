@@ -9,7 +9,7 @@
 #endif
 
 #define FAIL(X) throw std::runtime_error(X)
-#define MIRROR_SAMPLE_APP_ID "2094457250596307"
+#define APP_ID "2094457250596307"
 
 #include <igl/igl_inline.h>
 #include <igl/two_axis_valuator_fixed_up.h>
@@ -55,7 +55,7 @@ namespace igl {
 			touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
 			callback_button_down = nullptr;
 			// Initialize the OVR Platform module
-			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(MIRROR_SAMPLE_APP_ID))) {
+			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(APP_ID))) {
 				FAIL("Failed to initialize the Oculus platform");
 			}
 
@@ -78,7 +78,7 @@ namespace igl {
 			}
 
 			// Initialize the avatar module
-			ovrAvatar_Initialize(MIRROR_SAMPLE_APP_ID);
+			ovrAvatar_Initialize(APP_ID);
 			ovrID userID = ovr_GetLoggedInUserID();
 
 			auto requestSpec = ovrAvatarSpecificationRequest_Create(userID);
@@ -265,15 +265,9 @@ namespace igl {
 
 				
 					for (int i = 0; i < data_list.size(); i++) { //TODO: this currently also goes over the avatar parts but doesn't draw them (it does bind them though...)
-						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh && data_list[i].avatar_V.rows() > 0) {
-							//prepare_avatar_draw(mesh->skinnedPose, world, view, proj, to_Eigen(shiftedEyePos));
-							//core.draw_avatar_part(data_list[i], view, proj, to_Eigen(shiftedEyePos));
-						}
-						else {
-							core.draw(data_list[i], true, true, view, proj);
-						}
+						core.draw(data_list[i], true, true, view, proj);
 					}
-						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
+					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
 					}
 
@@ -684,7 +678,7 @@ namespace igl {
 			{
 				const ovrAvatarComponent* component = ovrAvatarComponent_Get(avatar, i);
 				const bool useCombinedMeshProgram = _combineMeshes && bodyComponent == component;
-
+				std::cout << (component->name) << std::endl;
 				// Compute the transform for this component
 				Eigen::Matrix4f world;
 				EigenFromOvrAvatarTransform(component->transform, world);
@@ -755,15 +749,16 @@ namespace igl {
 			{
 			//	glDepthMask(GL_TRUE);
 			//	glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		//		std::cout << data->meshgl.avatar_F_vbo << std::endl;
-		//		std::cout << data->avatar_F.rows() << std::endl;
+				if (data->meshgl.avatar_V_vbo.rows() > 0) {
+					std::cout << data->meshgl.avatar_V_vbo << std::endl;
+				}
 				glDrawElements(GL_TRIANGLES, 3 * data->meshgl.avatar_F_vbo.rows(), GL_UNSIGNED_SHORT, 0);
 			//	glDepthFunc(GL_EQUAL);
 			}
 
 			// Render to color buffer
 		//	glDepthMask(GL_FALSE);
-		//	glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			glDrawElements(GL_TRIANGLES, 3 * data->meshgl.avatar_F_vbo.rows(), GL_UNSIGNED_SHORT, 0);
 			glBindVertexArray(0);
 
