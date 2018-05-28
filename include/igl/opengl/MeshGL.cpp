@@ -536,6 +536,7 @@ void main() {
 	vertexColor = color.rgba;
 })";
 
+  std::string avatar_fragment_shader_string = 
  R"( #version 330 core
 
 #define SAMPLE_MODE_COLOR 0
@@ -779,6 +780,11 @@ void main() {
 	  hand_fragment_shader_string,
 	  {},
 	  shader_hand_point);
+  create_shader_program(
+	  avatar_vertex_shader_string,
+	  avatar_fragment_shader_string,
+	  {},
+	  shader_avatar);
 }
 
 IGL_INLINE void igl::opengl::MeshGL::free()
