@@ -620,7 +620,7 @@ void main() {
 						core.draw(data_list[i], true, true, view, proj);
 					}
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
-						render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
+						render_avatar(_avatar, ovrAvatarVisibilityFlag_SelfOccluding, view, proj, to_Eigen(shiftedEyePos), false);
 					}
 
 					eye_buffers[eye]->OnRenderFinish();
@@ -921,18 +921,16 @@ void main() {
 			{
 				Eigen::Matrix4f local;
 				EigenFromOvrAvatarTransform(localPose.jointTransform[i], local);
-
+				std::cout << " flo: " << localPose.jointTransform[i].position.x << "   " << localPose.jointTransform[i].position.y << "   " << localPose.jointTransform[i].position.z << std::endl;
 				int parentIndex = localPose.jointParents[i];
 				Eigen::Matrix4f* tmp = &worldPose[i];
 				if (parentIndex < 0)
 				{
 					*(worldPose + i) = local;
-					//(*tmp) = local;
 				}
 				else
 				{
-					*(worldPose + i) = local;
-					//(*tmp) = worldPose[parentIndex] * local;
+					*(worldPose + i) = *(worldPose + parentIndex) * local;
 				}
 			}
 		}
@@ -1054,6 +1052,7 @@ void main() {
 					{
 					case ovrAvatarRenderPartType_SkinnedMeshRender:
 						//For hands
+						std::cout << j << std::endl;
 						_renderSkinnedMeshPart(ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
 						break;
 					case ovrAvatarRenderPartType_SkinnedMeshRenderPBS:
@@ -1074,7 +1073,7 @@ void main() {
 			// If this part isn't visible from the viewpoint we're rendering from, do nothing
 			if ((mesh->visibilityMask & visibilityMask) == 0)
 			{
-				std::cout << "returning" << std::endl;
+				//std::cout << "returning" << std::endl;
 				return;
 			}
 
@@ -1122,8 +1121,6 @@ void main() {
 
 		IGL_INLINE void OculusVR::_setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const AvatarMeshData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos) {
 			// Compute the final world and viewProjection matrices for this part
-			GLenum err;
-			err = glGetError();
 			Eigen::Matrix4f local;
 			EigenFromOvrAvatarTransform(localTransform, local);
 			Eigen::Matrix4f worldMat = world * local;
@@ -1134,10 +1131,7 @@ void main() {
 			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i)
 			{
 				*(skinnedPoses+i) = *(skinnedPoses+i) * data->inverseBindPose[i];
-				std::cout << skinnedPose.jointNames[i] << std::endl;
-				std::cout << skinnedPoses[i] << std::endl << std::endl;
 			}
-
 
 			// Pass the world view position to the shader for view-dependent rendering
 			glUniform3fv(glGetUniformLocation(program, "viewPos"), 1, viewPos.data());
@@ -1145,8 +1139,7 @@ void main() {
 			// Assign the vertex uniforms
 			glUniformMatrix4fv(glGetUniformLocation(program, "world"), 1, 0, worldMat.data());
 			glUniformMatrix4fv(glGetUniformLocation(program, "viewProj"), 1, 0, viewProjMat.data());
-			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, (*skinnedPoses).data()); //TODO: not sure if last param is correct
-			err = glGetError();
+			glUniformMatrix4fv(glGetUniformLocation(program, "meshPose"), (GLsizei)skinnedPose.jointCount, 0, (*skinnedPoses).data());
 		}
 
 		IGL_INLINE void OculusVR::_setMaterialState(GLuint program, const ovrAvatarMaterialState* state, Eigen::Matrix4f* projectorInv) {
@@ -1258,7 +1251,6 @@ void main() {
 			GLint uniformLocation = glGetUniformLocation(program, uniformName);
 			glUniform1iv(uniformLocation, (GLsizei)count, textureUnits);
 		}
-
 
 		IGL_INLINE void OculusVR::request_recenter() {
 			ovr_RecenterTrackingOrigin(session);
