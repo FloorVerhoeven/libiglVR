@@ -368,7 +368,13 @@ IGL_INLINE void igl::opengl::ViewerData::add_stroke_points(const Eigen::MatrixXd
 IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd& LP) {
 	overlay_lock.lock();
 	laser_points.resize(0, 0);
-	add_laser_points(LP); //Will take care of unlocking
+	if(LP.rows()>0) {
+		add_laser_points(LP); //Will take care of unlocking
+	}
+	else {
+		dirty |= MeshGL::DIRTY_LASER;
+		overlay_lock.unlock();
+	}
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd& LP) {

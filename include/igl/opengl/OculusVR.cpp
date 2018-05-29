@@ -915,15 +915,13 @@ void main() {
 			return mesh;
 		}
 
-		IGL_INLINE void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose)
-		{
+		IGL_INLINE void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose){
 			for (uint32_t i = 0; i < localPose.jointCount; ++i)
 			{
 				Eigen::Matrix4f local;
 				EigenFromOvrAvatarTransform(localPose.jointTransform[i], local);
-				std::cout << " flo: " << localPose.jointTransform[i].position.x << "   " << localPose.jointTransform[i].position.y << "   " << localPose.jointTransform[i].position.z << std::endl;
+				//std::cout << localPose.jointParents[i] <<  " local pose: " << localPose.jointNames[i] << "   " << localPose.jointTransform[i].position.x << "   " << localPose.jointTransform[i].position.y << "   " << localPose.jointTransform[i].position.z << std::endl;
 				int parentIndex = localPose.jointParents[i];
-				Eigen::Matrix4f* tmp = &worldPose[i];
 				if (parentIndex < 0)
 				{
 					*(worldPose + i) = local;
@@ -1039,7 +1037,7 @@ void main() {
 			{
 				const ovrAvatarComponent* component = ovrAvatarComponent_Get(avatar, i);
 				const bool useCombinedMeshProgram = _combineMeshes && bodyComponent == component;
-				std::cout << (component->name) << std::endl;
+				//std::cout << (component->name) << std::endl;
 				// Compute the transform for this component
 				Eigen::Matrix4f world;
 				EigenFromOvrAvatarTransform(component->transform, world);
@@ -1052,7 +1050,6 @@ void main() {
 					{
 					case ovrAvatarRenderPartType_SkinnedMeshRender:
 						//For hands
-						std::cout << j << std::endl;
 						_renderSkinnedMeshPart(ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
 						break;
 					case ovrAvatarRenderPartType_SkinnedMeshRenderPBS:
