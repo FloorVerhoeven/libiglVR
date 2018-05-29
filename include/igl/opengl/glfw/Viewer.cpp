@@ -281,7 +281,7 @@ namespace glfw
 		  }
 		  if (finish_loop) {
 			  finish_loop = false;
-			  continue;
+			  continue; //TODO: may need to glfwSwapBuffers(window) here, because in regular viewer.launch_rendering that is called after the call to draw() 
 		  }
 
 		  oculusVR.draw(data_list, window, core, update_screen_while_computing);
