@@ -13,6 +13,7 @@
 #include <Eigen/Geometry>
 #include "Extras/OVR_Math.h"
 #include "igl/opengl/glfw/Viewer.h"
+#include "igl/opengl/glfw/imgui/ImGuiMenu.h"
 
 #include <OVR_Avatar.h>
 #include <OVR_Platform.h>
@@ -42,7 +43,7 @@ public:
 			IGL_INLINE void handle_input(std::atomic<bool>& update_screen_while_computing, ViewerData& current_data);
 			IGL_INLINE void request_recenter();
 			IGL_INLINE void handle_avatar_messages(igl::opengl::glfw::Viewer* viewer);
-			IGL_INLINE void draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing);
+			IGL_INLINE void draw(std::vector<ViewerData>& data_list, glfw::ViewerPlugin* gui, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing);
 			IGL_INLINE void submit_frame();
 			IGL_INLINE void blit_mirror();
 			IGL_INLINE void update_avatar(float deltaSeconds);

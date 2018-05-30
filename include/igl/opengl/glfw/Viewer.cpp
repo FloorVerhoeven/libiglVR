@@ -273,18 +273,18 @@ namespace glfw
 
 		  for (unsigned int i = 0; i<plugins.size(); ++i)
 		  {
-			  if (plugins[i]->pre_draw())
+		/*	  if (plugins[i]->pre_draw())
 			  {
 				  finish_loop = true;
 				  break;
-			  }
+			  }*/
 		  }
 		  if (finish_loop) {
 			  finish_loop = false;
 			  continue; //TODO: may need to glfwSwapBuffers(window) here, because in regular viewer.launch_rendering that is called after the call to draw() 
 		  }
 
-		  oculusVR.draw(data_list, window, core, update_screen_while_computing);
+		  oculusVR.draw(data_list, plugins[0], window, core, update_screen_while_computing);
 
 		  if (callback_post_draw)
 		  {
@@ -295,10 +295,10 @@ namespace glfw
 		  }
 		  for (unsigned int i = 0; i<plugins.size(); ++i)
 		  {
-			  if (plugins[i]->post_draw())
+		/*	  if (plugins[i]->post_draw())
 			  {
 				  break;
-			  }
+			  }*/
 		  }
 	  }
 
@@ -331,13 +331,13 @@ namespace glfw
 
   IGL_INLINE void Viewer::init_oculus()
   {
-	  core.init();
+/*	  core.init();
 
 	  if (callback_init)
 		  if (callback_init(*this))
 			  return;
 
-	  init_plugins();
+	  init_plugins();*/
 	  launch_init();
 	  oculusVR.init();
   }

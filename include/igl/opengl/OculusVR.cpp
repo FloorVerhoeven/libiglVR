@@ -1,6 +1,7 @@
 #define IGL_OCULUSVR_CPP
 #include "OculusVR.h"
 #include <igl/opengl/glfw/Viewer.h>
+#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -574,7 +575,7 @@ void main() {
 			}
 		}
 
-		IGL_INLINE void OculusVR::draw(std::vector<ViewerData>& data_list, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing) {
+		IGL_INLINE void OculusVR::draw(std::vector<ViewerData>& data_list, glfw::ViewerPlugin* gui, GLFWwindow* window, ViewerCore& core, std::atomic<bool>& update_screen_while_computing) {
 			do {
 				/*// Keyboard inputs to adjust player orientation
 				static float Yaw(0.0f);
@@ -622,6 +623,8 @@ void main() {
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_SelfOccluding, view, proj, to_Eigen(shiftedEyePos), false);
 					}
+					gui->pre_draw();
+					gui->post_draw();
 
 					eye_buffers[eye]->OnRenderFinish();
 					ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);

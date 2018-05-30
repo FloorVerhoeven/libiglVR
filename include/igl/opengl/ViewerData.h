@@ -113,6 +113,7 @@ public:
 	  mesh_model_translation = other.mesh_model_translation;
 
 	  id = other.id;
+	  return *this;
   }
 
   ViewerData(const ViewerData& other) {
