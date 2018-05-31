@@ -16,7 +16,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
+#include <iostream> //TODO: REMOVE. only for debug
 #ifdef _WIN32
 #undef APIENTRY
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -33,6 +33,13 @@ static int          g_ShaderHandle = 0, g_VertHandle = 0, g_FragHandle = 0;
 static int          g_AttribLocationTex = 0, g_AttribLocationProjMtx = 0;
 static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
 static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
+
+const int			g_MaxTextures = 4;
+static GLuint		g_GuiTexture[g_MaxTextures] = { 0,0,0,0 };
+static int			g_LastViewport[4] = { 0,0,0,0 };
+static int			g_TexWidth = 0;
+static int			g_TexHeight = 0;
+static GLuint		g_GuiFBO = 0;
 
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so.
@@ -313,9 +320,11 @@ void    ImGui_ImplGlfwGL3_InvalidateDeviceObjects()
     }
 }
 
-bool    ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
+bool ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
 {
     g_Window = window;
+	g_TexWidth = 512;
+	g_TexHeight = 512;
 
     ImGuiIO& io = ImGui::GetIO();
     io.KeyMap[ImGuiKey_Tab] = GLFW_KEY_TAB;                         // Keyboard mapping. ImGui will use those indices to peek into the io.KeyDown[] array.
@@ -366,8 +375,10 @@ void ImGui_ImplGlfwGL3_Shutdown()
 
 void ImGui_ImplGlfwGL3_NewFrame()
 {
-    if (!g_FontTexture)
-        ImGui_ImplGlfwGL3_CreateDeviceObjects();
+	if (!g_FontTexture) {
+		ImGui_ImplGlfwGL3_CreateDeviceObjects();
+		std::cout << "test nonvr" << std::endl;
+	}
 
     ImGuiIO& io = ImGui::GetIO();
 
@@ -446,4 +457,222 @@ void ImGui_ImplGlfwGL3_NewFrame()
 
     // Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
     ImGui::NewFrame();
+}
+
+void ImGui_ImplGlfwGL3_NewFrame_VR(){
+	if (!g_FontTexture) {
+		std::cout << "testhere" << std::endl;
+		ImGui_ImplGlfwGL3_CreateDeviceObjects_VR();
+	}
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	// Setup display size (every frame to accommodate for window resizing)
+	//int w, h;
+	//int display_w, display_h;
+	//glfwGetWindowSize(g_Window, &w, &h);
+	//glfwGetFramebufferSize(g_Window, &display_w, &display_h);
+	io.DisplaySize = ImVec2((float)g_TexWidth, (float)g_TexHeight);
+	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+
+	// Setup time step
+	double current_time = glfwGetTime();
+	io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f / 60.0f);
+	g_Time = current_time;
+
+	// Setup inputs
+	// (we already got mouse wheel, keyboard keys & characters from glfw callbacks polled in glfwPollEvents())
+	if (glfwGetWindowAttrib(g_Window, GLFW_FOCUSED)){
+		if (io.WantMoveMouse)
+		{
+			glfwSetCursorPos(g_Window, (double)io.MousePos.x, (double)io.MousePos.y);   // Set mouse position if requested by io.WantMoveMouse flag (used when io.NavMovesTrue is enabled by user and using directional navigation)
+		}
+		else
+		{
+			double mouse_x, mouse_y;
+			glfwGetCursorPos(g_Window, &mouse_x, &mouse_y);
+			io.MousePos = ImVec2((float)mouse_x, (float)mouse_y);
+		}
+	}
+	else {
+		io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		// If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
+		io.MouseDown[i] = g_MouseJustPressed[i] || glfwGetMouseButton(g_Window, i) != 0;
+		g_MouseJustPressed[i] = false;
+	}
+
+	// Hide OS mouse cursor if ImGui is drawing it
+	glfwSetInputMode(g_Window, GLFW_CURSOR, io.MouseDrawCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
+
+	// Gamepad navigation mapping [BETA]
+	memset(io.NavInputs, 0, sizeof(io.NavInputs));
+	if (io.NavFlags & ImGuiNavFlags_EnableGamepad)
+	{
+		// Update gamepad inputs
+#define MAP_BUTTON(NAV_NO, BUTTON_NO)       { if (buttons_count > BUTTON_NO && buttons[BUTTON_NO] == GLFW_PRESS) io.NavInputs[NAV_NO] = 1.0f; }
+#define MAP_ANALOG(NAV_NO, AXIS_NO, V0, V1) { float v = (axes_count > AXIS_NO) ? axes[AXIS_NO] : V0; v = (v - V0) / (V1 - V0); if (v > 1.0f) v = 1.0f; if (io.NavInputs[NAV_NO] < v) io.NavInputs[NAV_NO] = v; }
+		int axes_count = 0, buttons_count = 0;
+		const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axes_count);
+		const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &buttons_count);
+		MAP_BUTTON(ImGuiNavInput_Activate, 0);     // Cross / A
+		MAP_BUTTON(ImGuiNavInput_Cancel, 1);     // Circle / B
+		MAP_BUTTON(ImGuiNavInput_Menu, 2);     // Square / X
+		MAP_BUTTON(ImGuiNavInput_Input, 3);     // Triangle / Y
+		MAP_BUTTON(ImGuiNavInput_DpadLeft, 13);    // D-Pad Left
+		MAP_BUTTON(ImGuiNavInput_DpadRight, 11);    // D-Pad Right
+		MAP_BUTTON(ImGuiNavInput_DpadUp, 10);    // D-Pad Up
+		MAP_BUTTON(ImGuiNavInput_DpadDown, 12);    // D-Pad Down
+		MAP_BUTTON(ImGuiNavInput_FocusPrev, 4);     // L1 / LB
+		MAP_BUTTON(ImGuiNavInput_FocusNext, 5);     // R1 / RB
+		MAP_BUTTON(ImGuiNavInput_TweakSlow, 4);     // L1 / LB
+		MAP_BUTTON(ImGuiNavInput_TweakFast, 5);     // R1 / RB
+		MAP_ANALOG(ImGuiNavInput_LStickLeft, 0, -0.3f, -0.9f);
+		MAP_ANALOG(ImGuiNavInput_LStickRight, 0, +0.3f, +0.9f);
+		MAP_ANALOG(ImGuiNavInput_LStickUp, 1, +0.3f, +0.9f);
+		MAP_ANALOG(ImGuiNavInput_LStickDown, 1, -0.3f, -0.9f);
+#undef MAP_BUTTON
+#undef MAP_ANALOG
+	}
+
+	//setup for render-to-texture
+	glEnable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glGetIntegerv(GL_VIEWPORT, g_LastViewport);
+	glViewport(0, 0, g_TexWidth, g_TexHeight);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
+
+	glDrawBuffer(GL_COLOR_ATTACHMENT0); //Removed +i here, which could be used for rendering 4 sides of a cube
+	float clearcolor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	glClearBufferfv(GL_COLOR, 0, clearcolor);
+
+	// Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
+	ImGui::NewFrame();
+}
+
+bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
+	// Backup GL state
+	GLint last_texture, last_array_buffer, last_vertex_array;
+	glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
+	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+
+	const GLchar *vertex_shader =
+		"#version 150\n"
+		"uniform mat4 ProjMtx;\n"
+		"in vec2 Position;\n"
+		"in vec2 UV;\n"
+		"in vec4 Color;\n"
+		"out vec2 Frag_UV;\n"
+		"out vec4 Frag_Color;\n"
+		"void main()\n"
+		"{\n"
+		"   Frag_UV = UV;\n"
+		"   Frag_Color = Color;\n"
+		"   gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
+		"}\n";
+
+	const GLchar* fragment_shader =
+		"#version 150\n"
+		"uniform sampler2D Texture;\n"
+		"in vec2 Frag_UV;\n"
+		"in vec4 Frag_Color;\n"
+		"out vec4 Out_Color;\n"
+		"void main()\n"
+		"{\n"
+		"   Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
+		"}\n";
+
+	g_ShaderHandle = glCreateProgram();
+	g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
+	g_FragHandle = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(g_VertHandle, 1, &vertex_shader, 0);
+	glShaderSource(g_FragHandle, 1, &fragment_shader, 0);
+	glCompileShader(g_VertHandle);
+	glCompileShader(g_FragHandle);
+	glAttachShader(g_ShaderHandle, g_VertHandle);
+	glAttachShader(g_ShaderHandle, g_FragHandle);
+	glLinkProgram(g_ShaderHandle);
+
+	g_AttribLocationTex = glGetUniformLocation(g_ShaderHandle, "Texture");
+	g_AttribLocationProjMtx = glGetUniformLocation(g_ShaderHandle, "ProjMtx");
+	g_AttribLocationPosition = glGetAttribLocation(g_ShaderHandle, "Position");
+	g_AttribLocationUV = glGetAttribLocation(g_ShaderHandle, "UV");
+	g_AttribLocationColor = glGetAttribLocation(g_ShaderHandle, "Color");
+
+	glGenBuffers(1, &g_VboHandle);
+	glGenBuffers(1, &g_ElementsHandle);
+
+	glGenVertexArrays(1, &g_VaoHandle);
+	glBindVertexArray(g_VaoHandle);
+	glBindBuffer(GL_ARRAY_BUFFER, g_VboHandle);
+	glEnableVertexAttribArray(g_AttribLocationPosition);
+	glEnableVertexAttribArray(g_AttribLocationUV);
+	glEnableVertexAttribArray(g_AttribLocationColor);
+
+	glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
+	glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
+	glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+
+	ImGui_ImplGlfwGL3_CreateFontsTexture();
+
+	glGenTextures(g_MaxTextures, g_GuiTexture);
+	glActiveTexture(GL_TEXTURE0);
+	for (int i = 0; i<g_MaxTextures; i++){
+		glBindTexture(GL_TEXTURE_2D, g_GuiTexture[i]);
+		glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA8, g_TexWidth, g_TexHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+
+	glGenFramebuffers(1, &g_GuiFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
+	for (int i = 0; i<g_MaxTextures; i++){
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, g_GuiTexture[i], 0);
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Restore modified GL state
+	glBindTexture(GL_TEXTURE_2D, last_texture);
+	glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
+	glBindVertexArray(last_vertex_array);
+
+	return true;
+}
+
+void ImGui_ImplGlfwGL3_Render_VR(){
+	/*ImGui::SetCurrentContext(g_Context[i]);
+
+	if (g_ActiveTexture == i)
+	{
+		PulseIfItemHovered(); // haptic pulse if window or item is hovered
+	}*/
+
+	ImGui::Render();
+
+	/*static bool WantTextInputLastFrame[g_MaxTextures] = { false, false, false, false };
+	ImGuiIO& io = ImGui::GetIO();
+	if ((io.WantTextInput == true) && (WantTextInputLastFrame[i] == false) && (InputTextBufSize != 0) && (InputTextBuf != 0))
+	{
+		g_pOverlay->ShowKeyboard(vr::k_EGamepadTextInputModeNormal, vr::k_EGamepadTextInputLineModeSingleLine, "Virtual Keyboard", InputTextBufSize, InputTextBuf, false, 0);
+	}
+	WantTextInputLastFrame[i] = io.WantTextInput;
+	*/
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glDrawBuffer(GL_BACK);
+	glEnable(GL_DEPTH_TEST);
+	glViewport(g_LastViewport[0], g_LastViewport[1], g_LastViewport[2], g_LastViewport[3]);
+}
+
+int ImGui_ImplGlfwGL3_GetGuiTexture(int i){
+	return g_GuiTexture[i];
 }

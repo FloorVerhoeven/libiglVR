@@ -20,6 +20,7 @@
 #include <Extras/OVR_StereoProjection.h>
 #include "Extras/OVR_Math.h"
 #include <igl/opengl/gl.h> //TODO: remove afterwards. only used for error checking
+#include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 
 using namespace Eigen;
 using namespace OVR;
@@ -369,16 +370,14 @@ void main() {
   })";
 
 			GLuint id = glCreateProgram();
-			if (id == 0)
-			{
+			if (id == 0){
 				std::cerr << "Could not create shader program." << std::endl;
 				return false;
 			}
 			GLuint f = 0, v = 0;
 
 			GLuint s = glCreateShader(GL_VERTEX_SHADER);
-			if (s == 0)
-			{
+			if (s == 0){
 				fprintf(stderr, "Error:failed to create shader.\n");
 				return 0;
 			}
@@ -387,16 +386,14 @@ void main() {
 			glShaderSource(s, 1, &c, NULL);
 			glCompileShader(s);
 			v = s;
-			if (v == 0)
-			{
+			if (v == 0){
 				std::cerr << "vertex shader failed to compile." << std::endl;
 				return false;
 			}
 			glAttachShader(id, v);
 
 			GLuint s2 = glCreateShader(GL_FRAGMENT_SHADER);
-			if (s2 == 0)
-			{
+			if (s2 == 0){
 				fprintf(stderr, "Error:failed to create shader.\n");
 				return 0;
 			}
@@ -418,8 +415,7 @@ void main() {
 
 
 			f = s2;
-			if (f == 0)
-			{
+			if (f == 0){
 				std::cerr << "Fragment shader failed to compile." << std::endl;
 				return false;
 			}
@@ -438,10 +434,8 @@ void main() {
 				std::cout << buffer << std::endl;
 			}
 
-			const auto & detach = [&id](const GLuint shader)
-			{
-				if (shader)
-				{
+			const auto & detach = [&id](const GLuint shader){
+				if (shader){
 					glDetachShader(id, shader);
 					glDeleteShader(shader);
 				}
@@ -623,6 +617,9 @@ void main() {
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_SelfOccluding, view, proj, to_Eigen(shiftedEyePos), false);
 					}
+
+					Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->set_3D_GUI_param(proj, model, view);
 					gui->pre_draw();
 					gui->post_draw();
 

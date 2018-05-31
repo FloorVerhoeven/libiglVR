@@ -13,6 +13,7 @@
 #include <imgui_fonts_droid_sans.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <fstream>
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace igl
@@ -40,6 +41,10 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameRounding = 5.0f;
     reload_font();
+
+	if (&_viewer->oculusVR) {
+		init_3D_quad_GUI();
+	}
   }
 }
 
@@ -73,15 +78,24 @@ IGL_INLINE bool ImGuiMenu::pre_draw()
     reload_font();
     ImGui_ImplGlfwGL3_InvalidateDeviceObjects();
   }
-
-  ImGui_ImplGlfwGL3_NewFrame();
+  if (oculus) {
+	  ImGui_ImplGlfwGL3_NewFrame_VR(); //TODO: Making this the regular NewFrame, makes a black quad show up at 0,0 in the scene. No texture though
+  }
+  else {
+	  ImGui_ImplGlfwGL3_NewFrame();
+  }
   return false;
 }
 
-IGL_INLINE bool ImGuiMenu::post_draw()
-{
+IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
-  ImGui::Render();
+  if (oculus) {
+	  draw_3D_quad_GUI();
+	  ImGui_ImplGlfwGL3_Render_VR();
+  }
+  else {
+	  ImGui::Render();
+  }
   return false;
 }
 
@@ -378,6 +392,130 @@ IGL_INLINE float ImGuiMenu::hidpi_scaling()
   GLFWwindow* window = glfwGetCurrentContext();
   glfwGetWindowContentScale(window, &xscale, &yscale);
   return 0.5 * (xscale + yscale);
+}
+
+IGL_INLINE void ImGuiMenu::init_3D_quad_GUI(){
+	oculus_gui_shader_program = InitOculusGUIShader(oculus_gui_vertex_shader.c_str(), oculus_gui_fragment_shader.c_str());
+
+	glGenVertexArrays(1, &quad.quad_vao);
+	glBindVertexArray(quad.quad_vao);
+
+	float vertices[] = { 1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, -1.0f, -1.0f, 0.0f };
+
+	//create vertex buffers for vertex coords
+	glGenBuffers(1, &quad.quad_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, quad.quad_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	int pos_loc = 0;
+	glEnableVertexAttribArray(pos_loc);
+	glVertexAttribPointer(pos_loc, 3, GL_FLOAT, false, 0, 0);
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+IGL_INLINE void ImGuiMenu::draw_3D_quad_GUI(){
+	glEnable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glUseProgram(oculus_gui_shader_program);
+
+	Eigen::Matrix4f PVM = oculus_proj*oculus_view*oculus_model; //For now removed scale and controller model matrix 
+	//glm::mat4 PVM = Pvr*Vvr*Mvr*ImGui_Impl_VR_GetGuiPose()*ImGui_Impl_VR_GetGuiScale();
+	glUniformMatrix4fv(0, 1, false, PVM.data());
+	Eigen::Vector4f BaseColor = Eigen::Vector4f::Constant(1.0f);
+	glUniform4fv(2, 1, BaseColor.data());
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, ImGui_ImplGlfwGL3_GetGuiTexture(0)); //replaced tex_id with 0
+	glUniform1f(1, 0);
+	glBindVertexArray(quad.quad_vao);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	glBindVertexArray(0);
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_TRUE);
+}
+
+// Create a GLSL program object from vertex and fragment shader files
+GLuint ImGuiMenu::InitOculusGUIShader(const char* vShaderFile, const char* fShaderFile){
+	bool error = false;
+	struct Shader{
+		const char*  filename;
+		GLenum       type;
+		GLchar*      source;
+	}  shaders[2] =
+	{
+		{ vShaderFile, GL_VERTEX_SHADER, NULL },
+		{ fShaderFile, GL_FRAGMENT_SHADER, NULL }
+	};
+
+	GLuint program = glCreateProgram();
+
+	for (int i = 0; i < 2; ++i){
+		Shader& s = shaders[i];
+		s.source = readShaderSource(s.filename);
+		if (shaders[i].source == NULL){
+			std::cerr << "Failed to read " << s.filename << std::endl;
+			error = true;
+		}
+
+		GLuint shader = glCreateShader(s.type);
+		glShaderSource(shader, 1, (const GLchar**)&s.source, NULL);
+		glCompileShader(shader);
+
+		GLint  compiled;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+		if (!compiled){
+			std::cerr << s.filename << " failed to compile:" << std::endl;
+			error = true;
+		}
+
+		delete[] s.source;
+
+		glAttachShader(program, shader);
+	}
+
+	/* link  and error check */
+	glLinkProgram(program);
+
+	GLint  linked;
+	glGetProgramiv(program, GL_LINK_STATUS, &linked);
+	if (!linked){
+		std::cerr << "Shader program failed to link" << std::endl;
+		error = true;
+	}
+
+	if (error == true){
+		return -1;
+	}
+
+	/* use program object */
+	glUseProgram(program);
+	return program;
+}
+
+// Create a NULL-terminated string by reading the provided file
+char* ImGuiMenu::readShaderSource(const char* shaderFile){
+	std::ifstream ifs(shaderFile, std::ios::in | std::ios::binary | std::ios::ate);
+	if (ifs.is_open())
+	{
+		unsigned int filesize = static_cast<unsigned int>(ifs.tellg());
+		ifs.seekg(0, std::ios::beg);
+		char* bytes = new char[filesize + 1];
+		memset(bytes, 0, filesize + 1);
+		ifs.read(bytes, filesize);
+		ifs.close();
+		return bytes;
+	}
+	return NULL;
+}
+
+void ImGuiMenu::set_3D_GUI_param(Eigen::Matrix4f& _proj, Eigen::Matrix4f& _model, Eigen::Matrix4f& _view) {
+	oculus_proj = _proj;
+	oculus_model = _model;
+	oculus_view = _view;
+	oculus = true;
 }
 
 } // end namespace

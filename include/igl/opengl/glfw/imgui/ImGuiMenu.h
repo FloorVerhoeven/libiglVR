@@ -12,6 +12,7 @@
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/opengl/glfw/ViewerPlugin.h>
 #include <igl/igl_inline.h>
+#include <string>
 ////////////////////////////////////////////////////////////////////////////////
 
 // Forward declarations
@@ -39,6 +40,19 @@ protected:
   // ImGui Context
   ImGuiContext * context_ = nullptr;
 
+  struct QuadData
+  {
+	  GLuint quad_vao;
+	  GLuint quad_vbo;
+  };
+  QuadData quad;
+
+  const std::string oculus_gui_vertex_shader = "../src/oculus_gui_vs.glsl"; //TODO: document that user has to include these in the src folder
+  const std::string oculus_gui_fragment_shader = "../src/oculus_gui_fs.glsl";
+  GLuint oculus_gui_shader_program = -1;
+  Eigen::Matrix4f oculus_proj, oculus_view, oculus_model;
+  bool oculus = false;
+
 public:
   IGL_INLINE virtual void init(igl::opengl::glfw::Viewer *_viewer) override;
 
@@ -48,7 +62,7 @@ public:
 
   IGL_INLINE virtual bool pre_draw() override;
 
-  IGL_INLINE  virtual bool post_draw() override;
+  IGL_INLINE virtual bool post_draw() override;
 
   IGL_INLINE virtual void post_resize(int width, int height) override;
 
@@ -96,6 +110,16 @@ public:
   IGL_INLINE float hidpi_scaling();
 
   float menu_scaling() { return hidpi_scaling_ / pixel_ratio_; }
+
+  IGL_INLINE void init_3D_quad_GUI();
+
+  IGL_INLINE void draw_3D_quad_GUI();
+
+  IGL_INLINE GLuint InitOculusGUIShader(const char* vShaderFile, const char* fShaderFile);
+
+  IGL_INLINE static char* readShaderSource(const char* shaderFile);
+
+  IGL_INLINE void set_3D_GUI_param(Eigen::Matrix4f& proj, Eigen::Matrix4f& model, Eigen::Matrix4f& view);
 };
 
 } // end namespace
