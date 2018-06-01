@@ -34,6 +34,7 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
     if (context_ == nullptr)
     {
       context_ = ImGui::CreateContext();
+	  ImGui::SetCurrentContext(context_);
     }
     ImGui_ImplGlfwGL3_Init(viewer->window, false);
     ImGui::GetIO().IniFilename = nullptr;
@@ -79,7 +80,7 @@ IGL_INLINE bool ImGuiMenu::pre_draw()
     ImGui_ImplGlfwGL3_InvalidateDeviceObjects();
   }
   if (oculus) {
-	  ImGui_ImplGlfwGL3_NewFrame_VR(); //TODO: Making this the regular NewFrame, makes a black quad show up at 0,0 in the scene. No texture though
+	//  ImGui_ImplGlfwGL3_NewFrame_VR(); //TODO: Making this the regular NewFrame, makes a black quad show up at 0,0 in the scene. No texture though
   }
   else {
 	  ImGui_ImplGlfwGL3_NewFrame();
@@ -91,7 +92,8 @@ IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
   if (oculus) {
 	  draw_3D_quad_GUI();
-	  ImGui_ImplGlfwGL3_Render_VR();
+	 // ImGui_ImplGlfwGL3_Render_VR();
+	  ImGui::Render();
   }
   else {
 	  ImGui::Render();
@@ -154,7 +156,7 @@ IGL_INLINE bool ImGuiMenu::key_up(int key, int modifiers)
 IGL_INLINE void ImGuiMenu::draw_menu()
 {
   // Text labels
-  draw_labels_window();
+  //draw_labels_window();
 
   // Viewer settings
   if (callback_draw_viewer_window) { callback_draw_viewer_window(); }
@@ -167,21 +169,32 @@ IGL_INLINE void ImGuiMenu::draw_menu()
 
 IGL_INLINE void ImGuiMenu::draw_viewer_window()
 {
-  float menu_width = 180.f * menu_scaling();
-  ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
-  ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
-  ImGui::SetNextWindowSizeConstraints(ImVec2(menu_width, -1.0f), ImVec2(menu_width, -1.0f));
-  bool _viewer_menu_visible = true;
-  ImGui::Begin(
-      "Viewer", &_viewer_menu_visible,
-      ImGuiWindowFlags_NoSavedSettings
-      | ImGuiWindowFlags_AlwaysAutoResize
-  );
-  ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.4f);
-  if (callback_draw_viewer_menu) { callback_draw_viewer_menu(); }
-  else { draw_viewer_menu(); }
-  ImGui::PopItemWidth();
-  ImGui::End();
+	if (!oculus) {
+		float menu_width = 180.f * menu_scaling();
+		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowSizeConstraints(ImVec2(menu_width, -1.0f), ImVec2(menu_width, -1.0f));
+		bool _viewer_menu_visible = true;
+		ImGui::Begin(
+			"Viewer", &_viewer_menu_visible,
+			ImGuiWindowFlags_NoSavedSettings
+			| ImGuiWindowFlags_AlwaysAutoResize
+		);
+		ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.4f);
+		if (callback_draw_viewer_menu) { callback_draw_viewer_menu(); }
+		else { draw_viewer_menu(); }
+		ImGui::PopItemWidth();
+		ImGui::End();
+	}
+	else {
+		const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
+		ImGui_ImplGlfwGL3_NewFrame();
+		ImGui::SetNextWindowSize(texsize);
+		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+		ImGui::Begin("Tab 0", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+		ImGui::End();
+	//	ImGui_ImplGlfwGL3_Render_VR();
+	}
 }
 
 IGL_INLINE void ImGuiMenu::draw_viewer_menu()

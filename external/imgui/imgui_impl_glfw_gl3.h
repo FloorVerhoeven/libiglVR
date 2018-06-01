@@ -30,6 +30,7 @@ IMGUI_API void        ImGui_ImplGlfwGL3_KeyCallback(GLFWwindow* window, int key,
 IMGUI_API void        ImGui_ImplGlfwGL3_CharCallback(GLFWwindow* window, unsigned int c);
 
 IMGUI_API int		  ImGui_ImplGlfwGL3_GetGuiTexture(int i);
+IMGUI_API ImVec2	  ImGui_ImplGlfwGL3_GetTextureSize();
 IMGUI_API bool		  ImGui_ImplGlfwGL3_CreateDeviceObjects_VR();
 IMGUI_API void		  ImGui_ImplGlfwGL3_NewFrame_VR(); 
 IMGUI_API void		  ImGui_ImplGlfwGL3_Render_VR();

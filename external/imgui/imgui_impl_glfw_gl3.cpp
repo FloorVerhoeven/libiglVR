@@ -41,6 +41,9 @@ static int			g_TexWidth = 0;
 static int			g_TexHeight = 0;
 static GLuint		g_GuiFBO = 0;
 
+static ImGuiContext* g_Context;
+
+
 // This is the main rendering function that you have to implement and provide to ImGui (via setting up 'RenderDrawListsFn' in the ImGuiIO structure)
 // Note that this implementation is little overcomplicated because we are saving/setting up/restoring every OpenGL state explicitly, in order to be able to run within any OpenGL engine that doesn't do so.
 // If text or lines are blurry when integrating ImGui in your engine: in your Render function, try translating your projection matrix by (0.5f,0.5f) or (0.375f,0.375f)
@@ -50,8 +53,10 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     ImGuiIO& io = ImGui::GetIO();
     int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
     int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
-    if (fb_width == 0 || fb_height == 0)
-        return;
+	if (fb_width == 0 || fb_height == 0) {
+		std::cout << "returning" << std::endl;
+		return;
+	}
     draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
     // Backup GL state
@@ -99,7 +104,7 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glUniform1i(g_AttribLocationTex, 0);
     glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
     glBindVertexArray(g_VaoHandle);
-    glBindSampler(0, 0); // Rely on combined texture/sampler state.
+  //  glBindSampler(0, 0); // Rely on combined texture/sampler state.
 
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
@@ -133,7 +138,7 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glUseProgram(last_program);
     glBindTexture(GL_TEXTURE_2D, last_texture);
     glBindSampler(0, last_sampler);
-    glActiveTexture(last_active_texture);
+   // glActiveTexture(last_active_texture);
     glBindVertexArray(last_vertex_array);
     glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
@@ -322,6 +327,7 @@ void    ImGui_ImplGlfwGL3_InvalidateDeviceObjects()
 
 bool ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
 {
+	g_Context = ImGui::GetCurrentContext();
     g_Window = window;
 	g_TexWidth = 512;
 	g_TexHeight = 512;
@@ -460,6 +466,7 @@ void ImGui_ImplGlfwGL3_NewFrame()
 }
 
 void ImGui_ImplGlfwGL3_NewFrame_VR(){
+	ImGui::SetCurrentContext(g_Context);
 	if (!g_FontTexture) {
 		std::cout << "testhere" << std::endl;
 		ImGui_ImplGlfwGL3_CreateDeviceObjects_VR();
@@ -544,16 +551,15 @@ void ImGui_ImplGlfwGL3_NewFrame_VR(){
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glGetIntegerv(GL_VIEWPORT, g_LastViewport);
-	glViewport(0, 0, g_TexWidth, g_TexHeight);
-
 	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
-
+	glViewport(0, 0, g_TexWidth, g_TexHeight);
 	glDrawBuffer(GL_COLOR_ATTACHMENT0); //Removed +i here, which could be used for rendering 4 sides of a cube
 	float clearcolor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	glClearBufferfv(GL_COLOR, 0, clearcolor);
-
+	
 	// Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
 	ImGui::NewFrame();
+
 }
 
 bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
@@ -564,7 +570,7 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
 
 	const GLchar *vertex_shader =
-		"#version 150\n"
+		"#version 330\n"
 		"uniform mat4 ProjMtx;\n"
 		"in vec2 Position;\n"
 		"in vec2 UV;\n"
@@ -579,7 +585,7 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 		"}\n";
 
 	const GLchar* fragment_shader =
-		"#version 150\n"
+		"#version 330\n"
 		"uniform sampler2D Texture;\n"
 		"in vec2 Frag_UV;\n"
 		"in vec4 Frag_Color;\n"
@@ -616,17 +622,21 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 	glEnableVertexAttribArray(g_AttribLocationUV);
 	glEnableVertexAttribArray(g_AttribLocationColor);
 
-	glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, pos));
-	glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, uv));
-	glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)IM_OFFSETOF(ImDrawVert, col));
+#define OFFSETOF(TYPE, ELEMENT) ((size_t)&(((TYPE *)0)->ELEMENT))
+	glVertexAttribPointer(g_AttribLocationPosition, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, pos));
+	glVertexAttribPointer(g_AttribLocationUV, 2, GL_FLOAT, GL_FALSE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, uv));
+	glVertexAttribPointer(g_AttribLocationColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(ImDrawVert), (GLvoid*)OFFSETOF(ImDrawVert, col));
+#undef OFFSETOF
 
 	ImGui_ImplGlfwGL3_CreateFontsTexture();
 
 	glGenTextures(g_MaxTextures, g_GuiTexture);
 	glActiveTexture(GL_TEXTURE0);
+	glEnable(GL_TEXTURE_2D);
+
 	for (int i = 0; i<g_MaxTextures; i++){
 		glBindTexture(GL_TEXTURE_2D, g_GuiTexture[i]);
-		glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA8, g_TexWidth, g_TexHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, g_TexWidth, g_TexHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -644,7 +654,6 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 	glBindTexture(GL_TEXTURE_2D, last_texture);
 	glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
 	glBindVertexArray(last_vertex_array);
-
 	return true;
 }
 
@@ -655,6 +664,7 @@ void ImGui_ImplGlfwGL3_Render_VR(){
 	{
 		PulseIfItemHovered(); // haptic pulse if window or item is hovered
 	}*/
+	ImGui::SetCurrentContext(g_Context);
 
 	ImGui::Render();
 
@@ -675,4 +685,8 @@ void ImGui_ImplGlfwGL3_Render_VR(){
 
 int ImGui_ImplGlfwGL3_GetGuiTexture(int i){
 	return g_GuiTexture[i];
+}
+
+ImVec2 ImGui_ImplGlfwGL3_GetTextureSize(){
+	return ImVec2((float)g_TexWidth, (float)g_TexHeight);
 }
