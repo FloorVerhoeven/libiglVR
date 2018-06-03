@@ -188,7 +188,7 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 	}
 	else {
 		const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
-		ImGui_ImplGlfwGL3_NewFrame();
+		ImGui_ImplGlfwGL3_NewFrame_VR();
 		ImGui::SetNextWindowSize(texsize);
 		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Tab 0", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
