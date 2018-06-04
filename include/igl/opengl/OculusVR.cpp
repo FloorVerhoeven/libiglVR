@@ -611,7 +611,7 @@ void main() {
 					Eigen::Matrix4f proj = to_Eigen(proj_tmp);
 
 
-					for (int i = 0; i < data_list.size(); i++) { //TODO: this currently also goes over the avatar parts but doesn't draw them (it does bind them though...)
+					for (int i = 0; i < data_list.size(); i++) {
 						core.draw(data_list[i], true, true, view, proj);
 					}
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
@@ -622,6 +622,7 @@ void main() {
 					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->set_3D_GUI_param(proj, model, view);
 					gui->pre_draw();
 					gui->post_draw();
+
 
 					eye_buffers[eye]->OnRenderFinish();
 					ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);

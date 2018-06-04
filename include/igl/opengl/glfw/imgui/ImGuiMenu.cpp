@@ -79,8 +79,9 @@ IGL_INLINE bool ImGuiMenu::pre_draw()
     reload_font();
     ImGui_ImplGlfwGL3_InvalidateDeviceObjects();
   }
+
   if (oculus) {
-	//  ImGui_ImplGlfwGL3_NewFrame_VR(); //TODO: Making this the regular NewFrame, makes a black quad show up at 0,0 in the scene. No texture though
+	  ImGui_ImplGlfwGL3_NewFrame_VR();
   }
   else {
 	  ImGui_ImplGlfwGL3_NewFrame();
@@ -92,8 +93,8 @@ IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
   if (oculus) {
 	  draw_3D_quad_GUI();
-	 // ImGui_ImplGlfwGL3_Render_VR();
-	  ImGui::Render();
+	  ImGui_ImplGlfwGL3_Render_VR();
+	  //ImGui::Render();
   }
   else {
 	  ImGui::Render();
@@ -188,7 +189,6 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 	}
 	else {
 		const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
-		ImGui_ImplGlfwGL3_NewFrame_VR();
 		ImGui::SetNextWindowSize(texsize);
 		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Tab 0", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
@@ -481,6 +481,10 @@ GLuint ImGuiMenu::InitOculusGUIShader(const char* vShaderFile, const char* fShad
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
 		if (!compiled){
 			std::cerr << s.filename << " failed to compile:" << std::endl;
+			GLchar buffer[128];
+			GLsizei charsWritten = 0;
+			glGetShaderInfoLog(shader, 128, &charsWritten, buffer);
+			std::cout << buffer << std::endl;
 			error = true;
 		}
 
@@ -505,6 +509,9 @@ GLuint ImGuiMenu::InitOculusGUIShader(const char* vShaderFile, const char* fShad
 
 	/* use program object */
 	glUseProgram(program);
+
+	GLenum err = glGetError();
+
 	return program;
 }
 

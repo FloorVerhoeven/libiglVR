@@ -111,6 +111,7 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
 
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
+		std::cout << n << std::endl;
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
         const ImDrawIdx* idx_buffer_offset = 0;
 
@@ -132,6 +133,7 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
                 glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
+				std::cout << pcmd->ElemCount << std::endl;
             }
             idx_buffer_offset += pcmd->ElemCount;
         }
@@ -326,6 +328,12 @@ void    ImGui_ImplGlfwGL3_InvalidateDeviceObjects()
         ImGui::GetIO().Fonts->TexID = 0;
         g_FontTexture = 0;
     }
+
+	if (g_GuiTexture)
+	{
+		glDeleteTextures(g_MaxTextures, g_GuiTexture);
+	}
+
 }
 
 bool ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
@@ -470,18 +478,23 @@ void ImGui_ImplGlfwGL3_NewFrame()
 
 void ImGui_ImplGlfwGL3_NewFrame_VR(){
 	ImGui::SetCurrentContext(g_Context);
+	ImGuiIO& io = ImGui::GetIO();
+
 	if (!g_FontTexture) {
 		std::cout << "testhere" << std::endl;
 		ImGui_ImplGlfwGL3_CreateDeviceObjects_VR();
+	}else{
+		io.Fonts->TexID = (void *)(intptr_t)g_FontTexture;
 	}
 
-	ImGuiIO& io = ImGui::GetIO();
 
 	// Setup display size (every frame to accommodate for window resizing)
 	//int w, h;
 	//int display_w, display_h;
 	//glfwGetWindowSize(g_Window, &w, &h);
 	//glfwGetFramebufferSize(g_Window, &display_w, &display_h);
+	//io.DisplaySize = ImVec2((float)w, (float)h);
+	//io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
 	io.DisplaySize = ImVec2((float)g_TexWidth, (float)g_TexHeight);
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
@@ -549,17 +562,19 @@ void ImGui_ImplGlfwGL3_NewFrame_VR(){
 	}
 
 	//setup for render-to-texture
-//	glEnable(GL_BLEND);
-	//glDisable(GL_DEPTH_TEST);
-//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glGetIntegerv(GL_VIEWPORT, g_LastViewport);
-	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
-	glViewport(0, 0, g_TexWidth, g_TexHeight);
+	//glViewport(0, 0, g_TexWidth, g_TexHeight);
+
+//	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
+
 	glDrawBuffer(GL_COLOR_ATTACHMENT0); //Removed +i here, which could be used for rendering 4 sides of a cube
 	float clearcolor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-//	glClearBufferfv(GL_COLOR, 0, clearcolor);
-//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//glClearBufferfv(GL_COLOR, 0, clearcolor);
+
 	// Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
 	ImGui::NewFrame();
 
@@ -633,29 +648,32 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 
 	ImGui_ImplGlfwGL3_CreateFontsTexture();
 	
-	glEnable(GL_TEXTURE_2D);
+//	glEnable(GL_TEXTURE_2D);
 	glGenTextures(g_MaxTextures, g_GuiTexture);
-	//glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0);
 
 	for (int i = 0; i<g_MaxTextures; i++){
 		glBindTexture(GL_TEXTURE_2D, g_GuiTexture[i]);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, g_TexWidth, g_TexHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-	//	unsigned char data[] = { 255, 0, 0, 255 };
-	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
 	}
 
-	glGenFramebuffers(1, &g_GuiFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
+//	glGenFramebuffers(1, &g_GuiFBO);
+//	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
 	for (int i = 0; i<g_MaxTextures; i++){
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, g_GuiTexture[i], 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, g_GuiTexture[i], 0);
 	}
-	// glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	GLenum status;
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	assert(status == GL_FRAMEBUFFER_COMPLETE);
 
+//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	
 	// Restore modified GL state
 	glBindTexture(GL_TEXTURE_2D, last_texture);
 	glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
