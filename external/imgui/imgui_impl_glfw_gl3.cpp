@@ -107,11 +107,10 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glUniform1i(g_AttribLocationTex, 0);
     glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
     glBindVertexArray(g_VaoHandle);
-  //  glBindSampler(0, 0); // Rely on combined texture/sampler state.
+   // glBindSampler(0, 0); // Rely on combined texture/sampler state.
 
     for (int n = 0; n < draw_data->CmdListsCount; n++)
     {
-		std::cout << n << std::endl;
         const ImDrawList* cmd_list = draw_data->CmdLists[n];
         const ImDrawIdx* idx_buffer_offset = 0;
 
@@ -130,10 +129,12 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
             }
             else
             {
+				GLint tmp;
+				glGetIntegerv(GL_FRAMEBUFFER_BINDING, &tmp);
+				std::cout << "test: "  << tmp << std::endl;
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
                 glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
-				std::cout << pcmd->ElemCount << std::endl;
             }
             idx_buffer_offset += pcmd->ElemCount;
         }
@@ -143,7 +144,7 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glUseProgram(last_program);
     glBindTexture(GL_TEXTURE_2D, last_texture);
     glBindSampler(0, last_sampler);
-   // glActiveTexture(last_active_texture);
+    glActiveTexture(last_active_texture);
     glBindVertexArray(last_vertex_array);
     glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
@@ -477,7 +478,7 @@ void ImGui_ImplGlfwGL3_NewFrame()
 }
 
 void ImGui_ImplGlfwGL3_NewFrame_VR(){
-	ImGui::SetCurrentContext(g_Context);
+//	ImGui::SetCurrentContext(g_Context);
 	ImGuiIO& io = ImGui::GetIO();
 
 	if (!g_FontTexture) {
@@ -562,17 +563,17 @@ void ImGui_ImplGlfwGL3_NewFrame_VR(){
 	}
 
 	//setup for render-to-texture
-	glEnable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_BLEND);
+	//glDisable(GL_DEPTH_TEST);
+//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glGetIntegerv(GL_VIEWPORT, g_LastViewport);
+	//glGetIntegerv(GL_VIEWPORT, g_LastViewport);
 	//glViewport(0, 0, g_TexWidth, g_TexHeight);
 
 //	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
 
-	glDrawBuffer(GL_COLOR_ATTACHMENT0); //Removed +i here, which could be used for rendering 4 sides of a cube
-	float clearcolor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	//glDrawBuffer(GL_COLOR_ATTACHMENT0); //Removed +i here, which could be used for rendering 4 sides of a cube
+//	float clearcolor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	//glClearBufferfv(GL_COLOR, 0, clearcolor);
 
 	// Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
@@ -670,9 +671,6 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 	GLenum status;
 	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	assert(status == GL_FRAMEBUFFER_COMPLETE);
-
-//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	
 	// Restore modified GL state
 	glBindTexture(GL_TEXTURE_2D, last_texture);
@@ -701,10 +699,10 @@ void ImGui_ImplGlfwGL3_Render_VR(){
 	WantTextInputLastFrame[i] = io.WantTextInput;
 	*/
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDrawBuffer(GL_BACK);
-	glEnable(GL_DEPTH_TEST);
-	glViewport(g_LastViewport[0], g_LastViewport[1], g_LastViewport[2], g_LastViewport[3]);
+//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+///	glDrawBuffer(GL_BACK);
+//	glEnable(GL_DEPTH_TEST);
+//	glViewport(g_LastViewport[0], g_LastViewport[1], g_LastViewport[2], g_LastViewport[3]);
 }
 
 int ImGui_ImplGlfwGL3_GetGuiTexture(int i){

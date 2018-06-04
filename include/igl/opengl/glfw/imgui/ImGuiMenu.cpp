@@ -93,8 +93,8 @@ IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
   if (oculus) {
 	  draw_3D_quad_GUI();
-	  ImGui_ImplGlfwGL3_Render_VR();
-	  //ImGui::Render();
+	 // ImGui_ImplGlfwGL3_Render_VR();
+	  ImGui::Render();
   }
   else {
 	  ImGui::Render();

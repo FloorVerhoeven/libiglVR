@@ -669,7 +669,7 @@ void main() {
 
 			//Create eye buffer to render to
 			glGenFramebuffers(1, &eyeFbo);
-
+			
 			// create depth buffer
 			glGenTextures(1, &depthBuffer);
 			glBindTexture(GL_TEXTURE_2D, depthBuffer);
