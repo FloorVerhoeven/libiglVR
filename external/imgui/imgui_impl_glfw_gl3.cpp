@@ -68,6 +68,7 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     GLint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, &last_program);
     GLint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
     GLint last_sampler; glGetIntegerv(GL_SAMPLER_BINDING, &last_sampler);
+	GLint last_framebuffer; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &last_framebuffer);
     GLint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
     GLint last_element_array_buffer; glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, &last_element_array_buffer);
     GLint last_vertex_array; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
@@ -84,6 +85,8 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
     GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
     GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
 
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
     glEnable(GL_BLEND);
@@ -145,6 +148,7 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
     glBindTexture(GL_TEXTURE_2D, last_texture);
     glBindSampler(0, last_sampler);
     glActiveTexture(last_active_texture);
+	glBindFramebuffer(GL_FRAMEBUFFER, last_framebuffer);
     glBindVertexArray(last_vertex_array);
     glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, last_element_array_buffer);
@@ -583,10 +587,11 @@ void ImGui_ImplGlfwGL3_NewFrame_VR(){
 
 bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 	// Backup GL state
-	GLint last_texture, last_array_buffer, last_vertex_array;
+	GLint last_texture, last_array_buffer, last_vertex_array, last_framebuffer;
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
 	glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &last_array_buffer);
 	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &last_vertex_array);
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &last_framebuffer);
 
 	const GLchar *vertex_shader =
 		"#version 330\n"
@@ -650,6 +655,8 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 	ImGui_ImplGlfwGL3_CreateFontsTexture();
 	
 //	glEnable(GL_TEXTURE_2D);
+	glGenFramebuffers(1, &g_GuiFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
 	glGenTextures(g_MaxTextures, g_GuiTexture);
 	glActiveTexture(GL_TEXTURE0);
 
@@ -663,14 +670,15 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 
 	}
 
-//	glGenFramebuffers(1, &g_GuiFBO);
-//	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
+	
 	for (int i = 0; i<g_MaxTextures; i++){
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, g_GuiTexture[i], 0);
 	}
 	GLenum status;
 	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	assert(status == GL_FRAMEBUFFER_COMPLETE);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, last_framebuffer);
 	
 	// Restore modified GL state
 	glBindTexture(GL_TEXTURE_2D, last_texture);
