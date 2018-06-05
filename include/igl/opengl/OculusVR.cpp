@@ -451,6 +451,8 @@ void main() {
 				eye_buffers[eye] = new OVR_buffer(session, eye);
 				ovrEyeRenderDesc& erd = eyeRenderDesc[eye] = ovr_GetRenderDesc(session, (ovrEyeType)eye, hmdDesc.DefaultEyeFov[eye]);
 			}
+			
+			hud_buffer = new OVR_buffer(session);
 
 			memset(&mirror_desc, 0, sizeof(mirror_desc));
 			mirror_desc.Width = window_width;
@@ -618,6 +620,8 @@ void main() {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_SelfOccluding, view, proj, to_Eigen(shiftedEyePos), false);
 					}
 
+
+				//	hud_buffer->OnRender();
 					Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
 					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->set_3D_GUI_param(proj, model, view);
 					gui->pre_draw();
@@ -627,7 +631,10 @@ void main() {
 					eye_buffers[eye]->OnRenderFinish();
 					ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);
 
+
 				}
+			//	ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
+
 				submit_frame();
 				blit_mirror();
 
@@ -680,6 +687,47 @@ void main() {
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, eyeTextureSize.w, eyeTextureSize.h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
 		}
 
+		IGL_INLINE OculusVR::OVR_buffer::OVR_buffer(const ovrSession &session) {
+			ovrTextureSwapChainDesc desc = {};
+			desc.Type = ovrTexture_2D;
+			desc.ArraySize = 1;
+			desc.Width = 512;
+			desc.Height = 512;
+			desc.MipLevels = 1;
+			desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
+			desc.SampleCount = 1;
+			desc.StaticImage = ovrFalse;
+
+			ovrResult result = ovr_CreateTextureSwapChainGL(session, &desc, &swapTextureChain);
+
+				int textureCount = 0;
+			ovr_GetTextureSwapChainLength(session, swapTextureChain, &textureCount);
+
+			for (int j = 0; j < textureCount; ++j)
+			{
+				GLuint chainTexId;
+				ovr_GetTextureSwapChainBufferGL(session, swapTextureChain, j, &chainTexId);
+				glBindTexture(GL_TEXTURE_2D, chainTexId);
+
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			}
+
+			//Create eye buffer to render to
+			glGenFramebuffers(1, &eyeFbo);
+
+			// create depth buffer
+			glGenTextures(1, &depthBuffer);
+			glBindTexture(GL_TEXTURE_2D, depthBuffer);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 512, 512, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+		}
+
 		IGL_INLINE void OculusVR::OVR_buffer::OnRender() {
 			int currentIndex;
 			ovr_GetTextureSwapChainCurrentIndex(session, swapTextureChain, &currentIndex);
@@ -716,10 +764,43 @@ void main() {
 				eyeLayer.SensorSampleTime = sensorSampleTime;
 			}
 
+		/*	// Create HUD layer, fixed to the player's torso
+			ovrLayerQuad hudLayer;
+			hudLayer.Header.Type = ovrLayerType_Quad;
+			hudLayer.Header.Flags = ovrLayerFlag_HighQuality;
+			hudLayer.ColorTexture = hud_buffer.swapTextureChain;
+			// 50cm in front and 20cm down from the player's nose,
+			// fixed relative to their torso.
+			hudLayer.QuadPoseCenter.Position.x = 0.00f;
+			hudLayer.QuadPoseCenter.Position.y = -0.20f;
+			hudLayer.QuadPoseCenter.Position.z = -0.50f;
+			hudLayer.QuadPoseCenter.Orientation.x = 0;
+			hudLayer.QuadPoseCenter.Orientation.y = 0;
+			hudLayer.QuadPoseCenter.Orientation.z = 0;
+			hudLayer.QuadPoseCenter.Orientation.w = 1;
+			// HUD is 50cm wide, 30cm tall.
+			hudLayer.QuadSize.x = 0.50f;
+			hudLayer.QuadSize.y = 0.30f;
+			// Display all of the HUD texture.
+			hudLayer.Viewport.Pos.x = 0.0f;
+			hudLayer.Viewport.Pos.y = 0.0f;
+			hudLayer.Viewport.Size.w = 1.0f;
+			hudLayer.Viewport.Size.h = 1.0f;
+
 			// append all the layers to global list
+		//	ovrLayerHeader* layerList = &eyeLayer.Header;
+			ovrLayerHeader* layerList[2];
+			layerList[0] = &eyeLayer.Header;
+			layerList[1] = &hudLayer.Header;
+
+			ovrViewScaleDesc viewScaleDesc;
+			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f; //TODO: used to be 10.0f, might need to revert at some point
+			ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 2);*/
+
+
+
 			ovrLayerHeader* layerList = &eyeLayer.Header;
 			ovrViewScaleDesc viewScaleDesc;
-			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 10.0f;
 			ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, &layerList, 1);
 		}
 

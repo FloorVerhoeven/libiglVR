@@ -89,9 +89,9 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
 	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
 
     // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, polygon fill
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+ //   glEnable(GL_BLEND);
+  //  glBlendEquation(GL_FUNC_ADD);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_SCISSOR_TEST);
@@ -132,9 +132,6 @@ void ImGui_ImplGlfwGL3_RenderDrawLists(ImDrawData* draw_data)
             }
             else
             {
-				GLint tmp;
-				glGetIntegerv(GL_FRAMEBUFFER_BINDING, &tmp);
-				std::cout << "test: "  << tmp << std::endl;
                 glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
                 glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);

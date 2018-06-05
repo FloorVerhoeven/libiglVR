@@ -105,6 +105,7 @@ private:
 			// Final rendering is done via blitting two separate frame buffers into one render target.
 			struct OVR_buffer {
 				IGL_INLINE OVR_buffer(const ovrSession &session, int eyeIdx);
+				IGL_INLINE OVR_buffer(const ovrSession &session);
 				IGL_INLINE void OnRender();
 				IGL_INLINE void OnRenderFinish();
 
@@ -117,6 +118,7 @@ private:
 			};
 
 			OVR_buffer *eye_buffers[2];
+			OVR_buffer *hud_buffer;
 			std::chrono::steady_clock::time_point lastTime;
 
 			

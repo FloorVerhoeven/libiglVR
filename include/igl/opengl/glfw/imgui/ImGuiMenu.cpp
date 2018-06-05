@@ -93,8 +93,8 @@ IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
   if (oculus) {
 	  draw_3D_quad_GUI();
-	 // ImGui_ImplGlfwGL3_Render_VR();
-	  ImGui::Render();
+	  ImGui_ImplGlfwGL3_Render_VR();
+	 // ImGui::Render();
   }
   else {
 	  ImGui::Render();
@@ -192,6 +192,16 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 		ImGui::SetNextWindowSize(texsize);
 		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Tab 0", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+		ImGui::PushID(0);
+		int frame_padding = -1;     // -1 = uses default padding
+		ImGuiIO& io = ImGui::GetIO();
+		float my_tex_w = (float)io.Fonts->TexWidth;
+		float my_tex_h = (float)io.Fonts->TexHeight;
+
+		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
+			std::cout << "pressed " << std::endl;
+		}
+		ImGui::PopID();
 		ImGui::End();
 	//	ImGui_ImplGlfwGL3_Render_VR();
 	}
@@ -413,7 +423,8 @@ IGL_INLINE void ImGuiMenu::init_3D_quad_GUI(){
 	glGenVertexArrays(1, &quad.quad_vao);
 	glBindVertexArray(quad.quad_vao);
 
-	float vertices[] = { 1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, -1.0f, -1.0f, 0.0f };
+//	float vertices[] = { 1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, -1.0f, -1.0f, 0.0f };
+	float vertices[] = { 1.0f, 1.0f, -10.0f, 1.0f, -1.0f, -10.0f, -1.0f, 1.0f, -10.0f, -1.0f, -1.0f, -10.0f };
 
 	//create vertex buffers for vertex coords
 	glGenBuffers(1, &quad.quad_vbo);
@@ -428,10 +439,11 @@ IGL_INLINE void ImGuiMenu::init_3D_quad_GUI(){
 }
 
 IGL_INLINE void ImGuiMenu::draw_3D_quad_GUI(){
-	glEnable(GL_BLEND);
-	glDisable(GL_DEPTH_TEST);
-	glDepthMask(GL_FALSE);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//	glEnable(GL_BLEND);
+//	glDisable(GL_DEPTH_TEST);
+	//glDepthMask(GL_FALSE);
+//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glBlendFunc(GL_ONE, GL_ZERO);
 	glUseProgram(oculus_gui_shader_program);
 
 	Eigen::Matrix4f PVM = oculus_proj*oculus_view*oculus_model; //For now removed scale and controller model matrix 
