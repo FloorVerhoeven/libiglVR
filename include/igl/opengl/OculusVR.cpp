@@ -602,7 +602,6 @@ void main() {
 				for (int eye = 0; eye < 2; eye++)
 				{
 					eye_buffers[eye]->OnRender();
-
 					OVR::Matrix4f finalRollPitchYaw = OVR::Matrix4f(EyeRenderPose[eye].Orientation);
 					OVR::Vector3f finalUp = finalRollPitchYaw.Transform(OVR::Vector3f(0, 1, 0));
 					OVR::Vector3f finalForward = finalRollPitchYaw.Transform(OVR::Vector3f(0, 0, -1));
@@ -619,21 +618,36 @@ void main() {
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_SelfOccluding, view, proj, to_Eigen(shiftedEyePos), false);
 					}
-
-
-				//	hud_buffer->OnRender();
-					Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->set_3D_GUI_param(proj, model, view);
-					gui->pre_draw();
-					gui->post_draw();
-
+					GLint drawFboId = 0;
 
 					eye_buffers[eye]->OnRenderFinish();
+
+					hud_buffer->OnRender();
+					err = glGetError();
+
+					glViewport(0, 0, 512, 512);
+					err = glGetError();
+
+					Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->set_3D_GUI_param(proj, model, view);
+					glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFboId);
+
+					std::cout << drawFboId << std::endl;
+					gui->pre_draw();
+					err = glGetError();
+
+					gui->post_draw();
+					err = glGetError();
+					glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFboId);
+
+					std::cout << "weird? " << drawFboId << std::endl;
+					hud_buffer->OnRenderFinish();
+					err = glGetError();
 					ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);
-
-
+					ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
+					err = glGetError();
 				}
-			//	ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
+			
 
 				submit_frame();
 				blit_mirror();
@@ -698,6 +712,9 @@ void main() {
 			desc.SampleCount = 1;
 			desc.StaticImage = ovrFalse;
 
+			eyeTextureSize.w = desc.Width;
+			eyeTextureSize.h = desc.Height;
+
 			ovrResult result = ovr_CreateTextureSwapChainGL(session, &desc, &swapTextureChain);
 
 				int textureCount = 0;
@@ -719,13 +736,13 @@ void main() {
 			glGenFramebuffers(1, &eyeFbo);
 
 			// create depth buffer
-			glGenTextures(1, &depthBuffer);
+		/*	glGenTextures(1, &depthBuffer);
 			glBindTexture(GL_TEXTURE_2D, depthBuffer);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 512, 512, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 512, 512, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);*/
 		}
 
 		IGL_INLINE void OculusVR::OVR_buffer::OnRender() {
@@ -737,16 +754,23 @@ void main() {
 			glBindFramebuffer(GL_FRAMEBUFFER, eyeFbo);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eyeTexId, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
-
+			GLenum err = glGetError();
 			glViewport(0, 0, eyeTextureSize.w, eyeTextureSize.h);
+			err = glGetError();
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glEnable(GL_FRAMEBUFFER_SRGB);
 		}
 
 		IGL_INLINE void OculusVR::OVR_buffer::OnRenderFinish() {
+			GLenum err = glGetError();
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+			err = glGetError();
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+			err = glGetError();
+
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			err = glGetError();
+
 		}
 
 		IGL_INLINE void OculusVR::submit_frame() {
@@ -764,11 +788,11 @@ void main() {
 				eyeLayer.SensorSampleTime = sensorSampleTime;
 			}
 
-		/*	// Create HUD layer, fixed to the player's torso
-			ovrLayerQuad hudLayer;
+			// Create HUD layer, fixed to the player's torso
+		/*	ovrLayerQuad hudLayer;
 			hudLayer.Header.Type = ovrLayerType_Quad;
-			hudLayer.Header.Flags = ovrLayerFlag_HighQuality;
-			hudLayer.ColorTexture = hud_buffer.swapTextureChain;
+			hudLayer.Header.Flags = ovrLayerFlag_HighQuality | ovrLayerFlag_HeadLocked ;
+			hudLayer.ColorTexture = hud_buffer->swapTextureChain;
 			// 50cm in front and 20cm down from the player's nose,
 			// fixed relative to their torso.
 			hudLayer.QuadPoseCenter.Position.x = 0.00f;
@@ -791,16 +815,13 @@ void main() {
 		//	ovrLayerHeader* layerList = &eyeLayer.Header;
 			ovrLayerHeader* layerList[2];
 			layerList[0] = &eyeLayer.Header;
-			layerList[1] = &hudLayer.Header;
+			layerList[1] = &hudLayer.Header;*/
+
+			ovrLayerHeader* layerList = &eyeLayer.Header;
 
 			ovrViewScaleDesc viewScaleDesc;
 			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f; //TODO: used to be 10.0f, might need to revert at some point
-			ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 2);*/
-
-
-
-			ovrLayerHeader* layerList = &eyeLayer.Header;
-			ovrViewScaleDesc viewScaleDesc;
+			//ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 2);
 			ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, &layerList, 1);
 		}
 
