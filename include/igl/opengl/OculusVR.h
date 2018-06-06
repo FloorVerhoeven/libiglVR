@@ -108,6 +108,8 @@ private:
 				IGL_INLINE OVR_buffer(const ovrSession &session);
 				IGL_INLINE void OnRender();
 				IGL_INLINE void OnRenderFinish();
+				IGL_INLINE void OnRenderHud();
+				IGL_INLINE void OnRenderFinishHud();
 
 				ovrSizei   eyeTextureSize;
 				GLuint     eyeFbo = 0;

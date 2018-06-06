@@ -34,7 +34,7 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
     if (context_ == nullptr)
     {
       context_ = ImGui::CreateContext();
-	  ImGui::SetCurrentContext(context_);
+	//  ImGui::SetCurrentContext(context_);
     }
     ImGui_ImplGlfwGL3_Init(viewer->window, false);
     ImGui::GetIO().IniFilename = nullptr;
@@ -44,7 +44,7 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
     reload_font();
 
 	if (&_viewer->oculusVR) {
-		init_3D_quad_GUI();
+		//init_3D_quad_GUI();
 	}
   }
 }
@@ -81,7 +81,7 @@ IGL_INLINE bool ImGuiMenu::pre_draw()
   }
 
   if (oculus) {
-	  ImGui_ImplGlfwGL3_NewFrame_VR();
+	  ImGui_ImplGlfwGL3_NewFrame();
   }
   else {
 	  ImGui_ImplGlfwGL3_NewFrame();
@@ -92,9 +92,9 @@ IGL_INLINE bool ImGuiMenu::pre_draw()
 IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
   if (oculus) {
-	  draw_3D_quad_GUI();
-	  ImGui_ImplGlfwGL3_Render_VR();
-	 // ImGui::Render();
+	 // draw_3D_quad_GUI();
+	  //ImGui_ImplGlfwGL3_Render_VR();
+	  ImGui::Render();
   }
   else {
 	  ImGui::Render();
@@ -189,6 +189,7 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 	}
 	else {
 		const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
+		std::cout << "texsize" << texsize.x << "  " << texsize.y << std::endl;
 		ImGui::SetNextWindowSize(texsize);
 		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Tab 0", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
@@ -445,19 +446,18 @@ IGL_INLINE void ImGuiMenu::draw_3D_quad_GUI(){
 //	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glBlendFunc(GL_ONE, GL_ZERO);
 	glUseProgram(oculus_gui_shader_program);
-
 	Eigen::Matrix4f PVM = oculus_proj*oculus_view*oculus_model; //For now removed scale and controller model matrix 
 	//glm::mat4 PVM = Pvr*Vvr*Mvr*ImGui_Impl_VR_GetGuiPose()*ImGui_Impl_VR_GetGuiScale();
 	glUniformMatrix4fv(0, 1, false, PVM.data());
 	Eigen::Vector4f BaseColor = Eigen::Vector4f::Constant(1.0f);
 	glUniform4fv(2, 1, BaseColor.data());
 	glActiveTexture(GL_TEXTURE0);
+	
 	glBindTexture(GL_TEXTURE_2D, ImGui_ImplGlfwGL3_GetGuiTexture(0)); //replaced tex_id with 0
-	glUniform1f(1, 0);
+	glUniform1f(1, 0); //TODO: this gives error. maybe not needed anyway
 	glBindVertexArray(quad.quad_vao);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	glBindVertexArray(0);
-
 	glEnable(GL_DEPTH_TEST);
 	glDepthMask(GL_TRUE);
 }
