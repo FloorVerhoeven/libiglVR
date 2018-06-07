@@ -621,6 +621,9 @@ void main() {
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_SelfOccluding, view, proj, to_Eigen(shiftedEyePos), false);
 					}
 
+					gui->pre_draw();
+					gui->post_draw();
+
 					eye_buffers[eye]->OnRenderFinish();
 
 
@@ -792,7 +795,7 @@ void main() {
 		//	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		//	glEnable(GL_FRAMEBUFFER_SRGB);
 			glClear(GL_COLOR_BUFFER_BIT);
-			glEnable(GL_FRAMEBUFFER_SRGB);
+			// glEnable(GL_FRAMEBUFFER_SRGB);
 		}
 
 		IGL_INLINE void OculusVR::OVR_buffer::OnRenderFinishHud() {
