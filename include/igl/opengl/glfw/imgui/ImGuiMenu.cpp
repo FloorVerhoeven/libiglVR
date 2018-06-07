@@ -34,7 +34,7 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
     if (context_ == nullptr)
     {
       context_ = ImGui::CreateContext();
-	//  ImGui::SetCurrentContext(context_);
+	  ImGui::SetCurrentContext(context_);
     }
     ImGui_ImplGlfwGL3_Init(viewer->window, false);
     ImGui::GetIO().IniFilename = nullptr;
@@ -189,21 +189,39 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 	}
 	else {
 		const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
-		std::cout << "texsize" << texsize.x << "  " << texsize.y << std::endl;
-		ImGui::SetNextWindowSize(texsize);
-		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+		//std::cout << "texsize" << texsize.x << "  " << texsize.y << std::endl;
+		//ImGui::SetNextWindowSize(texsize);
+		//ImGui::SetNextWindowSize(ImVec2(512, 512));
+		ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
+		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
+		float menu_width = 180.f * menu_scaling();
+		//ImGui::SetNextWindowSizeConstraints(ImVec2(menu_width, -1.0f), ImVec2(menu_width, -1.0f));
+		ImGui::SetNextWindowSizeConstraints(ImVec2(512.0f, -1.0f), ImVec2(512.0f, -1.0f));
+
 		ImGui::Begin("Tab 0", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-		ImGui::PushID(0);
 		int frame_padding = -1;     // -1 = uses default padding
 		ImGuiIO& io = ImGui::GetIO();
 		float my_tex_w = (float)io.Fonts->TexWidth;
 		float my_tex_h = (float)io.Fonts->TexHeight;
-
+		ImGui::PushID(0);
 		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
 			std::cout << "pressed " << std::endl;
 		}
 		ImGui::PopID();
-		ImGui::End();
+		/*ImGui::SameLine();
+		ImGui::PushID(1);
+		//ImGui::SetCursorPos(ImVec2(480,480));
+		//if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
+		//	std::cout << "pressed " << std::endl;
+		//}
+		ImGui::PopID();
+		ImGui::PushID(2);
+		//ImGui::SetCursorPos(ImVec2(300, 350));
+		//if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
+			//std::cout << "pressed " << std::endl;
+		//}
+		ImGui::PopID();
+		ImGui::End();*/
 	//	ImGui_ImplGlfwGL3_Render_VR();
 	}
 }
@@ -543,10 +561,7 @@ char* ImGuiMenu::readShaderSource(const char* shaderFile){
 	return NULL;
 }
 
-void ImGuiMenu::set_3D_GUI_param(Eigen::Matrix4f& _proj, Eigen::Matrix4f& _model, Eigen::Matrix4f& _view) {
-	oculus_proj = _proj;
-	oculus_model = _model;
-	oculus_view = _view;
+void ImGuiMenu::set_oculus() {
 	oculus = true;
 }
 

@@ -119,7 +119,7 @@ public:
 
   IGL_INLINE static char* readShaderSource(const char* shaderFile);
 
-  IGL_INLINE void set_3D_GUI_param(Eigen::Matrix4f& proj, Eigen::Matrix4f& model, Eigen::Matrix4f& view);
+  IGL_INLINE void set_oculus();
 };
 
 } // end namespace
