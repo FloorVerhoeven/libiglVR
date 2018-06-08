@@ -40,6 +40,7 @@ namespace igl {
 		static GLuint _mirrorFbo{ 0 };
 		static GLuint _skinnedMeshProgram;
 
+		static bool menu_active = false;
 
 		static ovrAvatar* _avatar;
 		static bool _combineMeshes = true;
@@ -449,6 +450,7 @@ void main() {
 		IGL_INLINE bool OculusVR::init_VR_buffers(int window_width, int window_height) {
 			for (int eye = 0; eye < 2; eye++) {
 				eye_buffers[eye] = new OVR_buffer(session, eye);
+				hand_buffers[eye] = new OVR_buffer(session, eye);
 				ovrEyeRenderDesc& erd = eyeRenderDesc[eye] = ovr_GetRenderDesc(session, (ovrEyeType)eye, hmdDesc.DefaultEyeFov[eye]);
 			}
 			
@@ -515,6 +517,10 @@ void main() {
 					count = (prev_press == THUMB) ? count + 1 : 1;
 					prev_press = THUMB;
 				}
+				else if (inputState.Buttons & ovrButton_Enter) {
+					count = (prev_press == MENU) ? count + 1 : 1;
+					prev_press = MENU;
+				}
 				else if (inputState.HandTrigger[ovrHand_Right] > 0.5f && inputState.IndexTrigger[ovrHand_Right] > 0.5f) {
 					count = (prev_press == GRIPTRIG) ? count + 1 : 1;
 					prev_press = GRIPTRIG;
@@ -534,6 +540,13 @@ void main() {
 				else if (inputState.HandTrigger[ovrHand_Right] <= 0.2f && inputState.IndexTrigger[ovrHand_Right] <= 0.2f && !(inputState.Buttons & ovrButton_A) && !(inputState.Buttons & ovrButton_B) && !(inputState.Buttons & ovrButton_X) && !(inputState.Buttons & ovrButton_Y)) {
 					count = (prev_press == NONE) ? count + 1 : 1;
 					prev_press = NONE;
+				}
+
+				if (menu_active) { //The menu is open, process input in a special way
+
+				}
+				if (prev_press == MENU) {
+					menu_active = true;
 				}
 
 				if (count >= 3) { //Only do a callback when we have at least 3 of the same buttonCombos in a row (to prevent doing a GRIP/TRIG action when we were actually starting up a GRIPTRIG)
@@ -616,15 +629,25 @@ void main() {
 					for (int i = 0; i < data_list.size(); i++) {
 						core.draw(data_list[i], true, true, view, proj);
 					}
-					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
-						render_avatar(_avatar, ovrAvatarVisibilityFlag_SelfOccluding, view, proj, to_Eigen(shiftedEyePos), false);
-					}
-					
 					eye_buffers[eye]->OnRenderFinish();
 
 
-					err = glGetError();
+					GLfloat prev_clear_color[4];
+					glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
+					glClearColor(0, 0, 0, 0);
+					hand_buffers[eye]->OnRender();
+					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
+					//	glFrontFace(GL_CW);
+						render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
+						//glFrontFace(GL_CCW);
+
+					}
+					hand_buffers[eye]->OnRenderFinish();
+					glClearColor(prev_clear_color[0], prev_clear_color[1], prev_clear_color[2], prev_clear_color[3]);
+
+
 					ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);
+					ovr_CommitTextureSwapChain(session, hand_buffers[eye]->swapTextureChain);
 
 				}
 
@@ -780,9 +803,11 @@ void main() {
 
 		IGL_INLINE void OculusVR::submit_frame() {
 			// create the main eye layer
-			ovrLayerEyeFov eyeLayer;
+			ovrLayerEyeFov eyeLayer, handLayer;
 			eyeLayer.Header.Type = ovrLayerType_EyeFov;
 			eyeLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
+			handLayer.Header.Type = ovrLayerType_EyeFov;
+			handLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
 
 			for (int eye = 0; eye < 2; eye++)
 			{
@@ -791,7 +816,15 @@ void main() {
 				eyeLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
 				eyeLayer.RenderPose[eye] = EyeRenderPose[eye];
 				eyeLayer.SensorSampleTime = sensorSampleTime;
+
+				handLayer.ColorTexture[eye] = hand_buffers[eye]->swapTextureChain;
+				handLayer.Viewport[eye] = OVR::Recti(hand_buffers[eye]->eyeTextureSize);
+				handLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
+				handLayer.RenderPose[eye] = EyeRenderPose[eye];
+				handLayer.SensorSampleTime = sensorSampleTime;
+
 			}
+
 
 			// Create HUD layer, fixed to the player's torso
 			ovrLayerQuad hudLayer;
@@ -802,35 +835,37 @@ void main() {
 			// fixed relative to their torso.
 			hudLayer.QuadPoseCenter.Position.x = 0.00f;
 			hudLayer.QuadPoseCenter.Position.y = 0.00f;
-			hudLayer.QuadPoseCenter.Position.z = -0.50f;
+			hudLayer.QuadPoseCenter.Position.z = -1.50f;
 			hudLayer.QuadPoseCenter.Orientation.x = 0;
 			hudLayer.QuadPoseCenter.Orientation.y = 0;
 			hudLayer.QuadPoseCenter.Orientation.z = 0;
 			hudLayer.QuadPoseCenter.Orientation.w = 1;
 			// HUD is 50cm wide, 30cm tall.
-			hudLayer.QuadSize.x = 0.50f;
-			hudLayer.QuadSize.y = 0.30f;
+			//hudLayer.QuadSize.x = 0.50f;
+			//hudLayer.QuadSize.y = 0.30f;
 			hudLayer.QuadSize = OVR::Vector2f((float)hud_buffer->eyeTextureSize.w, (float)hud_buffer->eyeTextureSize.h) * 0.001013f;
 			// Display all of the HUD texture.
 			hudLayer.Viewport.Pos.x = 0.0f;
 			hudLayer.Viewport.Pos.y = 0.0f;
 			hudLayer.Viewport.Size.w = hud_buffer->eyeTextureSize.w;
 			hudLayer.Viewport.Size.h = hud_buffer->eyeTextureSize.h;
-		
+			
+		//	hudLayer.Viewport.Size.w += 2;
+		//	hudLayer.Viewport.Size.h += 2;
 
 			// append all the layers to global list
 		//	ovrLayerHeader* layerList = &eyeLayer.Header;
-			ovrLayerHeader* layerList[2];
+			ovrLayerHeader* layerList[3];
 			layerList[0] = &eyeLayer.Header;
 			layerList[1] = &hudLayer.Header;
-
+			layerList[2] = &handLayer.Header;
 
 			ovrViewScaleDesc viewScaleDesc;
 			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
 			viewScaleDesc.HmdToEyePose[0] = eyeRenderDesc[0].HmdToEyePose;
 			viewScaleDesc.HmdToEyePose[1] = eyeRenderDesc[1].HmdToEyePose;
 
-			ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 2);
+			ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 3);
 		//	ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, &layerList, 1);
 		}
 
@@ -1149,7 +1184,7 @@ void main() {
 			{
 				const ovrAvatarComponent* component = ovrAvatarComponent_Get(avatar, i);
 				const bool useCombinedMeshProgram = _combineMeshes && bodyComponent == component;
-				//std::cout << (component->name) << std::endl;
+		//		std::cout << (component->name) << std::endl;
 				// Compute the transform for this component
 				Eigen::Matrix4f world;
 				EigenFromOvrAvatarTransform(component->transform, world);
@@ -1170,6 +1205,7 @@ void main() {
 						break;
 					case ovrAvatarRenderPartType_ProjectorRender:
 						//Unknown
+
 						//	_renderProjector(ovrAvatarRenderPart_GetProjectorRender(renderPart), avatar, visibilityMask, world, view, proj, viewPos);
 						break;
 					}
@@ -1186,9 +1222,6 @@ void main() {
 				return;
 			}
 
-			// Get the GL mesh data for this mesh's asset
-		//	ViewerData* data = (ViewerData*)_assetMap[mesh->meshAssetID];
-			//data->updateGL(*data, false, data->meshgl);
 			AvatarMeshData* data = (AvatarMeshData*)_assetMap[mesh->meshAssetID];
 		
 			glUseProgram((GLuint)_skinnedMeshProgram);
@@ -1201,23 +1234,36 @@ void main() {
 
 			// Draw the mesh
 			glBindVertexArray(data->vertexArray);
-			//glDepthFunc(GL_LESS);
+			GLfloat cur_depth_func, cur_depth_mask;
+			glGetFloatv(GL_DEPTH_FUNC, &cur_depth_func);
+			glGetFloatv(GL_DEPTH_WRITEMASK, &cur_depth_mask);
+			glDepthFunc(GL_LESS);
 
 			// Write to depth first for self-occlusion
 			if (mesh->visibilityMask & ovrAvatarVisibilityFlag_SelfOccluding)
 			{
-					//glDepthMask(GL_TRUE);
-			//		glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+					glDepthMask(GL_TRUE);
+					glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
-				glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
-			//		glDepthFunc(GL_EQUAL);
+					glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
+					glDepthFunc(GL_EQUAL);
 			}
 
 			// Render to color buffer
-		//	glDepthMask(GL_FALSE);
-		//	glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthMask(GL_FALSE);
+			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
+		//	glBindVertexArray(0);
+
+			glFrontFace(GL_CW);
+			glDepthFunc(GL_ALWAYS);
+			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
 			glBindVertexArray(0);
+			glFrontFace(GL_CCW);
+
+			glDepthFunc(cur_depth_func);
+			glDepthMask(cur_depth_mask);
 
 			/*if (renderJoints)
 			{

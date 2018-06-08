@@ -84,7 +84,7 @@ public:
 			std::unique_lock<std::mutex> eye_pos_lock;
 			std::unique_lock<std::mutex> touch_dir_lock;
 
-			enum ButtonCombo { A, B, THUMB, THUMB_MOVE, TRIG, GRIP, GRIPTRIG, NONE};
+			enum ButtonCombo { A, B, THUMB, MENU, THUMB_MOVE, TRIG, GRIP, GRIPTRIG, NONE};
 
 			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos)> callback_button_down;
 
@@ -120,6 +120,7 @@ private:
 			};
 
 			OVR_buffer *eye_buffers[2];
+			OVR_buffer *hand_buffers[2];
 			OVR_buffer *hud_buffer;
 			std::chrono::steady_clock::time_point lastTime;
 

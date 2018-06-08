@@ -192,14 +192,22 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 		//std::cout << "texsize" << texsize.x << "  " << texsize.y << std::endl;
 		//ImGui::SetNextWindowSize(texsize);
 		//ImGui::SetNextWindowSize(ImVec2(512, 512));
-		ImGui::SetNextWindowSize(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.WindowPadding = ImVec2(0,0);
+		style.WindowRounding = 0.0f;
+		style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
+		style.ItemInnerSpacing = ImVec2(0,0);
+
+		//style.FramePadding = ImVec2(0,0);
+		//style.FrameRounding = 0.0f;
+		ImGui::SetNextWindowSize(ImVec2(512.0f, 512.0f), ImGuiSetCond_FirstUseEver);
 		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
 		float menu_width = 180.f * menu_scaling();
 		//ImGui::SetNextWindowSizeConstraints(ImVec2(menu_width, -1.0f), ImVec2(menu_width, -1.0f));
-		ImGui::SetNextWindowSizeConstraints(ImVec2(512.0f, -1.0f), ImVec2(512.0f, -1.0f));
+		//ImGui::SetNextWindowSizeConstraints(ImVec2(512.0f, -1.0f), ImVec2(512.0f, -1.0f));
 
-		ImGui::Begin("Tab 0", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-		int frame_padding = -1;     // -1 = uses default padding
+		ImGui::Begin("Selection Menu", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
+		int frame_padding = 0;     // -1 = uses default padding
 		ImGuiIO& io = ImGui::GetIO();
 		float my_tex_w = (float)io.Fonts->TexWidth;
 		float my_tex_h = (float)io.Fonts->TexHeight;
@@ -208,20 +216,20 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 			std::cout << "pressed " << std::endl;
 		}
 		ImGui::PopID();
-		/*ImGui::SameLine();
+		//ImGui::SameLine();
 		ImGui::PushID(1);
-		//ImGui::SetCursorPos(ImVec2(480,480));
-		//if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
+		ImGui::SetCursorPos(ImVec2(384, 384));
+		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(128, 128), ImVec2(0, 0), ImVec2(128 / my_tex_w, 128 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
 		//	std::cout << "pressed " << std::endl;
-		//}
+		}
 		ImGui::PopID();
-		ImGui::PushID(2);
-		//ImGui::SetCursorPos(ImVec2(300, 350));
-		//if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
-			//std::cout << "pressed " << std::endl;
-		//}
-		ImGui::PopID();
-		ImGui::End();*/
+	/*	ImGui::PushID(2);
+		ImGui::SetCursorPos(ImVec2(300, 350));
+		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
+			std::cout << "pressed " << std::endl;
+		}
+		ImGui::PopID();*/
+		ImGui::End();
 	//	ImGui_ImplGlfwGL3_Render_VR();
 	}
 }

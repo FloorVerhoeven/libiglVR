@@ -408,6 +408,7 @@ void ImGui_ImplGlfwGL3_NewFrame()
     glfwGetFramebufferSize(g_Window, &display_w, &display_h);
     //io.DisplaySize = ImVec2((float)w, (float)h);
    // io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
+
 	io.DisplaySize = ImVec2(512.0f,512.0f);
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
