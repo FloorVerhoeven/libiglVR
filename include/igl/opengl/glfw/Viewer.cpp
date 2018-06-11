@@ -340,6 +340,8 @@ namespace glfw
 	  init_plugins();*/
 	  launch_init();
 	  ((igl::opengl::glfw::imgui::ImGuiMenu*)plugins[0])->set_oculus();
+	 
+	  oculusVR.callback_GUI_set_mouse = ((igl::opengl::glfw::imgui::ImGuiMenu*)plugins[0])->set_3D_mouse;
 	  oculusVR.init();
   }
 

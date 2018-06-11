@@ -694,7 +694,8 @@ void ImGui_ImplGlfwGL3_Render_VR(){
 	{
 		PulseIfItemHovered(); // haptic pulse if window or item is hovered
 	}*/
-	ImGui::SetCurrentContext(g_Context);
+	PulseIfItemHovered(); // haptic pulse if window or item is hovered
+//	ImGui::SetCurrentContext(g_Context);
 
 	ImGui::Render();
 
@@ -711,6 +712,23 @@ void ImGui_ImplGlfwGL3_Render_VR(){
 ///	glDrawBuffer(GL_BACK);
 //	glEnable(GL_DEPTH_TEST);
 //	glViewport(g_LastViewport[0], g_LastViewport[1], g_LastViewport[2], g_LastViewport[3]);
+}
+
+void PulseIfItemHovered()
+{
+	static bool anyItemHoveredLastFrame = false;
+	static bool anyWindowHoveredLastFrame = false;
+
+	bool anyItemHoveredThisFrame = ImGui::IsAnyItemHovered();
+	bool anyWindowHoveredThisFrame = ImGui::IsMouseHoveringAnyWindow();
+
+	if ((anyItemHoveredLastFrame != anyItemHoveredThisFrame) || (anyWindowHoveredLastFrame != anyWindowHoveredThisFrame))
+	{
+	//	ImGui_Impl_VR_TriggerHapticPulse(1);
+		std::cout << " Make a pulse" << std::endl;
+	}
+	anyItemHoveredLastFrame = anyItemHoveredThisFrame;
+	anyWindowHoveredLastFrame = anyWindowHoveredThisFrame;
 }
 
 int ImGui_ImplGlfwGL3_GetGuiTexture(int i){

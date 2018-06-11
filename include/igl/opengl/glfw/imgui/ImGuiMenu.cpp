@@ -45,6 +45,7 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
 
 	if (&_viewer->oculusVR) {
 		//init_3D_quad_GUI();
+		//(&_viewer->oculusVR)->callback_GUI_set_mouse = set_3D_mouse;
 	}
   }
 }
@@ -93,8 +94,8 @@ IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
   if (oculus) {
 	 // draw_3D_quad_GUI();
-	  //ImGui_ImplGlfwGL3_Render_VR();
-	  ImGui::Render();
+	  ImGui_ImplGlfwGL3_Render_VR();
+	  //ImGui::Render();
   }
   else {
 	  ImGui::Render();
@@ -571,6 +572,24 @@ char* ImGuiMenu::readShaderSource(const char* shaderFile){
 
 void ImGuiMenu::set_oculus() {
 	oculus = true;
+}
+
+void ImGuiMenu::set_active() {
+	active = true;
+}
+
+void ImGuiMenu::set_inactive() {
+	std::cout << " happens" << std::endl;
+	active = false;
+}
+
+bool ImGuiMenu::is_active() {
+	return active;
+}
+
+void ImGuiMenu::set_3D_mouse(Eigen::Vector2f mouse_pos) {
+	ImGuiIO& io = ImGui::GetIO();
+	io.MousePos = ImVec2(mouse_pos[0], mouse_pos[1]);
 }
 
 } // end namespace

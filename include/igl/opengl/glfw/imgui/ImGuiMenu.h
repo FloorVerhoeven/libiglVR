@@ -51,7 +51,7 @@ protected:
   const std::string oculus_gui_fragment_shader = "../src/oculus_gui_fs.glsl";
   GLuint oculus_gui_shader_program = -1;
   Eigen::Matrix4f oculus_proj, oculus_view, oculus_model;
-  bool oculus = false;
+  bool oculus = false, active = false;
 
 public:
   IGL_INLINE virtual void init(igl::opengl::glfw::Viewer *_viewer) override;
@@ -120,6 +120,16 @@ public:
   IGL_INLINE static char* readShaderSource(const char* shaderFile);
 
   IGL_INLINE void set_oculus();
+
+  IGL_INLINE void set_active();
+
+  IGL_INLINE void set_inactive();
+
+  IGL_INLINE bool is_active();
+
+  IGL_INLINE void set_3D_mouse(Eigen::Vector2f mouse_pos);
+
+
 };
 
 } // end namespace

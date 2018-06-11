@@ -21,6 +21,7 @@
 #include "Extras/OVR_Math.h"
 #include <igl/opengl/gl.h> //TODO: remove afterwards. only used for error checking
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
+#include <igl/ray_mesh_intersect.h>
 
 using namespace Eigen;
 using namespace OVR;
@@ -41,6 +42,8 @@ namespace igl {
 		static GLuint _skinnedMeshProgram;
 
 		static bool menu_active = false;
+		static float menu_z_pos = -1.50f;
+		static float pixels_to_meter = 0.001013f; //Transform factor for going from pixels to meters in Oculus
 
 		static ovrAvatar* _avatar;
 		static bool _combineMeshes = true;
@@ -55,6 +58,9 @@ namespace igl {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
 			touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
 			callback_button_down = nullptr;
+			callback_menu_opened = nullptr;
+			callback_menu_closed = nullptr;
+			callback_GUI_set_mouse = nullptr;
 			// Initialize the OVR Platform module
 			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(APP_ID))) {
 				FAIL("Failed to initialize the Oculus platform");
@@ -96,6 +102,9 @@ namespace igl {
 			eye_pos_lock.lock();
 			current_eye_origin = to_Eigen(eyePos);
 			eye_pos_lock.unlock();
+
+			menu_lastTime = std::chrono::steady_clock::now();
+
 
 			prev_press = NONE;
 			prev_sent = NONE;
@@ -503,13 +512,14 @@ void main() {
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
 				Eigen::Vector3f hand_pos;
-				hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
-
-				if (inputState.Buttons & ovrButton_A) {
+				//hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
+				hand_pos = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(hud_buffer->eyeTextureSize.w /2.0f* pixels_to_meter, 0, menu_z_pos)));
+			//	hand_pos[0] += (float)hud_buffer->eyeTextureSize.w* 0.001013f;
+			/*	if (inputState.Buttons & ovrButton_A) {
 					count = (prev_press == A) ? count + 1 : 1;
 					prev_press = A;
 				}
-				else if (inputState.Buttons & ovrButton_B) {
+				else*/ if (inputState.Buttons & ovrButton_B) {
 					count = (prev_press == B) ? count + 1 : 1;
 					prev_press = B;
 				}
@@ -517,7 +527,7 @@ void main() {
 					count = (prev_press == THUMB) ? count + 1 : 1;
 					prev_press = THUMB;
 				}
-				else if (inputState.Buttons & ovrButton_Enter) {
+				else if (inputState.Buttons & ovrButton_A) {
 					count = (prev_press == MENU) ? count + 1 : 1;
 					prev_press = MENU;
 				}
@@ -528,7 +538,6 @@ void main() {
 				else if (inputState.HandTrigger[ovrHand_Right] > 0.5f && inputState.IndexTrigger[ovrHand_Right] <= 0.2f) {
 					count = (prev_press == GRIP) ? count + 1 : 1;
 					prev_press = GRIP;
-
 				}
 				else if (inputState.HandTrigger[ovrHand_Right] <= 0.2f && inputState.IndexTrigger[ovrHand_Right] > 0.5f) {
 					count = (prev_press == TRIG) ? count + 1 : 1;
@@ -542,18 +551,41 @@ void main() {
 					prev_press = NONE;
 				}
 
-				if (menu_active) { //The menu is open, process input in a special way
+				touch_dir_lock.lock();
+				right_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Right].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
+				touch_dir_lock.unlock();
+				std::cout << hand_pos.transpose() << std::endl << std::endl;
 
+				if (menu_active) { //The menu is open, process input in a special way
+					Eigen::Vector3f menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos)));
+					set_menu_3D_mouse(hand_pos, get_right_touch_direction(), menu_center);
 				}
-				if (prev_press == MENU) {
-					menu_active = true;
+				if ((prev_press == MENU) && !menu_active) {
+					std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+					std::chrono::duration<float> deltaTime = currentTime - menu_lastTime;
+					if (deltaTime.count() > 1) {//Block menu input for 1 sec 
+						//TODO: pop-up the menu
+						callback_menu_opened();
+						menu_active = true;
+						menu_lastTime = std::chrono::steady_clock::now();
+						count = 1;
+					}
+					//TODO: check whether to return or proceed to below
+					return;
+				}
+				else if ((prev_press == MENU) && menu_active) {
+					std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+					std::chrono::duration<float> deltaTime = currentTime - menu_lastTime;
+					if (deltaTime.count() > 1) { //Block menu input for 1 sec
+						callback_menu_closed();
+						menu_active = false;
+						menu_lastTime = std::chrono::steady_clock::now();
+						count = 1;
+					}
+					return;
 				}
 
 				if (count >= 3) { //Only do a callback when we have at least 3 of the same buttonCombos in a row (to prevent doing a GRIP/TRIG action when we were actually starting up a GRIPTRIG)
-					touch_dir_lock.lock();
-					right_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Right].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
-					touch_dir_lock.unlock();
-
 					if ((prev_press == NONE && count == 3 && prev_sent != NONE)) {
 						update_screen_while_computing = true;
 						std::thread t1(callback_button_down, prev_press, hand_pos);
@@ -637,10 +669,7 @@ void main() {
 					glClearColor(0, 0, 0, 0);
 					hand_buffers[eye]->OnRender();
 					if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
-					//	glFrontFace(GL_CW);
 						render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
-						//glFrontFace(GL_CCW);
-
 					}
 					hand_buffers[eye]->OnRenderFinish();
 					glClearColor(prev_clear_color[0], prev_clear_color[1], prev_clear_color[2], prev_clear_color[3]);
@@ -651,13 +680,14 @@ void main() {
 
 				}
 
-				hud_buffer->OnRenderHud();
-				gui->pre_draw();
-				gui->post_draw();
-				hud_buffer->OnRenderFinishHud();
+				if (((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->is_active()) {
+					hud_buffer->OnRenderHud();
+					gui->pre_draw();
+					gui->post_draw();
+					hud_buffer->OnRenderFinishHud();
 
-				ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
-
+					ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
+				}
 				submit_frame();
 				blit_mirror();
 
@@ -831,11 +861,10 @@ void main() {
 			hudLayer.Header.Type = ovrLayerType_Quad;
 			hudLayer.Header.Flags =  ovrLayerFlag_HighQuality | ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HeadLocked;
 			hudLayer.ColorTexture = hud_buffer->swapTextureChain;
-			// 50cm in front and 20cm down from the player's nose,
-			// fixed relative to their torso.
+
 			hudLayer.QuadPoseCenter.Position.x = 0.00f;
 			hudLayer.QuadPoseCenter.Position.y = 0.00f;
-			hudLayer.QuadPoseCenter.Position.z = -1.50f;
+			hudLayer.QuadPoseCenter.Position.z = menu_z_pos;
 			hudLayer.QuadPoseCenter.Orientation.x = 0;
 			hudLayer.QuadPoseCenter.Orientation.y = 0;
 			hudLayer.QuadPoseCenter.Orientation.z = 0;
@@ -843,30 +872,34 @@ void main() {
 			// HUD is 50cm wide, 30cm tall.
 			//hudLayer.QuadSize.x = 0.50f;
 			//hudLayer.QuadSize.y = 0.30f;
-			hudLayer.QuadSize = OVR::Vector2f((float)hud_buffer->eyeTextureSize.w, (float)hud_buffer->eyeTextureSize.h) * 0.001013f;
+			hudLayer.QuadSize = OVR::Vector2f((float)hud_buffer->eyeTextureSize.w, (float)hud_buffer->eyeTextureSize.h) * pixels_to_meter;
 			// Display all of the HUD texture.
 			hudLayer.Viewport.Pos.x = 0.0f;
 			hudLayer.Viewport.Pos.y = 0.0f;
 			hudLayer.Viewport.Size.w = hud_buffer->eyeTextureSize.w;
 			hudLayer.Viewport.Size.h = hud_buffer->eyeTextureSize.h;
-			
-		//	hudLayer.Viewport.Size.w += 2;
-		//	hudLayer.Viewport.Size.h += 2;
-
-			// append all the layers to global list
-		//	ovrLayerHeader* layerList = &eyeLayer.Header;
-			ovrLayerHeader* layerList[3];
-			layerList[0] = &eyeLayer.Header;
-			layerList[1] = &hudLayer.Header;
-			layerList[2] = &handLayer.Header;
 
 			ovrViewScaleDesc viewScaleDesc;
 			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
 			viewScaleDesc.HmdToEyePose[0] = eyeRenderDesc[0].HmdToEyePose;
 			viewScaleDesc.HmdToEyePose[1] = eyeRenderDesc[1].HmdToEyePose;
 
-			ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 3);
-		//	ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, &layerList, 1);
+			if (menu_active) {
+				ovrLayerHeader* layerList[3];
+				layerList[0] = &eyeLayer.Header;
+				layerList[1] = &hudLayer.Header;
+				layerList[2] = &handLayer.Header;
+
+				ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 3);
+			}
+			else {
+				ovrLayerHeader* layerList[2];
+				layerList[0] = &eyeLayer.Header;
+				layerList[1] = &handLayer.Header;
+
+				ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 2);
+			}
+
 		}
 
 		IGL_INLINE void OculusVR::blit_mirror() {
@@ -1062,6 +1095,33 @@ void main() {
 			return mesh;
 		}
 
+		IGL_INLINE void OculusVR::set_menu_3D_mouse(Eigen::Vector3f& start, Eigen::Vector3f& dir, Eigen::Vector3f& menu_center, float menu_width, float menu_height) {
+			Eigen::Vector3d p0(menu_center + 0.5*menu_width, menu_center + 0.5*menu_height, 0.0);
+			Eigen::Vector3d p1(menu_center + 0.5*menu_width, menu_center - 0.5*menu_height, 0.0);
+			Eigen::Vector3d p2(menu_center - 0.5*menu_width, menu_center + 0.5*menu_height, 0.0);
+			Eigen::Vector3d p3(menu_center - 0.5*menu_width, menu_center - 0.5*menu_height, 0.0);
+
+			Eigen::Vector3d ray_start = start.cast<double>();
+			Eigen::Vector3d ray_dir = dir.cast<double>();
+
+			double t, u, v;
+			Eigen::Vector3d pt;
+			if (intersect_triangle(ray_start.data(), ray_dir.data(), p0.data(), p1.data(), p2.data(), &t, &u, &v) && t>0) {
+				pt = ray_start + t*ray_dir;
+			}
+			else if (intersect_triangle(ray_start.data(), ray_dir.data(), p3.data(), p1.data(), p2.data(), &t, &u, &v) > 0) {
+				pt = ray_start + t*ray_dir;
+				Eigen::Vector2f mouse_pos = Eigen::Vector2f((pt.x + 0.5f*menu_width), menu_height - (pt.y + 0.5f*menu_height));
+				callback_GUI_set_mouse(mouse_pos);
+			}
+			
+/*			if (intersect == true)
+			{
+				ImGuiIO& io = ImGui::GetIO();
+				io.MousePos = ImVec2(g_TexWidth*(0.5f*pt.x + 0.5f), g_TexHeight - g_TexHeight*(0.5f*pt.y + 0.5f));
+			}*/
+		}
+
 		IGL_INLINE void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose){
 			for (uint32_t i = 0; i < localPose.jointCount; ++i)
 			{
@@ -1253,14 +1313,7 @@ void main() {
 			glDepthMask(GL_FALSE);
 			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
-		//	glBindVertexArray(0);
-
-			glFrontFace(GL_CW);
-			glDepthFunc(GL_ALWAYS);
-			glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
 			glBindVertexArray(0);
-			glFrontFace(GL_CCW);
 
 			glDepthFunc(cur_depth_func);
 			glDepthMask(cur_depth_mask);

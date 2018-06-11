@@ -34,3 +34,4 @@ IMGUI_API ImVec2	  ImGui_ImplGlfwGL3_GetTextureSize();
 IMGUI_API bool		  ImGui_ImplGlfwGL3_CreateDeviceObjects_VR();
 IMGUI_API void		  ImGui_ImplGlfwGL3_NewFrame_VR(); 
 IMGUI_API void		  ImGui_ImplGlfwGL3_Render_VR();
+IMGUI_API void		  PulseIfItemHovered();

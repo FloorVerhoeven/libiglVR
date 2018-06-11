@@ -65,6 +65,7 @@ public:
 			IGL_INLINE int eyeTextureWidth();
 			IGL_INLINE int eyeTextureHeight();
 			IGL_INLINE GLuint get_skinned_avatar_shader();
+			IGL_INLINE void set_menu_3D_mouse(Eigen::Vector3f& hand_pos, Eigen::Vector3f& right_touch_direction, Eigen::Vector3f& menu_center, float menu_width, float menu_height);
 
 			IGL_INLINE Eigen::Vector3f to_Eigen(OVR::Vector3f& vec);
 			IGL_INLINE Eigen::Matrix4f to_Eigen(OVR::Matrix4f& mat);
@@ -87,7 +88,9 @@ public:
 			enum ButtonCombo { A, B, THUMB, MENU, THUMB_MOVE, TRIG, GRIP, GRIPTRIG, NONE};
 
 			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos)> callback_button_down;
-
+			std::function<void()> callback_menu_opened;
+			std::function<void()> callback_menu_closed;
+			std::function<void()> callback_GUI_set_mouse;
 
 			//Variables for input handling
 			ButtonCombo prev_press;
@@ -123,6 +126,7 @@ private:
 			OVR_buffer *hand_buffers[2];
 			OVR_buffer *hud_buffer;
 			std::chrono::steady_clock::time_point lastTime;
+			std::chrono::steady_clock::time_point menu_lastTime;
 
 			
 		};
