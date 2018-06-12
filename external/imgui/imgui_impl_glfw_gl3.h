@@ -10,6 +10,7 @@
 // If you use this binding you'll need to call 4 functions: ImGui_ImplXXXX_Init(), ImGui_ImplXXXX_NewFrame(), ImGui::Render() and ImGui_ImplXXXX_Shutdown().
 // If you are new to ImGui, see examples/README.txt and documentation at the top of imgui.cpp.
 // https://github.com/ocornut/imgui
+#include <functional>
 
 struct GLFWwindow;
 
@@ -35,3 +36,6 @@ IMGUI_API bool		  ImGui_ImplGlfwGL3_CreateDeviceObjects_VR();
 IMGUI_API void		  ImGui_ImplGlfwGL3_NewFrame_VR(); 
 IMGUI_API void		  ImGui_ImplGlfwGL3_Render_VR();
 IMGUI_API void		  PulseIfItemHovered();
+IMGUI_API void		  setCallbackHapticPulse(const std::function<void()> &callback_haptic_pulse);
+
+IMGUI_API static std::function<void()> TriggerHapticPulse;

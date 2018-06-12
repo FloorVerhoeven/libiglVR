@@ -98,6 +98,8 @@ public:
   std::function<void(void)> callback_draw_viewer_window;
   std::function<void(void)> callback_draw_viewer_menu;
   std::function<void(void)> callback_draw_custom_window;
+   std::function<void()> callback_menu_hover;
+
 
   IGL_INLINE void draw_labels_window();
 
@@ -127,9 +129,10 @@ public:
 
   IGL_INLINE bool is_active();
 
-  IGL_INLINE void set_3D_mouse(Eigen::Vector2f mouse_pos);
+  IGL_INLINE static void set_3D_mouse(Eigen::Vector2f& mouse_pos);
 
-
+  IGL_INLINE static void pulse_on_hover();
+  IGL_INLINE static void test();
 };
 
 } // end namespace

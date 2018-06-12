@@ -28,6 +28,7 @@ namespace imgui
 IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
 {
   ViewerPlugin::init(_viewer);
+//  ImGuiMenu::callback_menu_hover = test;
   // Setup ImGui binding
   if (_viewer)
   {
@@ -45,10 +46,14 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
 
 	if (&_viewer->oculusVR) {
 		//init_3D_quad_GUI();
-		//(&_viewer->oculusVR)->callback_GUI_set_mouse = set_3D_mouse;
+		setCallbackHapticPulse(callback_menu_hover);
 	}
   }
 }
+
+/*IGL_INLINE void ImGuiMenu::pulse_on_hover() {
+	(&viewer.oculusVR).hapticPulse();
+}*/
 
 IGL_INLINE void ImGuiMenu::reload_font(int font_size)
 {
@@ -579,7 +584,6 @@ void ImGuiMenu::set_active() {
 }
 
 void ImGuiMenu::set_inactive() {
-	std::cout << " happens" << std::endl;
 	active = false;
 }
 
@@ -587,9 +591,13 @@ bool ImGuiMenu::is_active() {
 	return active;
 }
 
-void ImGuiMenu::set_3D_mouse(Eigen::Vector2f mouse_pos) {
+void ImGuiMenu::set_3D_mouse(Eigen::Vector2f& mouse_pos) {
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(mouse_pos[0], mouse_pos[1]);
+	std::cout << "mouse: " << mouse_pos.transpose() << std::endl;
+}
+void ImGuiMenu::test() {
+	std::cout << "test " << std::endl;
 }
 
 } // end namespace

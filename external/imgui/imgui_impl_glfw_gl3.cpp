@@ -306,7 +306,7 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects()
     return true;
 }
 
-void    ImGui_ImplGlfwGL3_InvalidateDeviceObjects()
+void ImGui_ImplGlfwGL3_InvalidateDeviceObjects()
 {
     if (g_VaoHandle) glDeleteVertexArrays(1, &g_VaoHandle);
     if (g_VboHandle) glDeleteBuffers(1, &g_VboHandle);
@@ -340,7 +340,7 @@ void    ImGui_ImplGlfwGL3_InvalidateDeviceObjects()
 
 bool ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
 {
-	//g_Context = ImGui::GetCurrentContext();
+	g_Context = ImGui::GetCurrentContext();
     g_Window = window;
 //	g_TexWidth = 512;
 //	g_TexHeight = 512;
@@ -396,7 +396,6 @@ void ImGui_ImplGlfwGL3_NewFrame()
 {
 	if (!g_FontTexture) {
 		ImGui_ImplGlfwGL3_CreateDeviceObjects();
-		std::cout << "test nonvr" << std::endl;
 	}
 
     ImGuiIO& io = ImGui::GetIO();
@@ -415,27 +414,27 @@ void ImGui_ImplGlfwGL3_NewFrame()
     // Setup time step
     double current_time =  glfwGetTime();
     io.DeltaTime = g_Time > 0.0 ? (float)(current_time - g_Time) : (float)(1.0f/60.0f);
-    g_Time = current_time;
+	g_Time = current_time;
 
-    // Setup inputs
-    // (we already got mouse wheel, keyboard keys & characters from glfw callbacks polled in glfwPollEvents())
-    if (glfwGetWindowAttrib(g_Window, GLFW_FOCUSED))
-    {
-        if (io.WantMoveMouse)
-        {
-            glfwSetCursorPos(g_Window, (double)io.MousePos.x, (double)io.MousePos.y);   // Set mouse position if requested by io.WantMoveMouse flag (used when io.NavMovesTrue is enabled by user and using directional navigation)
-        }
-        else
-        {
-            double mouse_x, mouse_y;
-            glfwGetCursorPos(g_Window, &mouse_x, &mouse_y);
-            io.MousePos = ImVec2((float)mouse_x, (float)mouse_y);
-        }
-    }
-    else
-    {
-        io.MousePos = ImVec2(-FLT_MAX,-FLT_MAX);
-    }
+	// Setup inputs
+	// (we already got mouse wheel, keyboard keys & characters from glfw callbacks polled in glfwPollEvents())
+  /*  if (glfwGetWindowAttrib(g_Window, GLFW_FOCUSED))
+	{
+		if (io.WantMoveMouse)
+		{
+			glfwSetCursorPos(g_Window, (double)io.MousePos.x, (double)io.MousePos.y);   // Set mouse position if requested by io.WantMoveMouse flag (used when io.NavMovesTrue is enabled by user and using directional navigation)
+		}
+		else
+		{
+			double mouse_x, mouse_y;
+			glfwGetCursorPos(g_Window, &mouse_x, &mouse_y);
+			io.MousePos = ImVec2((float)mouse_x, (float)mouse_y);
+		}
+	}
+	else
+	{
+		io.MousePos = ImVec2(-FLT_MAX,-FLT_MAX);
+	}*/
 
     for (int i = 0; i < 3; i++)
     {
@@ -694,8 +693,9 @@ void ImGui_ImplGlfwGL3_Render_VR(){
 	{
 		PulseIfItemHovered(); // haptic pulse if window or item is hovered
 	}*/
+	ImGui::SetCurrentContext(g_Context);
+
 	PulseIfItemHovered(); // haptic pulse if window or item is hovered
-//	ImGui::SetCurrentContext(g_Context);
 
 	ImGui::Render();
 
@@ -722,13 +722,18 @@ void PulseIfItemHovered()
 	bool anyItemHoveredThisFrame = ImGui::IsAnyItemHovered();
 	bool anyWindowHoveredThisFrame = ImGui::IsMouseHoveringAnyWindow();
 
+	
 	if ((anyItemHoveredLastFrame != anyItemHoveredThisFrame) || (anyWindowHoveredLastFrame != anyWindowHoveredThisFrame))
 	{
-	//	ImGui_Impl_VR_TriggerHapticPulse(1);
+		TriggerHapticPulse();
 		std::cout << " Make a pulse" << std::endl;
 	}
 	anyItemHoveredLastFrame = anyItemHoveredThisFrame;
 	anyWindowHoveredLastFrame = anyWindowHoveredThisFrame;
+}
+
+void setCallbackHapticPulse(const std::function<void()> &callback_haptic_pulse){
+	TriggerHapticPulse = callback_haptic_pulse;
 }
 
 int ImGui_ImplGlfwGL3_GetGuiTexture(int i){

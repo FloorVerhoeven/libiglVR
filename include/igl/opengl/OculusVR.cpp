@@ -61,6 +61,7 @@ namespace igl {
 			callback_menu_opened = nullptr;
 			callback_menu_closed = nullptr;
 			callback_GUI_set_mouse = nullptr;
+
 			// Initialize the OVR Platform module
 			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(APP_ID))) {
 				FAIL("Failed to initialize the Oculus platform");
@@ -512,9 +513,8 @@ void main() {
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
 				Eigen::Vector3f hand_pos;
-				//hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
-				hand_pos = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(hud_buffer->eyeTextureSize.w /2.0f* pixels_to_meter, 0, menu_z_pos)));
-			//	hand_pos[0] += (float)hud_buffer->eyeTextureSize.w* 0.001013f;
+				hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
+				//hand_pos = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(hud_buffer->eyeTextureSize.w /2.0f* pixels_to_meter, 0, menu_z_pos)));
 			/*	if (inputState.Buttons & ovrButton_A) {
 					count = (prev_press == A) ? count + 1 : 1;
 					prev_press = A;
@@ -554,11 +554,10 @@ void main() {
 				touch_dir_lock.lock();
 				right_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Right].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
 				touch_dir_lock.unlock();
-				std::cout << hand_pos.transpose() << std::endl << std::endl;
 
 				if (menu_active) { //The menu is open, process input in a special way
 					Eigen::Vector3f menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos)));
-					set_menu_3D_mouse(hand_pos, get_right_touch_direction(), menu_center);
+					set_menu_3D_mouse(hand_pos, get_right_touch_direction(), menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
 				}
 				if ((prev_press == MENU) && !menu_active) {
 					std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
@@ -1096,30 +1095,45 @@ void main() {
 		}
 
 		IGL_INLINE void OculusVR::set_menu_3D_mouse(Eigen::Vector3f& start, Eigen::Vector3f& dir, Eigen::Vector3f& menu_center, float menu_width, float menu_height) {
-			Eigen::Vector3d p0(menu_center + 0.5*menu_width, menu_center + 0.5*menu_height, 0.0);
-			Eigen::Vector3d p1(menu_center + 0.5*menu_width, menu_center - 0.5*menu_height, 0.0);
-			Eigen::Vector3d p2(menu_center - 0.5*menu_width, menu_center + 0.5*menu_height, 0.0);
-			Eigen::Vector3d p3(menu_center - 0.5*menu_width, menu_center - 0.5*menu_height, 0.0);
+			
+			Eigen::Vector3d p0(menu_center[0] + 0.5*menu_width, menu_center[1] + 0.5*menu_height, menu_center[2]);
+			Eigen::Vector3d p1(menu_center[0] + 0.5*menu_width, menu_center[1] - 0.5*menu_height, menu_center[2]);
+			Eigen::Vector3d p2(menu_center[0] - 0.5*menu_width, menu_center[1] + 0.5*menu_height, menu_center[2]);
+			Eigen::Vector3d p3(menu_center[0] - 0.5*menu_width, menu_center[1] - 0.5*menu_height, menu_center[2]);
 
 			Eigen::Vector3d ray_start = start.cast<double>();
 			Eigen::Vector3d ray_dir = dir.cast<double>();
+
+			float menu_width_pixels = menu_width/pixels_to_meter;
+			float menu_height_pixels = menu_height/pixels_to_meter;
 
 			double t, u, v;
 			Eigen::Vector3d pt;
 			if (intersect_triangle(ray_start.data(), ray_dir.data(), p0.data(), p1.data(), p2.data(), &t, &u, &v) && t>0) {
 				pt = ray_start + t*ray_dir;
+				pt -= menu_center.cast<double>();
+				Eigen::Vector2f mouse_pos = Eigen::Vector2f(menu_width_pixels*((pt[0]-(-menu_width*0.5f))/menu_width), menu_height_pixels - menu_height_pixels*((pt[1] -(-menu_height*0.5f))/menu_height));
+				callback_GUI_set_mouse(mouse_pos);
 			}
 			else if (intersect_triangle(ray_start.data(), ray_dir.data(), p3.data(), p1.data(), p2.data(), &t, &u, &v) > 0) {
 				pt = ray_start + t*ray_dir;
-				Eigen::Vector2f mouse_pos = Eigen::Vector2f((pt.x + 0.5f*menu_width), menu_height - (pt.y + 0.5f*menu_height));
+				pt -= menu_center.cast<double>();
+				Eigen::Vector2f mouse_pos = Eigen::Vector2f(menu_width_pixels*((pt[0] - (-menu_width*0.5f)) / menu_width), menu_height_pixels - menu_height_pixels*((pt[1] - (-menu_height*0.5f)) / menu_height));
 				callback_GUI_set_mouse(mouse_pos);
 			}
-			
-/*			if (intersect == true)
-			{
-				ImGuiIO& io = ImGui::GetIO();
-				io.MousePos = ImVec2(g_TexWidth*(0.5f*pt.x + 0.5f), g_TexHeight - g_TexHeight*(0.5f*pt.y + 0.5f));
-			}*/
+		}
+
+		IGL_INLINE void OculusVR::hapticPulse() {
+			//std::chrono::steady_clock::time_point time_start = std::chrono::steady_clock::now();
+			//std::chrono::duration<float> deltaTime;
+			//do {
+				ovr_SetControllerVibration(session, ovrControllerType_RTouch, 0.0f, 1.0f);
+			//	deltaTime = std::chrono::steady_clock::now() - time_start;
+			//} while (deltaTime.count() < 1000);
+			//ovr_SetControllerVibration(session, ovrControllerType_RTouch, 0.0f, 0.0f);
+		}
+		IGL_INLINE void OculusVR::set_menu_hover_callback() {
+//			igl::opengl::glfw::imgui::ImGuiMenu::callback_menu_hover = hapticPulse;
 		}
 
 		IGL_INLINE void OculusVR::_computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose){
