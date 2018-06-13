@@ -168,7 +168,7 @@ IGL_INLINE void ImGuiMenu::draw_menu()
   //draw_labels_window();
 
   // Viewer settings
-	if (callback_draw_viewer_window) { std::cout << " test" << std::endl;  callback_draw_viewer_window(); }
+	if (callback_draw_viewer_window) { callback_draw_viewer_window(); }
   else { draw_viewer_window(); }
 
   // Other windows

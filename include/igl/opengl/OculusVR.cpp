@@ -120,7 +120,6 @@ namespace igl {
 
 			menu_lastTime = std::chrono::steady_clock::now();
 
-
 			prev_press = NONE;
 			prev_sent = NONE;
 			count = 0;
@@ -485,25 +484,25 @@ void main() {
 			mirror_desc.Height = window_height;
 			mirror_desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
 
-			ovr_CreateMirrorTextureWithOptionsGL(session, &mirror_desc, &_mirrorTexture);
+ovr_CreateMirrorTextureWithOptionsGL(session, &mirror_desc, &_mirrorTexture);
 
-			// Configure the mirror read buffer
-			GLuint texId;
-			ovr_GetMirrorTextureBufferGL(session, _mirrorTexture, &texId);
-			glGenFramebuffers(1, &_mirrorFbo);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, _mirrorFbo);
-			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texId, 0);
-			glFramebufferRenderbuffer(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+// Configure the mirror read buffer
+GLuint texId;
+ovr_GetMirrorTextureBufferGL(session, _mirrorTexture, &texId);
+glGenFramebuffers(1, &_mirrorFbo);
+glBindFramebuffer(GL_READ_FRAMEBUFFER, _mirrorFbo);
+glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texId, 0);
+glFramebufferRenderbuffer(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
+glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-			{
-				glDeleteFramebuffers(1, &_mirrorFbo);
-				FAIL("Could not initialize VR buffers!");
-				return false;
-			}
+if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+{
+	glDeleteFramebuffers(1, &_mirrorFbo);
+	FAIL("Could not initialize VR buffers!");
+	return false;
+}
 
-			return true;
+return true;
 		}
 
 		IGL_INLINE void	OculusVR::on_render_start() {
@@ -528,7 +527,7 @@ void main() {
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
 				Eigen::Vector3f hand_pos;
 				hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
-				//hand_pos = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(hud_buffer->eyeTextureSize.w /2.0f* pixels_to_meter, 0, menu_z_pos)));
+
 				if (inputState.Buttons & ovrButton_A) {
 					count = (prev_press == A) ? count + 1 : 1;
 					prev_press = A;
@@ -537,28 +536,13 @@ void main() {
 					count = (prev_press == B) ? count + 1 : 1;
 					prev_press = B;
 				}
-				else if (inputState.Buttons & ovrButton_RThumb) {
-					count = (prev_press == THUMB) ? count + 1 : 1;
-					prev_press = THUMB;
-				}
-				else if (inputState.Buttons & ovrButton_Enter) {
-					count = (prev_press == MENU) ? count + 1 : 1;
-					prev_press = MENU;
-				}
-				else if (inputState.HandTrigger[ovrHand_Right] > 0.5f && inputState.IndexTrigger[ovrHand_Right] > 0.5f) {
-					count = (prev_press == GRIPTRIG) ? count + 1 : 1;
-					prev_press = GRIPTRIG;
-				}
-				else if (inputState.HandTrigger[ovrHand_Right] > 0.5f && inputState.IndexTrigger[ovrHand_Right] <= 0.2f) {
-					count = (prev_press == GRIP) ? count + 1 : 1;
-					prev_press = GRIP;
-				}
 				else if (inputState.HandTrigger[ovrHand_Right] <= 0.2f && inputState.IndexTrigger[ovrHand_Right] > 0.5f) {
 					count = (prev_press == TRIG) ? count + 1 : 1;
 					prev_press = TRIG;
 				}
 				else if (inputState.Thumbstick[ovrHand_Right].x > 0.1f || inputState.Thumbstick[ovrHand_Right].x < -0.1f || inputState.Thumbstick[ovrHand_Right].y > 0.1f || inputState.Thumbstick[ovrHand_Right].y < -0.1f) {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
+					count = 0;
 				}
 				else if (inputState.HandTrigger[ovrHand_Right] <= 0.2f && inputState.IndexTrigger[ovrHand_Right] <= 0.2f && !(inputState.Buttons & ovrButton_A) && !(inputState.Buttons & ovrButton_B) && !(inputState.Buttons & ovrButton_X) && !(inputState.Buttons & ovrButton_Y)) {
 					count = (prev_press == NONE) ? count + 1 : 1;
@@ -572,12 +556,24 @@ void main() {
 				if (menu_active) { //The menu is open, process input in a special way
 					Eigen::Vector3f menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos)));
 					set_menu_3D_mouse(hand_pos, get_right_touch_direction(), menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
-					if (prev_press == A) {
-						callback_GUI_button_press();
+					if (prev_press == TRIG || prev_press == B) {
+						callback_GUI_button_press(); //Click in GUI menu
+						//callback_menu_closed();
+						return;
+					}
+					else if (prev_press == A) { //Click to close GUI
+						std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
+						std::chrono::duration<float> deltaTime = currentTime - menu_lastTime;
+						if (deltaTime.count() > 1) { //Block menu input for 1 sec
+							callback_menu_closed();
+							menu_active = false;
+							menu_lastTime = std::chrono::steady_clock::now();
+							count = 1;
+						}
 						return;
 					}
 				}
-				if ((prev_press == MENU) && !menu_active) {
+				else if (!menu_active && (prev_press == A)) { //Bring up the menu
 					std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 					std::chrono::duration<float> deltaTime = currentTime - menu_lastTime;
 					if (deltaTime.count() > 1) {//Block menu input for 1 sec 
@@ -590,7 +586,12 @@ void main() {
 					//TODO: check whether to return or proceed to below
 					return;
 				}
-				else if ((prev_press == MENU) && menu_active) {
+				else if (!menu_active && (prev_press == B)) {
+					count = 1;
+					return;
+				}
+
+				/*else if ((prev_press == MENU) && menu_active) {
 					std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
 					std::chrono::duration<float> deltaTime = currentTime - menu_lastTime;
 					if (deltaTime.count() > 1) { //Block menu input for 1 sec
@@ -600,8 +601,9 @@ void main() {
 						count = 1;
 					}
 					return;
-				}
+				}*/
 
+				//Only TRIG and NONE can come here with count >=3
 				if (count >= 3) { //Only do a callback when we have at least 3 of the same buttonCombos in a row (to prevent doing a GRIP/TRIG action when we were actually starting up a GRIPTRIG)
 					if ((prev_press == NONE && count == 3 && prev_sent != NONE)) {
 						update_screen_while_computing = true;
@@ -1157,6 +1159,7 @@ void main() {
 					ovr_SubmitControllerVibration(session, ovrControllerType_RTouch, &_hapticBuffer);
 				}
 		}
+	
 		IGL_INLINE void OculusVR::set_menu_hover_callback() {
 //			igl::opengl::glfw::imgui::ImGuiMenu::callback_menu_hover = hapticPulse;
 		}
