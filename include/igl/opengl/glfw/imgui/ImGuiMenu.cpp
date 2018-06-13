@@ -28,7 +28,6 @@ namespace imgui
 IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
 {
   ViewerPlugin::init(_viewer);
-//  ImGuiMenu::callback_menu_hover = test;
   // Setup ImGui binding
   if (_viewer)
   {
@@ -45,15 +44,11 @@ IGL_INLINE void ImGuiMenu::init(igl::opengl::glfw::Viewer *_viewer)
     reload_font();
 
 	if (&_viewer->oculusVR) {
-		//init_3D_quad_GUI();
 		setCallbackHapticPulse(callback_menu_hover);
 	}
   }
 }
 
-/*IGL_INLINE void ImGuiMenu::pulse_on_hover() {
-	(&viewer.oculusVR).hapticPulse();
-}*/
 
 IGL_INLINE void ImGuiMenu::reload_font(int font_size)
 {
@@ -98,9 +93,7 @@ IGL_INLINE bool ImGuiMenu::pre_draw()
 IGL_INLINE bool ImGuiMenu::post_draw(){
   draw_menu();
   if (oculus) {
-	 // draw_3D_quad_GUI();
 	  ImGui_ImplGlfwGL3_Render_VR();
-	  //ImGui::Render();
   }
   else {
 	  ImGui::Render();
@@ -159,6 +152,15 @@ IGL_INLINE bool ImGuiMenu::key_up(int key, int modifiers)
   return ImGui::GetIO().WantCaptureKeyboard;
 }
 
+// VR IO
+IGL_INLINE void ImGuiMenu::VR_button_down() {
+	VRButtonPressed();
+}
+
+IGL_INLINE void ImGuiMenu::VR_button_up() {
+	VRButtonReleased();
+}
+
 // Draw menu
 IGL_INLINE void ImGuiMenu::draw_menu()
 {
@@ -166,7 +168,7 @@ IGL_INLINE void ImGuiMenu::draw_menu()
   //draw_labels_window();
 
   // Viewer settings
-  if (callback_draw_viewer_window) { callback_draw_viewer_window(); }
+	if (callback_draw_viewer_window) { std::cout << " test" << std::endl;  callback_draw_viewer_window(); }
   else { draw_viewer_window(); }
 
   // Other windows
@@ -194,39 +196,35 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 		ImGui::End();
 	}
 	else {
-		const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
+		/*const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
 		//std::cout << "texsize" << texsize.x << "  " << texsize.y << std::endl;
 		//ImGui::SetNextWindowSize(texsize);
-		//ImGui::SetNextWindowSize(ImVec2(512, 512));
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.WindowPadding = ImVec2(0,0);
 		style.WindowRounding = 0.0f;
 		style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
 		style.ItemInnerSpacing = ImVec2(0,0);
 
-		//style.FramePadding = ImVec2(0,0);
-		//style.FrameRounding = 0.0f;
 		ImGui::SetNextWindowSize(ImVec2(512.0f, 512.0f), ImGuiSetCond_FirstUseEver);
 		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
-		float menu_width = 180.f * menu_scaling();
-		//ImGui::SetNextWindowSizeConstraints(ImVec2(menu_width, -1.0f), ImVec2(menu_width, -1.0f));
-		//ImGui::SetNextWindowSizeConstraints(ImVec2(512.0f, -1.0f), ImVec2(512.0f, -1.0f));
 
 		ImGui::Begin("Selection Menu", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
-		int frame_padding = 0;     // -1 = uses default padding
+		int frame_padding = 5;     // -1 = uses default padding
 		ImGuiIO& io = ImGui::GetIO();
+		ImGui::SetWindowFontScale(2.f);
+
 		float my_tex_w = (float)io.Fonts->TexWidth;
 		float my_tex_h = (float)io.Fonts->TexHeight;
 		ImGui::PushID(0);
-		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
+		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(128, 128), ImVec2(0, 0), ImVec2(128 / my_tex_w, 128 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
 			std::cout << "pressed " << std::endl;
 		}
 		ImGui::PopID();
 		//ImGui::SameLine();
 		ImGui::PushID(1);
-		ImGui::SetCursorPos(ImVec2(384, 384));
+		ImGui::SetCursorPos(ImVec2(379, 379));
 		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(128, 128), ImVec2(0, 0), ImVec2(128 / my_tex_w, 128 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
-		//	std::cout << "pressed " << std::endl;
+			std::cout << "pressed " << std::endl;
 		}
 		ImGui::PopID();
 	/*	ImGui::PushID(2);
@@ -234,9 +232,8 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
 			std::cout << "pressed " << std::endl;
 		}
-		ImGui::PopID();*/
-		ImGui::End();
-	//	ImGui_ImplGlfwGL3_Render_VR();
+		ImGui::PopID();
+		ImGui::End();*/
 	}
 }
 
@@ -594,10 +591,6 @@ bool ImGuiMenu::is_active() {
 void ImGuiMenu::set_3D_mouse(Eigen::Vector2f& mouse_pos) {
 	ImGuiIO& io = ImGui::GetIO();
 	io.MousePos = ImVec2(mouse_pos[0], mouse_pos[1]);
-	std::cout << "mouse: " << mouse_pos.transpose() << std::endl;
-}
-void ImGuiMenu::test() {
-	std::cout << "test " << std::endl;
 }
 
 } // end namespace

@@ -342,6 +342,9 @@ bool ImGui_ImplGlfwGL3_Init(GLFWwindow* window, bool install_callbacks)
 {
 	g_Context = ImGui::GetCurrentContext();
     g_Window = window;
+	int w, h;
+	glfwGetWindowSize(g_Window, &w, &h);
+	std::cout << w << " " << h << std::endl;
 //	g_TexWidth = 512;
 //	g_TexHeight = 512;
 
@@ -439,7 +442,8 @@ void ImGui_ImplGlfwGL3_NewFrame()
     for (int i = 0; i < 3; i++)
     {
         // If a mouse press event came, always pass it as "mouse held this frame", so we don't miss click-release events that are shorter than 1 frame.
-        io.MouseDown[i] = g_MouseJustPressed[i] || glfwGetMouseButton(g_Window, i) != 0;
+		io.MouseDown[i] = g_MouseJustPressed[i];// || glfwGetMouseButton(g_Window, i) != 0;
+	
         g_MouseJustPressed[i] = false;
     }
 
@@ -565,20 +569,6 @@ void ImGui_ImplGlfwGL3_NewFrame_VR(){
 #undef MAP_ANALOG
 	}
 
-	//setup for render-to-texture
-	//glEnable(GL_BLEND);
-	//glDisable(GL_DEPTH_TEST);
-//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	//glGetIntegerv(GL_VIEWPORT, g_LastViewport);
-	//glViewport(0, 0, g_TexWidth, g_TexHeight);
-
-//	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
-
-	//glDrawBuffer(GL_COLOR_ATTACHMENT0); //Removed +i here, which could be used for rendering 4 sides of a cube
-//	float clearcolor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	//glClearBufferfv(GL_COLOR, 0, clearcolor);
-
 	// Start the frame. This call will update the io.WantCaptureMouse, io.WantCaptureKeyboard flag that you can use to dispatch inputs (or not) to your application.
 	ImGui::NewFrame();
 
@@ -653,7 +643,6 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 
 	ImGui_ImplGlfwGL3_CreateFontsTexture();
 	
-//	glEnable(GL_TEXTURE_2D);
 	glGenFramebuffers(1, &g_GuiFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, g_GuiFBO);
 	glGenTextures(g_MaxTextures, g_GuiTexture);
@@ -687,31 +676,13 @@ bool ImGui_ImplGlfwGL3_CreateDeviceObjects_VR(){
 }
 
 void ImGui_ImplGlfwGL3_Render_VR(){
-	/*ImGui::SetCurrentContext(g_Context[i]);
-
-	if (g_ActiveTexture == i)
-	{
-		PulseIfItemHovered(); // haptic pulse if window or item is hovered
-	}*/
 	ImGui::SetCurrentContext(g_Context);
 
 	PulseIfItemHovered(); // haptic pulse if window or item is hovered
 
 	ImGui::Render();
 
-	/*static bool WantTextInputLastFrame[g_MaxTextures] = { false, false, false, false };
-	ImGuiIO& io = ImGui::GetIO();
-	if ((io.WantTextInput == true) && (WantTextInputLastFrame[i] == false) && (InputTextBufSize != 0) && (InputTextBuf != 0))
-	{
-		g_pOverlay->ShowKeyboard(vr::k_EGamepadTextInputModeNormal, vr::k_EGamepadTextInputLineModeSingleLine, "Virtual Keyboard", InputTextBufSize, InputTextBuf, false, 0);
-	}
-	WantTextInputLastFrame[i] = io.WantTextInput;
-	*/
 
-//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-///	glDrawBuffer(GL_BACK);
-//	glEnable(GL_DEPTH_TEST);
-//	glViewport(g_LastViewport[0], g_LastViewport[1], g_LastViewport[2], g_LastViewport[3]);
 }
 
 void PulseIfItemHovered()
@@ -723,10 +694,9 @@ void PulseIfItemHovered()
 	bool anyWindowHoveredThisFrame = ImGui::IsMouseHoveringAnyWindow();
 
 	
-	if ((anyItemHoveredLastFrame != anyItemHoveredThisFrame) || (anyWindowHoveredLastFrame != anyWindowHoveredThisFrame))
+	if ((anyItemHoveredLastFrame != anyItemHoveredThisFrame) ) //|| (anyWindowHoveredLastFrame != anyWindowHoveredThisFrame)
 	{
 		TriggerHapticPulse();
-		std::cout << " Make a pulse" << std::endl;
 	}
 	anyItemHoveredLastFrame = anyItemHoveredThisFrame;
 	anyWindowHoveredLastFrame = anyWindowHoveredThisFrame;
@@ -734,6 +704,15 @@ void PulseIfItemHovered()
 
 void setCallbackHapticPulse(const std::function<void()> &callback_haptic_pulse){
 	TriggerHapticPulse = callback_haptic_pulse;
+}
+
+
+void VRButtonPressed(){
+	g_MouseJustPressed[0] = true;
+}
+
+void VRButtonReleased() {
+	g_MouseJustPressed[0] = false;
 }
 
 int ImGui_ImplGlfwGL3_GetGuiTexture(int i){

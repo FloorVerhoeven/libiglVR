@@ -92,6 +92,9 @@ public:
 			std::function<void()> callback_menu_opened;
 			std::function<void()> callback_menu_closed;
 			std::function<void(Eigen::Vector2f& mouse_pos)> callback_GUI_set_mouse;
+			std::function<void()> callback_GUI_button_press;
+			std::function<void()> callback_GUI_button_release;
+
 
 			//Variables for input handling
 			ButtonCombo prev_press;
@@ -129,7 +132,9 @@ private:
 			std::chrono::steady_clock::time_point lastTime;
 			std::chrono::steady_clock::time_point menu_lastTime;
 
-			
+			const static int hapticBufferSize = 256;
+			unsigned char * hapticBuffer = (unsigned char *)malloc(hapticBufferSize);
+
 		};
 	}
 }

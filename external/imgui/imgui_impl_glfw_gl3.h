@@ -39,3 +39,5 @@ IMGUI_API void		  PulseIfItemHovered();
 IMGUI_API void		  setCallbackHapticPulse(const std::function<void()> &callback_haptic_pulse);
 
 IMGUI_API static std::function<void()> TriggerHapticPulse;
+IMGUI_API void VRButtonPressed();
+IMGUI_API void VRButtonReleased();

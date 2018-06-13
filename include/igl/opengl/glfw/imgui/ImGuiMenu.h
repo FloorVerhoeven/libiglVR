@@ -82,6 +82,11 @@ public:
 
   IGL_INLINE virtual bool key_up(int key, int modifiers) override;
 
+  // VR IO
+  IGL_INLINE static void VR_button_down();
+
+  IGL_INLINE static void VR_button_up();
+
   // Draw menu
   IGL_INLINE virtual void draw_menu();
 

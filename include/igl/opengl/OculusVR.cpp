@@ -53,6 +53,8 @@ namespace igl {
 		static ovrAvatarVector4f _avatarCombinedMeshAlphaOffset;
 		static std::map<ovrAvatarAssetID, void*> _assetMap;
 		static float _elapsedSeconds;
+		static ovrHapticsBuffer _hapticBuffer;
+
 
 		IGL_INLINE void OculusVR::init() {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
@@ -61,6 +63,8 @@ namespace igl {
 			callback_menu_opened = nullptr;
 			callback_menu_closed = nullptr;
 			callback_GUI_set_mouse = nullptr;
+			callback_GUI_button_press = nullptr;
+			callback_GUI_button_release = nullptr;
 
 			// Initialize the OVR Platform module
 			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(APP_ID))) {
@@ -103,6 +107,16 @@ namespace igl {
 			eye_pos_lock.lock();
 			current_eye_origin = to_Eigen(eyePos);
 			eye_pos_lock.unlock();
+
+			for (int i = 0; i < hapticBufferSize; i++) {
+				hapticBuffer[i] = (unsigned char)0;
+			}
+			for (int i = 0; i < 5; i++) {
+				hapticBuffer[i] = (unsigned char)255;
+			}
+			_hapticBuffer.SubmitMode = ovrHapticsBufferSubmit_Enqueue;
+			_hapticBuffer.SamplesCount = hapticBufferSize;
+			_hapticBuffer.Samples = (void *)hapticBuffer;
 
 			menu_lastTime = std::chrono::steady_clock::now();
 
@@ -515,11 +529,11 @@ void main() {
 				Eigen::Vector3f hand_pos;
 				hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
 				//hand_pos = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(hud_buffer->eyeTextureSize.w /2.0f* pixels_to_meter, 0, menu_z_pos)));
-			/*	if (inputState.Buttons & ovrButton_A) {
+				if (inputState.Buttons & ovrButton_A) {
 					count = (prev_press == A) ? count + 1 : 1;
 					prev_press = A;
 				}
-				else*/ if (inputState.Buttons & ovrButton_B) {
+				else if (inputState.Buttons & ovrButton_B) {
 					count = (prev_press == B) ? count + 1 : 1;
 					prev_press = B;
 				}
@@ -527,7 +541,7 @@ void main() {
 					count = (prev_press == THUMB) ? count + 1 : 1;
 					prev_press = THUMB;
 				}
-				else if (inputState.Buttons & ovrButton_A) {
+				else if (inputState.Buttons & ovrButton_Enter) {
 					count = (prev_press == MENU) ? count + 1 : 1;
 					prev_press = MENU;
 				}
@@ -558,6 +572,10 @@ void main() {
 				if (menu_active) { //The menu is open, process input in a special way
 					Eigen::Vector3f menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos)));
 					set_menu_3D_mouse(hand_pos, get_right_touch_direction(), menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
+					if (prev_press == A) {
+						callback_GUI_button_press();
+						return;
+					}
 				}
 				if ((prev_press == MENU) && !menu_active) {
 					std::chrono::steady_clock::time_point currentTime = std::chrono::steady_clock::now();
@@ -1127,10 +1145,17 @@ void main() {
 			//std::chrono::steady_clock::time_point time_start = std::chrono::steady_clock::now();
 			//std::chrono::duration<float> deltaTime;
 			//do {
-				ovr_SetControllerVibration(session, ovrControllerType_RTouch, 0.0f, 1.0f);
+				//ovr_SetControllerVibration(session, ovrControllerType_RTouch, 0.0f, 1.0f);
 			//	deltaTime = std::chrono::steady_clock::now() - time_start;
 			//} while (deltaTime.count() < 1000);
 			//ovr_SetControllerVibration(session, ovrControllerType_RTouch, 0.0f, 0.0f);
+
+				ovrHapticsPlaybackState playbackState;
+				ovrResult result = ovr_GetControllerVibrationState(session, ovrControllerType_RTouch, &playbackState);
+				if (playbackState.RemainingQueueSpace >= hapticBufferSize)
+				{
+					ovr_SubmitControllerVibration(session, ovrControllerType_RTouch, &_hapticBuffer);
+				}
 		}
 		IGL_INLINE void OculusVR::set_menu_hover_callback() {
 //			igl::opengl::glfw::imgui::ImGuiMenu::callback_menu_hover = hapticPulse;

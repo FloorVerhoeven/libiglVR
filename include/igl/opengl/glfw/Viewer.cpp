@@ -345,6 +345,8 @@ namespace glfw
 	 
 	  oculusVR.init();
 	  oculusVR.callback_GUI_set_mouse = (igl::opengl::glfw::imgui::ImGuiMenu::set_3D_mouse); //init() will set this to nullptr, so do it after init()
+	  oculusVR.callback_GUI_button_press = (igl::opengl::glfw::imgui::ImGuiMenu::VR_button_down); //init() will set this to nullptr, so do it after init()
+	  oculusVR.callback_GUI_button_release = (igl::opengl::glfw::imgui::ImGuiMenu::VR_button_up); //init() will set this to nullptr, so do it after init()
   }
 
   IGL_INLINE void Viewer::init_plugins()
