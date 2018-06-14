@@ -394,7 +394,7 @@ R"(#version 150
 
 	  void main()
 	  {
-	    gl_Position = proj * view * model * vec4 (position, 1.0); //TODO: document that model_trans was added here
+	    gl_Position = proj * view * model * vec4 (position, 1.0);
 	  }
 )";
 
@@ -407,7 +407,7 @@ R"(#version 150
 
 	  void main()
 	  {
-	    gl_Position = proj * view * model * vec4 (position, 1.0); //TODO: document that model_trans was added here
+	    gl_Position = proj * view * model * vec4 (position, 1.0);
 	  }
 )";
 

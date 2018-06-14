@@ -65,7 +65,7 @@ public:
 			IGL_INLINE int eyeTextureWidth();
 			IGL_INLINE int eyeTextureHeight();
 			IGL_INLINE GLuint get_skinned_avatar_shader();
-			IGL_INLINE void set_menu_3D_mouse(Eigen::Vector3f& hand_pos, Eigen::Vector3f& right_touch_direction, Eigen::Vector3f& menu_center, float menu_width, float menu_height);
+			IGL_INLINE void set_menu_3D_mouse(Eigen::Vector3f& hand_pos, Eigen::Vector3f& right_touch_direction, Eigen::Matrix3d& head_rot, Eigen::Vector3d& menu_center, float menu_width, float menu_height);
 			IGL_INLINE static void hapticPulse();
 			IGL_INLINE void set_menu_hover_callback();
 			IGL_INLINE Eigen::Vector3f to_Eigen(OVR::Vector3f& vec);
@@ -95,10 +95,12 @@ public:
 			std::function<void()> callback_GUI_button_press;
 			std::function<void()> callback_GUI_button_release;
 
+			bool menu_active = false;
 
 			//Variables for input handling
 			ButtonCombo prev_press;
 			ButtonCombo prev_sent;
+			ButtonCombo prev_unsent;
 			int count;
 			ovrSessionStatus sessionStatus;
 			ovrPosef handPoses[2];
@@ -107,7 +109,7 @@ public:
 
 private:
 
-// A buffer struct used to store eye textures and framebuffers.
+			// A buffer struct used to store eye textures and framebuffers.
 			// We create one instance for the left eye, one for the right eye.
 			// Final rendering is done via blitting two separate frame buffers into one render target.
 			struct OVR_buffer {
