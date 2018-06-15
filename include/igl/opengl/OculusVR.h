@@ -62,9 +62,12 @@ public:
 			IGL_INLINE void _setMaterialState(GLuint program, const ovrAvatarMaterialState* state, Eigen::Matrix4f* projectorInv);
 			IGL_INLINE void _setTextureSampler(GLuint program, int textureUnit, const char uniformName[], ovrAvatarAssetID assetID);
 			IGL_INLINE void _setTextureSamplers(GLuint program, const char uniformName[], size_t count, const int textureUnits[], const ovrAvatarAssetID assetIDs[]);
+			IGL_INLINE void _renderDebugLine(const Eigen::Matrix4f& worldViewProj, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector4f& aColor, const Eigen::Vector4f& bColor);
+			IGL_INLINE void _renderPose(const Eigen::Matrix4f& worldViewProj, const ovrAvatarSkinnedMeshPose& pose);
 			IGL_INLINE int eyeTextureWidth();
 			IGL_INLINE int eyeTextureHeight();
 			IGL_INLINE GLuint get_skinned_avatar_shader();
+			IGL_INLINE GLuint get_debug_shader();
 			IGL_INLINE void set_menu_3D_mouse(Eigen::Vector3f& hand_pos, Eigen::Vector3f& right_touch_direction, Eigen::Matrix3d& head_rot, Eigen::Vector3d& menu_center, float menu_width, float menu_height);
 			IGL_INLINE static void hapticPulse();
 			IGL_INLINE void set_menu_hover_callback();
@@ -104,6 +107,7 @@ public:
 			int count;
 			ovrSessionStatus sessionStatus;
 			ovrPosef handPoses[2];
+			Eigen::Vector4f index_top_pose;
 			ovrInputState inputState;
 			double displayMidpointSeconds;
 

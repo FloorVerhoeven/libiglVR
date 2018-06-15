@@ -257,9 +257,6 @@ public:
     const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
     const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A);
 
-  IGL_INLINE void set_avatar(Eigen::MatrixXd& _V, Eigen::MatrixXi& _F, Eigen::MatrixXd& _normals, Eigen::MatrixXd& _tangents, Eigen::MatrixXd& _tex, Eigen::MatrixXi& _poseIndices, Eigen::MatrixXd& _poseWeights);
-
-  IGL_INLINE void set_inverse_bind_pose(Eigen::Matrix4f* bindPoses, int jointCount);
   // Sets points given a list of point vertices. In constrast to `set_points`
   // this will (purposefully) clober existing points.
   //

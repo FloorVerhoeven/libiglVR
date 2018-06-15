@@ -279,27 +279,6 @@ IGL_INLINE void igl::opengl::ViewerData::set_texture(
   base_data_lock.unlock();
 }
 
-
-IGL_INLINE void igl::opengl::ViewerData::set_avatar(Eigen::MatrixXd& _V, Eigen::MatrixXi& _F, Eigen::MatrixXd& _normals, Eigen::MatrixXd& _tangents, Eigen::MatrixXd& _tex, Eigen::MatrixXi& _poseIndices, Eigen::MatrixXd& _poseWeights) {
-	base_data_lock.lock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
-	avatar_V = _V;
-	avatar_F = _F;
-	avatar_V_normals = _normals; // One normal per vertex
-	avatar_V_tangents = _tangents;
-	avatar_V_tex = _tex;
-	avatar_V_poseIndices = _poseIndices;
-	avatar_V_poseWeights = _poseWeights;
-	dirty |= MeshGL::DIRTY_AVATAR;
-	base_data_lock.unlock(); //TODO: MAYBE REPLACE WITH A SPECIAL AVATAR LOCK?
-}
-
-IGL_INLINE void igl::opengl::ViewerData::set_inverse_bind_pose(Eigen::Matrix4f* bindPoses, int jointCount) {
-	inverse_bind_pose.resize(jointCount);
-	for (int i = 0; i < jointCount; i++) {
-		inverse_bind_pose[i] = bindPoses[i].inverse();
-	}
-}
-
 IGL_INLINE void igl::opengl::ViewerData::set_points(
   const Eigen::MatrixXd& P,
   const Eigen::MatrixXd& C)
@@ -988,5 +967,8 @@ IGL_INLINE void igl::opengl::ViewerData::rotate(Eigen::Quaternionf trackball_rot
 	V_tmp.block(0, 0, 3, V.rows()) = V.transpose();
 	V_tmp.row(3) = Eigen::RowVectorXd::Constant(V.rows(),1);
 	V = ((place_back.cast<double>()*rotation.cast<double>()*V_tmp).topRows(3)).transpose();
+
+
+
 	dirty |= MeshGL::DIRTY_ALL;
 }
