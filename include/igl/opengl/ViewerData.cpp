@@ -344,11 +344,11 @@ IGL_INLINE void igl::opengl::ViewerData::add_stroke_points(const Eigen::MatrixXd
 	overlay_lock.unlock();
 }
 
-IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd& LP) {
+IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
 	overlay_lock.lock();
 	laser_points.resize(0, 0);
 	if(LP.rows()>0) {
-		add_laser_points(LP); //Will take care of unlocking
+		add_laser_points(LP, C); //Will take care of unlocking
 	}
 	else {
 		dirty |= MeshGL::DIRTY_LASER;
@@ -356,7 +356,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd&
 	}
 }
 
-IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd& LP) {
+IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
 	if (!overlay_lock.owns_lock()) {
 		overlay_lock.lock();
 	}
@@ -372,9 +372,9 @@ IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd&
 		LP_temp = LP;
 	}
 	int lastid = laser_points.rows();
-	laser_points.conservativeResize(laser_points.rows() + LP_temp.rows(), 3);
+	laser_points.conservativeResize(laser_points.rows() + LP_temp.rows(), 6);
 	for (unsigned i = 0; i < LP_temp.rows(); ++i) {
-		laser_points.row(lastid + i) << LP_temp.row(i);
+		laser_points.row(lastid + i) << LP_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows() - 1);
 	}
 
 	dirty |= MeshGL::DIRTY_LASER;
@@ -904,11 +904,15 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
   }
 
   if (meshgl.dirty & MeshGL::DIRTY_LASER) {
+	  std::cout << "Get here" << std::endl;
 	  meshgl.laser_points_V_vbo.resize(data.laser_points.rows(),3);
 	  meshgl.laser_points_F_vbo.resize(data.laser_points.rows(),1);
+	  meshgl.laser_V_colors_vbo.resize(data.laser_points.rows(),3);
 	  for (unsigned i = 0; i < data.laser_points.rows(); ++i) {
 		  meshgl.laser_points_V_vbo.row(i) = data.laser_points.block<1, 3>(i, 0).transpose().cast<float>();
 		  meshgl.laser_points_F_vbo(i) = i;
+		  meshgl.laser_V_colors_vbo.row(i) = data.laser_points.block<1, 3>(i, 3).transpose().cast<float>();
+		  std::cout << data.laser_points.row(i) << std::endl << std::endl;
 	  }
   }
 
