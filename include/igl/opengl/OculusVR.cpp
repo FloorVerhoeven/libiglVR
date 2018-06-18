@@ -36,13 +36,13 @@ namespace igl {
 		static ovrTrackingState hmdState;
 		static ovrPosef EyeRenderPose[2];
 		static ovrEyeRenderDesc eyeRenderDesc[2];
-		static unsigned int frame{ 0 };
+		//static unsigned int frame{ 0 };
 		static double sensorSampleTime;
 		static GLuint _mirrorFbo{ 0 };
 		static GLuint _skinnedMeshProgram;
-		static GLuint _debugLineProgram;
-		static GLuint _debugVertexArray;
-		static GLuint _debugVertexBuffer;
+		//static GLuint _debugLineProgram;
+		//static GLuint _debugVertexArray;
+		//static GLuint _debugVertexBuffer;
 
 		static Eigen::Matrix4f world; //TODO: handle nicely
 		static Eigen::Matrix4f local; //TODO: handle nicely
@@ -100,10 +100,10 @@ namespace igl {
 			ovrAvatar_Initialize(APP_ID);
 			ovrID userID = ovr_GetLoggedInUserID();
 
-			_debugLineProgram = get_debug_shader();
+			//_debugLineProgram = get_debug_shader();
 
-			glGenVertexArrays(1, &_debugVertexArray);
-			glGenBuffers(1, &_debugVertexBuffer);
+			//glGenVertexArrays(1, &_debugVertexArray);
+			//glGenBuffers(1, &_debugVertexBuffer);
 
 			auto requestSpec = ovrAvatarSpecificationRequest_Create(userID);
 			ovrAvatarSpecificationRequest_SetCombineMeshes(requestSpec, _combineMeshes);
@@ -138,7 +138,7 @@ namespace igl {
 		}
 
 		//TODO: remove when done
-		IGL_INLINE GLuint OculusVR::get_debug_shader() {
+		/*IGL_INLINE GLuint OculusVR::get_debug_shader() {
 			std::string debug_shader_string =
 				R"(#version 330 core
 				layout (location = 0) in vec3 position;
@@ -233,7 +233,7 @@ namespace igl {
 			detach(v);
 
 			return id;
-		}
+		}*/
 
 		IGL_INLINE GLuint OculusVR::get_skinned_avatar_shader() {
 			std::string avatar_vertex_shader_string =
@@ -581,7 +581,7 @@ void main() {
 		}
 
 		//TODO: remove when done
-		IGL_INLINE void OculusVR::_renderDebugLine(const Eigen::Matrix4f& worldViewProj, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector4f& aColor, const Eigen::Vector4f& bColor)
+		/*IGL_INLINE void OculusVR::_renderDebugLine(const Eigen::Matrix4f& worldViewProj, const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector4f& aColor, const Eigen::Vector4f& bColor)
 		{
 			glUseProgram(_debugLineProgram);
 			glUniformMatrix4fv(glGetUniformLocation(_debugLineProgram, "worldViewProj"), 1, 0, worldViewProj.data());
@@ -605,7 +605,7 @@ void main() {
 			glEnableVertexAttribArray(1);
 
 			glDrawArrays(GL_LINE_STRIP, 0, 2);
-		}
+		}*/
 
 		IGL_INLINE bool OculusVR::init_VR_buffers(int window_width, int window_height) {
 			for (int eye = 0; eye < 2; eye++) {
@@ -649,7 +649,7 @@ void main() {
 			// Get eye poses, feeding in correct IPD offset
 			ovrPosef HmdToEyePose[2] = { eyeRenderDesc[0].HmdToEyePose, eyeRenderDesc[1].HmdToEyePose };
 			// sensorSampleTime is fed into the layer later
-			ovr_GetEyePoses(session, frame, ovrTrue, HmdToEyePose, EyeRenderPose, &sensorSampleTime);
+			ovr_GetEyePoses(session, 0, ovrTrue, HmdToEyePose, EyeRenderPose, &sensorSampleTime);
 		}
 
 		IGL_INLINE void OculusVR::handle_input(std::atomic<bool>& update_screen_while_computing, ViewerData& data) {
@@ -954,9 +954,7 @@ void main() {
 			glBindFramebuffer(GL_FRAMEBUFFER, eyeFbo);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eyeTexId, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
-			GLenum err = glGetError();
 			glViewport(0, 0, eyeTextureSize.w, eyeTextureSize.h);
-			err = glGetError();
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glEnable(GL_FRAMEBUFFER_SRGB);
 		}
@@ -984,7 +982,6 @@ void main() {
 		IGL_INLINE void OculusVR::OVR_buffer::OnRenderFinishHud() {
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 		}
 
 		IGL_INLINE void OculusVR::submit_frame() {
@@ -1010,7 +1007,7 @@ void main() {
 				handLayer.RenderPose[eye] = EyeRenderPose[eye];
 				handLayer.SensorSampleTime = sensorSampleTime;
 
-				laserLayer.ColorTexture[eye] = laserbuffers[eye]->swapTextureChain;
+				laserLayer.ColorTexture[eye] = laser_buffers[eye]->swapTextureChain;
 				laserLayer.Viewport[eye] = OVR::Recti(laser_buffers[eye]->eyeTextureSize);
 				laserLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
 				laserLayer.RenderPose[eye] = EyeRenderPose[eye];
@@ -1052,13 +1049,13 @@ void main() {
 				layerList[2] = &handLayer.Header;
 				layerList[3] = &laserLayer.Header;
 
-				ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 4);
+				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 4);
 			}
 			else {
 				//We use a merged hand & mesh layer when the menu is disabled, to allow for depth testing between them
 				ovrLayerHeader* layerList[1];
 				layerList[0] = &eyeLayer.Header;
-				ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 1);
+				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 1);
 			}
 
 		}

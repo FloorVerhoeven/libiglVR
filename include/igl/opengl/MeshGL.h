@@ -43,8 +43,8 @@ public:
 	DIRTY_STROKE		 = 0x0400,
 	DIRTY_LASER			 = 0x0800,
 	DIRTY_HAND_POINT	 = 0x1000,
-	DIRTY_AVATAR		 = 0x2000,
-	DIRTY_ALL			 = 0x3FFF
+	//DIRTY_AVATAR		 = 0x2000,
+	DIRTY_ALL			 = 0x1FFF
   };
 
   bool is_initialized = false;
@@ -54,7 +54,7 @@ public:
   GLuint vao_stroke_points;
   GLuint vao_laser_points;
   GLuint vao_hand_point;
-  GLuint vao_avatar;
+ // GLuint vao_avatar;
 
   GLuint shader_mesh;
   GLuint shader_overlay_lines;
@@ -62,7 +62,7 @@ public:
   GLuint shader_stroke_points;
   GLuint shader_laser_points;
   GLuint shader_hand_point;
-  GLuint shader_avatar;
+  //GLuint shader_avatar;
 
   GLuint vbo_V; // Vertices of the current mesh (#V x 3)
   GLuint vbo_V_uv; // UV coordinates for the current mesh (#V x 2)
@@ -88,14 +88,14 @@ public:
   GLuint vbo_hand_point_V;
   GLuint vbo_hand_point_V_colors;
 
-  GLuint vbo_avatar_V_normals;
+ /* GLuint vbo_avatar_V_normals;
   GLuint vbo_avatar_V_tangents;
   GLuint vbo_avatar_V_tex;
   GLuint vbo_avatar_V_poseIndices;
   GLuint vbo_avatar_V_poseWeights;
   //GLuint vbo_avatar_V_colors;
   GLuint vbo_avatar_F;
-  GLuint vbo_avatar_V;
+  GLuint vbo_avatar_V;*/
 
 
   // Temporary copy of the content of each VBO
@@ -116,12 +116,12 @@ public:
   RowMatrixXf hand_point_V_vbo;
   RowMatrixXf hand_point_V_colors_vbo;
 
-  RowMatrixXf avatar_V_vbo;
+ /* RowMatrixXf avatar_V_vbo;
   RowMatrixXf avatar_V_normals_vbo;
   RowMatrixXf avatar_V_tangents_vbo;
   RowMatrixXf avatar_V_tex_vbo;
   RowMatrixXf avatar_V_poseIndices_vbo;
-  RowMatrixXf avatar_V_poseWeights_vbo;
+  RowMatrixXf avatar_V_poseWeights_vbo;*/
 //  RowMatrixXf avatar_V_colors_vbo;
 
   int tex_u;
@@ -131,7 +131,7 @@ public:
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> lines_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> points_F_vbo;
-  Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> avatar_F_vbo;
+ // Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> avatar_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> stroke_points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> laser_points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> hand_point_F_vbo;
@@ -185,7 +185,7 @@ public:
   /// Draw the currently buffered overlay hand marker
   IGL_INLINE void draw_hand_point();
 
-  IGL_INLINE void bind_avatar();
+ // IGL_INLINE void bind_avatar();
 
   // Release the OpenGL buffer objects
   IGL_INLINE void free_buffers();

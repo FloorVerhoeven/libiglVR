@@ -29,7 +29,7 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   show_texture(false),
   show_strokes(true),
   show_laser(true),
-  show_avatar(true),
+  //show_avatar(true),
   point_size(30),
   line_width(0.5f),
   overlay_line_width(1.6f),
@@ -923,7 +923,7 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 	  }
   }
 
-  if (meshgl.dirty & MeshGL::DIRTY_AVATAR) { //TODO: split this up into dirty sections such as for regular mesh (so you don't always have to update every section)
+  /*if (meshgl.dirty & MeshGL::DIRTY_AVATAR) { //TODO: split this up into dirty sections such as for regular mesh (so you don't always have to update every section)
 	  meshgl.avatar_V_vbo.resize(data.avatar_V.rows(), 3);
 	  meshgl.avatar_V_normals_vbo.resize(data.avatar_V.rows(), 3);
 	  meshgl.avatar_V_tangents_vbo.resize(data.avatar_V.rows(), 4);
@@ -944,7 +944,7 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 
 	  meshgl.avatar_F_vbo = data.avatar_F.cast<unsigned>();
 
-  }
+  }*/
 }
 
 IGL_INLINE void igl::opengl::ViewerData::rotate(Eigen::Quaternionf trackball_rotation) { //Takes the trackball rotation as parameter to ensure it has been updated
@@ -967,8 +967,6 @@ IGL_INLINE void igl::opengl::ViewerData::rotate(Eigen::Quaternionf trackball_rot
 	V_tmp.block(0, 0, 3, V.rows()) = V.transpose();
 	V_tmp.row(3) = Eigen::RowVectorXd::Constant(V.rows(),1);
 	V = ((place_back.cast<double>()*rotation.cast<double>()*V_tmp).topRows(3)).transpose();
-
-
 
 	dirty |= MeshGL::DIRTY_ALL;
 }

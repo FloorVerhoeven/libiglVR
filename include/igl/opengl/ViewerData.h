@@ -87,7 +87,7 @@ public:
 	  show_lines = other.show_lines;
 	  show_vertid = other.show_vertid;
 	  show_faceid = other.show_faceid;
-	  show_avatar = other.show_avatar;
+	//  show_avatar = other.show_avatar;
 	  invert_normals = other.invert_normals;
 
 	  point_size = other.point_size;
@@ -97,14 +97,14 @@ public:
 	  laser_line_width = other.laser_line_width;
 	  line_color = other.line_color;
 
-	  avatar_V = other.avatar_V;
+	 /* avatar_V = other.avatar_V;
 	  avatar_F=other.avatar_F;
 	  avatar_V_normals = other.avatar_V_normals; // One normal per vertex
 	  avatar_V_tangents = other.avatar_V_tangents;
 	  avatar_V_tex= other.avatar_V_tex;
 	  avatar_V_poseIndices = other.avatar_V_poseIndices;
 	  avatar_V_poseWeights= other.avatar_V_poseWeights;
-	  inverse_bind_pose = other.inverse_bind_pose;
+	  inverse_bind_pose = other.inverse_bind_pose;*/
 
 	  shininess = other.shininess;
 
@@ -171,7 +171,7 @@ public:
 	  show_lines = other.show_lines;
 	  show_vertid = other.show_vertid;
 	  show_faceid = other.show_faceid;
-	  show_avatar = other.show_avatar;
+	//  show_avatar = other.show_avatar;
 	  invert_normals = other.invert_normals;
 
 	  point_size = other.point_size;
@@ -183,14 +183,14 @@ public:
 
 	  shininess = other.shininess;
 
-	  avatar_V = other.avatar_V;
+	/*  avatar_V = other.avatar_V;
 	  avatar_F = other.avatar_F;
 	  avatar_V_normals = other.avatar_V_normals; // One normal per vertex
 	  avatar_V_tangents = other.avatar_V_tangents;
 	  avatar_V_tex = other.avatar_V_tex;
 	  avatar_V_poseIndices = other.avatar_V_poseIndices;
 	  avatar_V_poseWeights = other.avatar_V_poseWeights;
-	  inverse_bind_pose = other.inverse_bind_pose;
+	  inverse_bind_pose = other.inverse_bind_pose;*/
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
 	  mesh_translation = other.mesh_translation;
@@ -383,14 +383,14 @@ public:
   Eigen::MatrixXd           labels_positions;
   std::vector<std::string>  labels_strings;
 
-  Eigen::MatrixXd avatar_V;
+ /* Eigen::MatrixXd avatar_V;
   Eigen::MatrixXi avatar_F;
   Eigen::MatrixXd avatar_V_normals; // One normal per vertex
   Eigen::MatrixXd avatar_V_tangents;
   Eigen::MatrixXd avatar_V_tex;
   Eigen::MatrixXi avatar_V_poseIndices;
   Eigen::MatrixXd avatar_V_poseWeights;
-  std::vector<Eigen::Matrix4f> inverse_bind_pose;
+  std::vector<Eigen::Matrix4f> inverse_bind_pose;*/
   // Marks dirty buffers that need to be uploaded to OpenGL
   uint32_t dirty;
 
@@ -407,7 +407,7 @@ public:
   bool show_lines;
   bool show_vertid;
   bool show_faceid;
-  bool show_avatar;
+ // bool show_avatar;
   bool invert_normals;
 
   // Point size / line width
@@ -487,7 +487,7 @@ namespace igl
       SERIALIZE_MEMBER(show_vertid);
       SERIALIZE_MEMBER(show_faceid);
       SERIALIZE_MEMBER(show_texture);
-	  SERIALIZE_MEMBER(show_avatar);
+	 // SERIALIZE_MEMBER(show_avatar);
       SERIALIZE_MEMBER(point_size);
       SERIALIZE_MEMBER(line_width);
 	  SERIALIZE_MEMBER(overlay_line_width);

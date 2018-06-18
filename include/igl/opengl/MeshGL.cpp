@@ -59,11 +59,11 @@ IGL_INLINE void igl::opengl::MeshGL::init_buffers()
   glGenBuffers(1, &vbo_hand_point_V);
   glGenBuffers(1, &vbo_hand_point_V_colors);
 
-  // Avatar overlay
+ /* // Avatar overlay
   glGenVertexArrays(1, &vao_avatar);
   glBindVertexArray(vao_avatar);
   glGenBuffers(1, &vbo_avatar_F);
-  glGenBuffers(1, &vbo_avatar_V);
+  glGenBuffers(1, &vbo_avatar_V);*/
 
 
   dirty = MeshGL::DIRTY_ALL;
@@ -79,7 +79,7 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteVertexArrays(1, &vao_stroke_points);
 	glDeleteVertexArrays(1, &vao_laser_points);
 	glDeleteVertexArrays(1, &vao_hand_point);
-	glDeleteVertexArrays(1, &vao_avatar);
+	//glDeleteVertexArrays(1, &vao_avatar);
 
     glDeleteBuffers(1, &vbo_V);
     glDeleteBuffers(1, &vbo_V_normals);
@@ -101,8 +101,8 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteBuffers(1, &vbo_hand_point_F);
 	glDeleteBuffers(1, &vbo_hand_point_V);
 	glDeleteBuffers(1, &vbo_hand_point_V_colors);
-	glDeleteBuffers(1, &vbo_avatar_F);
-	glDeleteBuffers(1, &vbo_avatar_V);
+	//glDeleteBuffers(1, &vbo_avatar_F);
+	//glDeleteBuffers(1, &vbo_avatar_V);
 
 
     glDeleteTextures(1, &vbo_tex);
@@ -221,7 +221,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 	dirty &= ~MeshGL::DIRTY_HAND_POINT;
 }
 
-IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
+/*IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
 	bool is_dirty = dirty & MeshGL::DIRTY_AVATAR;
 	glBindVertexArray(vao_avatar);
 	glUseProgram(shader_avatar);
@@ -242,7 +242,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
 	}
 
 	dirty &= ~MeshGL::DIRTY_AVATAR;
-}
+}*/
 
 IGL_INLINE void igl::opengl::MeshGL::draw_mesh(bool solid)
 {
@@ -483,7 +483,7 @@ R"(#version 150
   }
 )";*/
 
-  std::string avatar_vertex_shader_string =
+  /*std::string avatar_vertex_shader_string =
 	  R"(#version 330 core
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
@@ -747,7 +747,7 @@ void main() {
 	  }
 	  color.a *= ComputeMask(baseMaskType, baseMaskParameters, baseMaskAxis, tangentTransform, worldNormal, surfaceNormal);
 	  fragmentColor = color;
-  })";
+  })";*/
 
   init_buffers();
   create_shader_program(
@@ -780,11 +780,11 @@ void main() {
 	  hand_fragment_shader_string,
 	  {},
 	  shader_hand_point);
-  create_shader_program(
+ /* create_shader_program(
 	  avatar_vertex_shader_string,
 	  avatar_fragment_shader_string,
 	  {},
-	  shader_avatar);
+	  shader_avatar);*/
 }
 
 IGL_INLINE void igl::opengl::MeshGL::free()
@@ -806,7 +806,7 @@ IGL_INLINE void igl::opengl::MeshGL::free()
 	free(shader_stroke_points);
 	free(shader_laser_points);
 	free(shader_hand_point);
-	free(shader_avatar);
+	//free(shader_avatar);
     free_buffers();
   }
 }

@@ -136,7 +136,6 @@ namespace glfw
   IGL_INLINE int Viewer::launch_oculus(bool resizable, bool fullscreen)
   {
 	  // TODO return values are being ignored...
-	 // launch_init(resizable, fullscreen);
 	  core.viewport(2) = oculusVR.eyeTextureWidth();
 	  core.viewport(3) = oculusVR.eyeTextureHeight();
 	  launch_rendering_oculus(); //Custom rendering because we always render continuously
@@ -271,14 +270,6 @@ namespace glfw
 			  }
 		  }
 
-		  for (unsigned int i = 0; i<plugins.size(); ++i)
-		  {
-		/*	  if (plugins[i]->pre_draw())
-			  {
-				  finish_loop = true;
-				  break;
-			  }*/
-		  }
 		  if (finish_loop) {
 			  finish_loop = false;
 			  continue; //TODO: may need to glfwSwapBuffers(window) here, because in regular viewer.launch_rendering that is called after the call to draw() 
@@ -292,13 +283,6 @@ namespace glfw
 			  {
 				  continue;
 			  }
-		  }
-		  for (unsigned int i = 0; i<plugins.size(); ++i)
-		  {
-		/*	  if (plugins[i]->post_draw())
-			  {
-				  break;
-			  }*/
 		  }
 	  }
 
@@ -331,13 +315,6 @@ namespace glfw
 
   IGL_INLINE void Viewer::init_oculus()
   {
-/*	  core.init();
-
-	  if (callback_init)
-		  if (callback_init(*this))
-			  return;
-
-	  init_plugins();*/
 	  ((igl::opengl::glfw::imgui::ImGuiMenu*)plugins[0])->callback_menu_hover = oculusVR.hapticPulse;
 
 	  launch_init();
@@ -374,7 +351,6 @@ namespace glfw
   {
     window = nullptr;
     data_list.front().id = 0;
-	//oculusVR = OculusVR();
 
     // Temporary variables initialization
     down = false;
