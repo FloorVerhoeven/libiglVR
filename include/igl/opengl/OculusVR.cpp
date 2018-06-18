@@ -47,6 +47,7 @@ namespace igl {
 		static Eigen::Matrix4f world; //TODO: handle nicely
 		static Eigen::Matrix4f local; //TODO: handle nicely
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
+		static Eigen::Vector3d menu_intersect_pt;
 
 		static float menu_z_pos = -1.50f;
 		static float pixels_to_meter = 0.001013f; //Transform factor for going from pixels to meters in Oculus
@@ -680,7 +681,7 @@ void main() {
 					count = (prev_press == B) ? count + 1 : 1;
 					prev_press = B;
 				}
-				else if (inputState.HandTrigger[ovrHand_Right] <= 0.2f && inputState.IndexTrigger[ovrHand_Right] > 0.5f) {
+				else if (inputState.IndexTrigger[ovrHand_Right] > 0.95f) {
 					count = (prev_press == TRIG) ? count + 1 : 1;
 					prev_press = TRIG;
 				}
@@ -688,7 +689,7 @@ void main() {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
 					count = 0;
 				}
-				else if (inputState.HandTrigger[ovrHand_Right] <= 0.2f && inputState.IndexTrigger[ovrHand_Right] <= 0.2f && !(inputState.Buttons & ovrButton_A) && !(inputState.Buttons & ovrButton_B) && !(inputState.Buttons & ovrButton_X) && !(inputState.Buttons & ovrButton_Y)) {
+				else if (inputState.IndexTrigger[ovrHand_Right] <= 0.95f ) { //Only count fully pressed state as something other than NONE
 					count = (prev_press == NONE) ? count + 1 : 1;
 					prev_press = NONE;
 				}
@@ -702,7 +703,7 @@ void main() {
 					Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
 					head_rot_tmp.normalize();
 					Eigen::Matrix3d head_rot = head_rot_tmp.toRotationMatrix().cast<double>();
-					set_menu_3D_mouse(hand_pos, get_right_touch_direction(), head_rot, menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
+					set_menu_3D_mouse(hand_pos, right_touch_direction, head_rot, menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
 					if (prev_press == TRIG || prev_press == B) {
 						if (prev_press == prev_unsent) {
 							return;
@@ -738,8 +739,6 @@ void main() {
 				else if (prev_press == TRIG && prev_unsent == TRIG) { //We just closed the menu but did not release the trigger button (yet). Do not go straight to action mode but ignore
 					return;
 				}
-
-
 
 				//Only TRIG and NONE can come here with count >=3
 				if (count >= 3) { //Only do a callback when we have at least 3 of the same buttonCombos in a row (to prevent doing a GRIP/TRIG action when we were actually starting up a GRIPTRIG)
@@ -789,10 +788,11 @@ void main() {
 				if (_avatar) {
 					update_avatar(deltaSeconds);
 				}
+				
+				update_laser(data_list[data_list.size()-1], update_screen_while_computing);
 
 				Eigen::Matrix4f proj, view;
-				for (int eye = 0; eye < 2; eye++)
-				{
+				for (int eye = 0; eye < 2; eye++){
 					OVR::Matrix4f finalRollPitchYaw = OVR::Matrix4f(EyeRenderPose[eye].Orientation);
 					OVR::Vector3f finalUp = finalRollPitchYaw.Transform(OVR::Vector3f(0, 1, 0));
 					OVR::Vector3f finalForward = finalRollPitchYaw.Transform(OVR::Vector3f(0, 0, -1));
@@ -808,14 +808,14 @@ void main() {
 							core.draw(data_list[i], true, true, view, proj);
 						}
 						eye_buffers[eye]->OnRenderFinish();
-						laser_buffers[eye]->OnRender();
-						core.draw(data_list[data_list.size()-1], true, true, view, proj);
-						laser_buffers[eye]->OnRenderFinish();
-	
 
 						GLfloat prev_clear_color[4];
 						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
 						glClearColor(0, 0, 0, 0);
+						laser_buffers[eye]->OnRender();
+						core.draw(data_list[data_list.size()-1], true, true, view, proj);
+						laser_buffers[eye]->OnRenderFinish();
+	
 						hand_buffers[eye]->OnRender();
 						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 							render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
@@ -1010,7 +1010,7 @@ void main() {
 				handLayer.RenderPose[eye] = EyeRenderPose[eye];
 				handLayer.SensorSampleTime = sensorSampleTime;
 
-				laserLayer.ColorTexture[eye] = laserbuffers[eye]->swapTextureChain;
+				laserLayer.ColorTexture[eye] = laser_buffers[eye]->swapTextureChain;
 				laserLayer.Viewport[eye] = OVR::Recti(laser_buffers[eye]->eyeTextureSize);
 				laserLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
 				laserLayer.RenderPose[eye] = EyeRenderPose[eye];
@@ -1095,10 +1095,44 @@ void main() {
 			ovrAvatarHandInputState inputStateRight;
 			ovrAvatarHandInputState_from_OVR(right, touchState, ovrHand_Right, &inputStateRight);
 
+			touch_dir_lock.lock();
+			right_touch_direction = to_Eigen(OVR::Matrix4f(trackingState.HandPoses[ovrHand_Right].ThePose.Orientation).Transform(OVR::Vector3f(0, 0, -1)));
+			touch_dir_lock.unlock();
+
 			// Update the avatar pose from the inputs
 			ovrAvatarPose_UpdateBody(_avatar, hmd);
 			ovrAvatarPose_UpdateHands(_avatar, inputStateLeft, inputStateRight);
 			ovrAvatarPose_Finalize(_avatar, deltaSeconds);
+		}
+
+		IGL_INLINE void OculusVR::update_laser(ViewerData& laser_data, bool update_screen_while_computing) {
+			Eigen::Vector3d hand_pos = (world*local*index_top_pose).topRows(3).cast<double>();
+			Eigen::Vector3d hand_dir = get_right_touch_direction().cast<double>();
+			laser_data.set_hand_point(hand_pos.transpose(), Eigen::RowVector3d(0.5f, 0.5f, 0.5f));
+
+			if (laser_data.show_laser) {
+				Eigen::MatrixX3d LP(2, 3);
+				LP.row(0) = hand_pos.transpose();
+				if (!menu_active) {
+					LP.row(1) = (hand_pos + 1000 * hand_dir).transpose();
+				}
+				else if (menu_active && menu_intersect_pt.isZero()) {
+					LP.row(1) = (hand_pos + -0.8*menu_z_pos * hand_dir).transpose();
+
+				}else{
+					LP.row(1) = menu_intersect_pt.transpose();
+				}
+				Eigen::MatrixXd laser_color(2, 3);
+				if (update_screen_while_computing) {
+					laser_color.row(0) << 0.3, 0.3, 0.3;
+					laser_color.row(1) << 0.3, 0.3, 0.3;
+				}
+				else {
+					laser_color.row(0) << 0.4, 0.8, 0;
+					laser_color.row(1) << 0.4, 0.8, 0;
+				}
+				laser_data.set_laser_points(LP, laser_color);
+			}
 		}
 
 		IGL_INLINE void OculusVR::ovrAvatarTransform_from_OVR(const ovrVector3f& position, const ovrQuatf& orientation, ovrAvatarTransform* target) {
@@ -1270,15 +1304,17 @@ void main() {
 			float menu_height_pixels = menu_height / pixels_to_meter;
 
 			double t, u, v;
-			Eigen::Vector3d pt;
+			menu_intersect_pt.setZero();
 			if (intersect_triangle(ray_start.data(), ray_dir.data(), p0.data(), p1.data(), p2.data(), &t, &u, &v) && t > 0) {
-				pt = ray_start + t*ray_dir - menu_center;
+				menu_intersect_pt = ray_start + t*ray_dir;
+				Eigen::Vector3d pt = menu_intersect_pt - menu_center;
 				pt = head_rot.transpose()*pt;
 				Eigen::Vector2f mouse_pos = Eigen::Vector2f(menu_width_pixels*((pt[0] - (-menu_width*0.5f)) / menu_width), menu_height_pixels - menu_height_pixels*((pt[1] - (-menu_height*0.5f)) / menu_height));
 				callback_GUI_set_mouse(mouse_pos);
 			}
 			else if (intersect_triangle(ray_start.data(), ray_dir.data(), p3.data(), p1.data(), p2.data(), &t, &u, &v) > 0) {
-				pt = ray_start + t*ray_dir - menu_center;
+				menu_intersect_pt = ray_start + t*ray_dir;
+				Eigen::Vector3d pt = menu_intersect_pt - menu_center;
 				pt = head_rot.transpose()*pt;
 				Eigen::Vector2f mouse_pos = Eigen::Vector2f(menu_width_pixels*((pt[0] - (-menu_width*0.5f)) / menu_width), menu_height_pixels - menu_height_pixels*((pt[1] - (-menu_height*0.5f)) / menu_height));
 				callback_GUI_set_mouse(mouse_pos);

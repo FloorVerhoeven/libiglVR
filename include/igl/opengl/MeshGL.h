@@ -84,6 +84,7 @@ public:
   GLuint vbo_stroke_points_V;	  // Vertices of the stroke overlay
   GLuint vbo_laser_points_F;	  // Indices of the laser overlay
   GLuint vbo_laser_points_V;	  // Vertices of the laser overlay
+  GLuint vbo_laser_V_colors;
   GLuint vbo_hand_point_F;
   GLuint vbo_hand_point_V;
   GLuint vbo_hand_point_V_colors;
@@ -113,6 +114,7 @@ public:
 
   RowMatrixXf stroke_points_V_vbo;
   RowMatrixXf laser_points_V_vbo;
+  RowMatrixXf laser_V_colors_vbo;
   RowMatrixXf hand_point_V_vbo;
   RowMatrixXf hand_point_V_colors_vbo;
 

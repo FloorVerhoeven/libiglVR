@@ -195,46 +195,6 @@ IGL_INLINE void ImGuiMenu::draw_viewer_window()
 		ImGui::PopItemWidth();
 		ImGui::End();
 	}
-	else {
-		/*const ImVec2 texsize = ImGui_ImplGlfwGL3_GetTextureSize();
-		//std::cout << "texsize" << texsize.x << "  " << texsize.y << std::endl;
-		//ImGui::SetNextWindowSize(texsize);
-		ImGuiStyle& style = ImGui::GetStyle();
-		style.WindowPadding = ImVec2(0,0);
-		style.WindowRounding = 0.0f;
-		style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
-		style.ItemInnerSpacing = ImVec2(0,0);
-
-		ImGui::SetNextWindowSize(ImVec2(512.0f, 512.0f), ImGuiSetCond_FirstUseEver);
-		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
-
-		ImGui::Begin("Selection Menu", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
-		int frame_padding = 5;     // -1 = uses default padding
-		ImGuiIO& io = ImGui::GetIO();
-		ImGui::SetWindowFontScale(2.f);
-
-		float my_tex_w = (float)io.Fonts->TexWidth;
-		float my_tex_h = (float)io.Fonts->TexHeight;
-		ImGui::PushID(0);
-		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(128, 128), ImVec2(0, 0), ImVec2(128 / my_tex_w, 128 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
-			std::cout << "pressed " << std::endl;
-		}
-		ImGui::PopID();
-		//ImGui::SameLine();
-		ImGui::PushID(1);
-		ImGui::SetCursorPos(ImVec2(379, 379));
-		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(128, 128), ImVec2(0, 0), ImVec2(128 / my_tex_w, 128 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
-			std::cout << "pressed " << std::endl;
-		}
-		ImGui::PopID();
-	/*	ImGui::PushID(2);
-		ImGui::SetCursorPos(ImVec2(300, 350));
-		if (ImGui::ImageButton(io.Fonts->TexID, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), frame_padding, ImColor(0, 0, 0, 255))) {
-			std::cout << "pressed " << std::endl;
-		}
-		ImGui::PopID();
-		ImGui::End();*/
-	}
 }
 
 IGL_INLINE void ImGuiMenu::draw_viewer_menu()
@@ -445,50 +405,6 @@ IGL_INLINE float ImGuiMenu::hidpi_scaling()
   GLFWwindow* window = glfwGetCurrentContext();
   glfwGetWindowContentScale(window, &xscale, &yscale);
   return 0.5 * (xscale + yscale);
-}
-
-IGL_INLINE void ImGuiMenu::init_3D_quad_GUI(){
-	oculus_gui_shader_program = InitOculusGUIShader(oculus_gui_vertex_shader.c_str(), oculus_gui_fragment_shader.c_str());
-
-	glGenVertexArrays(1, &quad.quad_vao);
-	glBindVertexArray(quad.quad_vao);
-
-//	float vertices[] = { 1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, -1.0f, -1.0f, 0.0f };
-	float vertices[] = { 1.0f, 1.0f, -10.0f, 1.0f, -1.0f, -10.0f, -1.0f, 1.0f, -10.0f, -1.0f, -1.0f, -10.0f };
-
-	//create vertex buffers for vertex coords
-	glGenBuffers(1, &quad.quad_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, quad.quad_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	int pos_loc = 0;
-	glEnableVertexAttribArray(pos_loc);
-	glVertexAttribPointer(pos_loc, 3, GL_FLOAT, false, 0, 0);
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-IGL_INLINE void ImGuiMenu::draw_3D_quad_GUI(){
-//	glEnable(GL_BLEND);
-//	glDisable(GL_DEPTH_TEST);
-	//glDepthMask(GL_FALSE);
-//	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glBlendFunc(GL_ONE, GL_ZERO);
-	glUseProgram(oculus_gui_shader_program);
-	Eigen::Matrix4f PVM = oculus_proj*oculus_view*oculus_model; //For now removed scale and controller model matrix 
-	//glm::mat4 PVM = Pvr*Vvr*Mvr*ImGui_Impl_VR_GetGuiPose()*ImGui_Impl_VR_GetGuiScale();
-	glUniformMatrix4fv(0, 1, false, PVM.data());
-	Eigen::Vector4f BaseColor = Eigen::Vector4f::Constant(1.0f);
-	glUniform4fv(2, 1, BaseColor.data());
-	glActiveTexture(GL_TEXTURE0);
-	
-	glBindTexture(GL_TEXTURE_2D, ImGui_ImplGlfwGL3_GetGuiTexture(0)); //replaced tex_id with 0
-	glUniform1f(1, 0); //TODO: this gives error. maybe not needed anyway
-	glBindVertexArray(quad.quad_vao);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray(0);
-	glEnable(GL_DEPTH_TEST);
-	glDepthMask(GL_TRUE);
 }
 
 // Create a GLSL program object from vertex and fragment shader files

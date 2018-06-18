@@ -47,6 +47,7 @@ public:
 			IGL_INLINE void submit_frame();
 			IGL_INLINE void blit_mirror();
 			IGL_INLINE void update_avatar(float deltaSeconds);
+			IGL_INLINE void update_laser(ViewerData& laser_data, bool laser_inactive);
 			IGL_INLINE void ovrAvatarTransform_from_OVR(const ovrVector3f& position, const ovrQuatf& orientation, ovrAvatarTransform* target);
 			IGL_INLINE void ovrAvatarHandInputState_from_OVR(const ovrAvatarTransform& transform, const ovrInputState& inputState, ovrHandType hand, ovrAvatarHandInputState* state);
 			IGL_INLINE void handle_avatar_specification(const ovrAvatarMessage_AvatarSpecification* message);

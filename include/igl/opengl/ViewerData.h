@@ -277,8 +277,8 @@ public:
   //Sets linestrip points given a list of 2 laser points (start and end)
   // Inputs:
   // LP #LP by 3 (or 2) list of vertex positions
-  IGL_INLINE void set_laser_points(const Eigen::MatrixXd& LP);
-  IGL_INLINE void add_laser_points(const Eigen::MatrixXd& LP);
+  IGL_INLINE void set_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C);
+  IGL_INLINE void add_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C);
 
   // Sets hand point given a list of point vertices. In constrast to `add_points`
   // this will (purposefully) clober existing points.

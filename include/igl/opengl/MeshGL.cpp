@@ -51,6 +51,8 @@ IGL_INLINE void igl::opengl::MeshGL::init_buffers()
   glBindVertexArray(vao_laser_points);
   glGenBuffers(1, &vbo_laser_points_F);
   glGenBuffers(1, &vbo_laser_points_V);
+  glGenBuffers(1, &vbo_laser_V_colors);
+
 
   // Hand marker overlay
   glGenVertexArrays(1, &vao_hand_point);
@@ -98,6 +100,7 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteBuffers(1, &vbo_stroke_points_F);
 	glDeleteBuffers(1, &vbo_laser_points_V);
 	glDeleteBuffers(1, &vbo_laser_points_F);
+	glDeleteBuffers(1, &vbo_laser_V_colors);
 	glDeleteBuffers(1, &vbo_hand_point_F);
 	glDeleteBuffers(1, &vbo_hand_point_V);
 	glDeleteBuffers(1, &vbo_hand_point_V_colors);
@@ -192,9 +195,11 @@ IGL_INLINE void igl::opengl::MeshGL::bind_laser() {
 
 	glBindVertexArray(vao_laser_points);
 	glUseProgram(shader_laser_points);
+	//glUseProgram(shader_overlay_lines);
 
-	bind_vertex_attrib_array(shader_laser_points,"position", vbo_laser_points_V, laser_points_V_vbo, is_dirty);
-
+	bind_vertex_attrib_array(shader_overlay_points,"position", vbo_laser_points_V, laser_points_V_vbo, is_dirty);
+	bind_vertex_attrib_array(shader_overlay_points, "color", vbo_laser_V_colors, laser_V_colors_vbo, is_dirty);
+	std::cout << laser_V_colors_vbo << std::endl;
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_laser_points_F);
 	if (is_dirty) {
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*laser_points_F_vbo.size(), laser_points_F_vbo.data(), GL_DYNAMIC_DRAW);
@@ -221,7 +226,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 	dirty &= ~MeshGL::DIRTY_HAND_POINT;
 }
 
-IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
+/*IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
 	bool is_dirty = dirty & MeshGL::DIRTY_AVATAR;
 	glBindVertexArray(vao_avatar);
 	glUseProgram(shader_avatar);
@@ -237,12 +242,11 @@ IGL_INLINE void igl::opengl::MeshGL::bind_avatar() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_avatar_F);
 
 	if (is_dirty) {
-		std::cout << "hit" << std::endl;
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*avatar_F_vbo.size(), avatar_F_vbo.data(), GL_DYNAMIC_DRAW);
 	}
 
 	dirty &= ~MeshGL::DIRTY_AVATAR;
-}
+}*/
 
 IGL_INLINE void igl::opengl::MeshGL::draw_mesh(bool solid)
 {
@@ -371,7 +375,6 @@ R"(#version 150
   std::string overlay_vertex_shader_string =
 R"(#version 150
   uniform mat4 model;
- // uniform mat4 model_trans;
   uniform mat4 view;
   uniform mat4 proj;
   in vec3 position;
@@ -380,7 +383,7 @@ R"(#version 150
 
   void main()
   {
-    gl_Position = proj * view * model * vec4 (position, 1.0); //TODO: document that model_trans was added here
+    gl_Position = proj * view * model * vec4 (position, 1.0);
     color_frag = color;
   }
 )";
@@ -404,10 +407,13 @@ R"(#version 150
 	  uniform mat4 view;
 	  uniform mat4 proj;
 	  in vec3 position;
+	  in vec3 color;
+	  out vec3 color_frag;
 
 	  void main()
 	  {
 	    gl_Position = proj * view * model * vec4 (position, 1.0);
+	    color_frag = color;
 	  }
 )";
 
@@ -454,11 +460,13 @@ R"(#version 150
 )";
 
   std::string overlay_laser_fragment_shader_string =
+
 	  R"(#version 150
+	  in vec3 color_frag;
 	  out vec4 outColor;
 	  void main()
 	  {
-	    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+	    outColor = vec4(color_frag, 1.0);
 	  }
 )";
 
@@ -483,7 +491,7 @@ R"(#version 150
   }
 )";*/
 
-  std::string avatar_vertex_shader_string =
+ /* std::string avatar_vertex_shader_string =
 	  R"(#version 330 core
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
@@ -747,7 +755,7 @@ void main() {
 	  }
 	  color.a *= ComputeMask(baseMaskType, baseMaskParameters, baseMaskAxis, tangentTransform, worldNormal, surfaceNormal);
 	  fragmentColor = color;
-  })";
+  })";*/
 
   init_buffers();
   create_shader_program(
@@ -780,11 +788,11 @@ void main() {
 	  hand_fragment_shader_string,
 	  {},
 	  shader_hand_point);
-  create_shader_program(
+  /*create_shader_program(
 	  avatar_vertex_shader_string,
 	  avatar_fragment_shader_string,
 	  {},
-	  shader_avatar);
+	  shader_avatar);*/
 }
 
 IGL_INLINE void igl::opengl::MeshGL::free()
@@ -806,7 +814,7 @@ IGL_INLINE void igl::opengl::MeshGL::free()
 	free(shader_stroke_points);
 	free(shader_laser_points);
 	free(shader_hand_point);
-	free(shader_avatar);
+//	free(shader_avatar);
     free_buffers();
   }
 }
