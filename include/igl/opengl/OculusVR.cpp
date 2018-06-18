@@ -611,6 +611,7 @@ void main() {
 			for (int eye = 0; eye < 2; eye++) {
 				eye_buffers[eye] = new OVR_buffer(session, eye);
 				hand_buffers[eye] = new OVR_buffer(session, eye);
+				laser_buffers[eye] = new OVR_buffer(session, eye);
 				ovrEyeRenderDesc& erd = eyeRenderDesc[eye] = ovr_GetRenderDesc(session, (ovrEyeType)eye, hmdDesc.DefaultEyeFov[eye]);
 			}
 
@@ -803,11 +804,14 @@ void main() {
 
 					if (menu_active) {
 						eye_buffers[eye]->OnRender();
-						for (int i = 0; i < data_list.size(); i++) {
+						for (int i = 0; i < data_list.size()-1; i++) {
 							core.draw(data_list[i], true, true, view, proj);
 						}
 						eye_buffers[eye]->OnRenderFinish();
-
+						laser_buffers[eye]->OnRender();
+						core.draw(data_list[data_list.size()-1], true, true, view, proj);
+						laser_buffers[eye]->OnRenderFinish();
+	
 
 						GLfloat prev_clear_color[4];
 						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
@@ -821,6 +825,7 @@ void main() {
 
 
 						ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);
+						ovr_CommitTextureSwapChain(session, laser_buffers[eye]->swapTextureChain);
 						ovr_CommitTextureSwapChain(session, hand_buffers[eye]->swapTextureChain);
 					}
 					else {
@@ -984,12 +989,14 @@ void main() {
 
 		IGL_INLINE void OculusVR::submit_frame() {
 			// create the main eye layer
-			ovrLayerEyeFov eyeLayer, handLayer;
+			ovrLayerEyeFov eyeLayer, handLayer, laserLayer;
 			eyeLayer.Header.Type = ovrLayerType_EyeFov;
 			eyeLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
 			handLayer.Header.Type = ovrLayerType_EyeFov;
 			handLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
-
+			laserLayer.Header.Type = ovrLayerType_EyeFov;
+			laserLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
+ 
 			for (int eye = 0; eye < 2; eye++) {
 				eyeLayer.ColorTexture[eye] = eye_buffers[eye]->swapTextureChain;
 				eyeLayer.Viewport[eye] = OVR::Recti(eye_buffers[eye]->eyeTextureSize);
@@ -1002,9 +1009,23 @@ void main() {
 				handLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
 				handLayer.RenderPose[eye] = EyeRenderPose[eye];
 				handLayer.SensorSampleTime = sensorSampleTime;
+
+				laserLayer.ColorTexture[eye] = laserbuffers[eye]->swapTextureChain;
+				laserLayer.Viewport[eye] = OVR::Recti(laser_buffers[eye]->eyeTextureSize);
+				laserLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
+				laserLayer.RenderPose[eye] = EyeRenderPose[eye];
+				laserLayer.SensorSampleTime = sensorSampleTime;
 			}
 
-			// Create HUD layer, fixed to the player's torso
+			
+
+			ovrViewScaleDesc viewScaleDesc;
+			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
+			viewScaleDesc.HmdToEyePose[0] = eyeRenderDesc[0].HmdToEyePose;
+			viewScaleDesc.HmdToEyePose[1] = eyeRenderDesc[1].HmdToEyePose;
+
+			if (menu_active) {
+				// Create HUD layer, fixed to the player's torso
 			ovrLayerQuad hudLayer;
 			hudLayer.Header.Type = ovrLayerType_Quad;
 			hudLayer.Header.Flags = ovrLayerFlag_HighQuality | ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HeadLocked;
@@ -1025,18 +1046,13 @@ void main() {
 			hudLayer.Viewport.Size.w = hud_buffer->eyeTextureSize.w;
 			hudLayer.Viewport.Size.h = hud_buffer->eyeTextureSize.h;
 
-			ovrViewScaleDesc viewScaleDesc;
-			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
-			viewScaleDesc.HmdToEyePose[0] = eyeRenderDesc[0].HmdToEyePose;
-			viewScaleDesc.HmdToEyePose[1] = eyeRenderDesc[1].HmdToEyePose;
-
-			if (menu_active) {
-				ovrLayerHeader* layerList[3];
+				ovrLayerHeader* layerList[4];
 				layerList[0] = &eyeLayer.Header;
 				layerList[1] = &hudLayer.Header;
 				layerList[2] = &handLayer.Header;
+				layerList[3] = &laserLayer.Header;
 
-				ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 3);
+				ovrResult result = ovr_SubmitFrame(session, frame, &viewScaleDesc, layerList, 4);
 			}
 			else {
 				//We use a merged hand & mesh layer when the menu is disabled, to allow for depth testing between them

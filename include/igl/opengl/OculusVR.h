@@ -134,6 +134,7 @@ private:
 
 			OVR_buffer *eye_buffers[2];
 			OVR_buffer *hand_buffers[2];
+			OVR_buffer *laser_buffers[2];
 			OVR_buffer *hud_buffer;
 			std::chrono::steady_clock::time_point lastTime;
 			std::chrono::steady_clock::time_point menu_lastTime;
