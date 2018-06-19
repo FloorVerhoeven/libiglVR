@@ -258,6 +258,10 @@ IGL_INLINE void igl::opengl::MeshGL::draw_mesh(bool solid)
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(1.0, 1.0);
   }
+  else {
+	  glEnable(GL_POLYGON_OFFSET_LINE);
+	  glPolygonOffset(0.5, 0.5); //Pushes the wireframe back as well, but slightly less than the filled triangles. Used to avoid z-buffer fighting with overlay lines (stroke) that are placed on top of the wireframes
+  }
   glDrawElements(GL_TRIANGLES, 3*F_vbo.rows(), GL_UNSIGNED_INT, 0);
 
   glDisable(GL_POLYGON_OFFSET_FILL);

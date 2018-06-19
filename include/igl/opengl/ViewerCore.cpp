@@ -303,8 +303,11 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			// This must be enabled, otherwise glLineWidth has no effect
 			glEnable(GL_LINE_SMOOTH);
 			glLineWidth(data.stroke_line_width);
-
+			glPolygonOffset(1.0f, 1.0f);      // Shift depth values
+			glEnable(GL_POLYGON_OFFSET_LINE);
+		
 			data.meshgl.draw_stroke();
+			glDisable(GL_POLYGON_OFFSET_LINE);
 		}
 	}
 
@@ -323,6 +326,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			// This must be enabled, otherwise glLineWidth has no effect
 			glEnable(GL_LINE_SMOOTH);
 			glLineWidth(data.laser_line_width);
+
 
 			data.meshgl.draw_laser();
 		}
