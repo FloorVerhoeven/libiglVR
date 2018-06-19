@@ -904,7 +904,6 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
   }
 
   if (meshgl.dirty & MeshGL::DIRTY_LASER) {
-	  std::cout << "Get here" << std::endl;
 	  meshgl.laser_points_V_vbo.resize(data.laser_points.rows(),3);
 	  meshgl.laser_points_F_vbo.resize(data.laser_points.rows(),1);
 	  meshgl.laser_V_colors_vbo.resize(data.laser_points.rows(),3);
@@ -912,7 +911,6 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 		  meshgl.laser_points_V_vbo.row(i) = data.laser_points.block<1, 3>(i, 0).transpose().cast<float>();
 		  meshgl.laser_points_F_vbo(i) = i;
 		  meshgl.laser_V_colors_vbo.row(i) = data.laser_points.block<1, 3>(i, 3).transpose().cast<float>();
-		  std::cout << data.laser_points.row(i) << std::endl << std::endl;
 	  }
   }
 

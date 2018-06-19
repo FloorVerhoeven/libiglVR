@@ -199,7 +199,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_laser() {
 
 	bind_vertex_attrib_array(shader_overlay_points,"position", vbo_laser_points_V, laser_points_V_vbo, is_dirty);
 	bind_vertex_attrib_array(shader_overlay_points, "color", vbo_laser_V_colors, laser_V_colors_vbo, is_dirty);
-	std::cout << laser_V_colors_vbo << std::endl;
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_laser_points_F);
 	if (is_dirty) {
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*laser_points_F_vbo.size(), laser_points_F_vbo.data(), GL_DYNAMIC_DRAW);

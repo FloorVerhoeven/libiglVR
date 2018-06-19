@@ -1519,12 +1519,12 @@ void main() {
 			glBindVertexArray(0);
 
 		
-			if (renderJoints){
+			/*if (renderJoints){
 				Eigen::Matrix4f local;
 				EigenFromOvrAvatarTransform(mesh->localTransform, local);
 				glDepthFunc(GL_ALWAYS);
 				_renderPose(proj * view * world * local, mesh->skinnedPose);
-			}	
+			}*/	
 			
 			glDepthFunc(cur_depth_func);
 			glDepthMask(cur_depth_mask);
@@ -1666,7 +1666,7 @@ void main() {
 			glUniform1iv(uniformLocation, (GLsizei)count, textureUnits);
 		}
 
-		IGL_INLINE void OculusVR::_renderPose(const Eigen::Matrix4f& worldViewProj, const ovrAvatarSkinnedMeshPose& pose){
+	/*	IGL_INLINE void OculusVR::_renderPose(const Eigen::Matrix4f& worldViewProj, const ovrAvatarSkinnedMeshPose& pose){
 			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * pose.jointCount);
 			_computeWorldPose(pose, skinnedPoses);
 			for (uint32_t i = 1; i < pose.jointCount; ++i)
@@ -1674,7 +1674,7 @@ void main() {
 				int parent = pose.jointParents[i];
 				_renderDebugLine(worldViewProj, Eigen::Vector3f((*(skinnedPoses+parent)).topRightCorner(3,1)), Eigen::Vector3f((*(skinnedPoses+i)).topRightCorner(3, 1)), Eigen::Vector4f(1, 1, 1, 1), Eigen::Vector4f(1, 0, 0, 1));
 			}
-		}
+		}*/
 
 		IGL_INLINE void OculusVR::request_recenter() {
 			ovr_RecenterTrackingOrigin(session);
