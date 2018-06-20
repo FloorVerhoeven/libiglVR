@@ -172,7 +172,8 @@ namespace glfw
         window = glfwCreateWindow(1280,800,"libigl viewer",nullptr,nullptr);
       }
     }
-    if (!window)
+
+	if (!window)
     {
       glfwTerminate();
       return EXIT_FAILURE;

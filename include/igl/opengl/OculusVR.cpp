@@ -75,16 +75,43 @@ namespace igl {
 
 			// Initialize the OVR Platform module
 			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(APP_ID))) {
+				std::cout << "Something went wrong when initializing Oculus Platform" << std::endl;
 				FAIL("Failed to initialize the Oculus platform");
+			}
+			ovr_Entitlement_GetIsViewerEntitled();
+			ovrMessageHandle message;
+			while ((message = ovr_PopMessage()) != nullptr)
+			{
+				switch (ovr_Message_GetType(message))
+				{
+				case ovrMessage_Entitlement_GetIsViewerEntitled:
+
+					if (!ovr_Message_IsError(message))
+					{
+						// User is entitled.  Continue with normal game behaviour
+					}
+					else
+					{
+						// User is NOT entitled.  Exit
+						//TODO: break for non-entitled users
+					//	std::cout << "User is not entitled" << std::endl;
+						//FAIL("Not entitled");
+					}
+					break;
+				default:
+					break;
+				}
 			}
 
 			// Create OVR Session Object
 			if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+				std::cout << "Something went wrong when initializing Oculus session" << std::endl;
 				FAIL("Failed to initialize the Oculus SDK");
 			}
 
 			//create OVR session & HMD-description
 			if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
+				std::cout << "Something went wrong when creating the session and HMD" << std::endl;
 				FAIL("Unable to create HMD session");
 			}
 
@@ -106,7 +133,7 @@ namespace igl {
 			//glGenVertexArrays(1, &_debugVertexArray);
 			//glGenBuffers(1, &_debugVertexBuffer);
 
-			auto requestSpec = ovrAvatarSpecificationRequest_Create(userID);
+			auto requestSpec = ovrAvatarSpecificationRequest_Create(0); //TODO: add back userID
 			ovrAvatarSpecificationRequest_SetCombineMeshes(requestSpec, _combineMeshes);
 			ovrAvatar_RequestAvatarSpecificationFromSpecRequest(requestSpec);
 			ovrAvatarSpecificationRequest_Destroy(requestSpec);
