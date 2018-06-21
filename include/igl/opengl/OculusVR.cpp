@@ -876,6 +876,9 @@ void main() {
 
 					ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
 				}
+				else {
+					//TODO: draw current selected toolmode somewhere in corner
+				}
 				submit_frame();
 				blit_mirror();
 
