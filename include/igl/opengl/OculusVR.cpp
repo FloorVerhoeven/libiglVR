@@ -840,10 +840,11 @@ void main() {
 						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
 						glClearColor(0, 0, 0, 0);
 						laser_buffers[eye]->OnRender();
-						bool prev_show_laser = data_list[data_list.size() - 1].show_laser;
-						data_list[data_list.size() - 1].show_laser = true;
+					//	bool prev_show_laser = data_list[data_list.size() - 1].show_laser;
+						//std::cout << "before: " << prev_show_laser << std::endl;
+						//data_list[data_list.size() - 1].show_laser = true;
 						core.draw(data_list[data_list.size()-1], true, true, view, proj);
-						data_list[data_list.size() - 1].show_laser = prev_show_laser;
+					//	data_list[data_list.size() - 1].show_laser = prev_show_laser;
 						laser_buffers[eye]->OnRenderFinish();
 	
 						hand_buffers[eye]->OnRender();

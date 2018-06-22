@@ -251,7 +251,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
 			// This must be enabled, otherwise glLineWidth has no effect
 			glEnable(GL_LINE_SMOOTH);
-			glLineWidth(data.line_width);
+			glLineWidth(data.overlay_line_width);
 
 			data.meshgl.draw_overlay_lines();
 		}

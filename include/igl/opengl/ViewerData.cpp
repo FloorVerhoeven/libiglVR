@@ -924,29 +924,6 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 		  meshgl.hand_point_F_vbo(i) = i;
 	  }
   }
-
-  /*if (meshgl.dirty & MeshGL::DIRTY_AVATAR) { //TODO: split this up into dirty sections such as for regular mesh (so you don't always have to update every section)
-	  meshgl.avatar_V_vbo.resize(data.avatar_V.rows(), 3);
-	  meshgl.avatar_V_normals_vbo.resize(data.avatar_V.rows(), 3);
-	  meshgl.avatar_V_tangents_vbo.resize(data.avatar_V.rows(), 4);
-	  meshgl.avatar_V_tex_vbo.resize(data.avatar_V_tex.rows(), 2);
-	  meshgl.avatar_V_poseIndices_vbo.resize(data.avatar_V_poseIndices.rows(), 4);
-	  meshgl.avatar_V_poseWeights_vbo.resize(data.avatar_V_poseWeights.rows(), 4);
-	  //meshgl.avatar_V_colors_vbo.resize(data.avatar_V.rows(), 3);
-
-	  for (unsigned i = 0; i < data.avatar_V.rows(); ++i) {
-		  meshgl.avatar_V_vbo.row(i) = data.avatar_V.block<1, 3>(i, 0).cast<float>();
-		  meshgl.avatar_V_normals_vbo.row(i) = data.avatar_V_normals.block<1, 3>(i, 0).cast<float>();
-		  meshgl.avatar_V_tangents_vbo.row(i) = data.avatar_V_tangents.block<1, 4>(i, 0).cast<float>();
-		  meshgl.avatar_V_tex_vbo.row(i) = data.avatar_V_tex.block<1, 2>(i, 0).cast<float>();
-		  meshgl.avatar_V_poseIndices_vbo.row(i) = data.avatar_V_poseIndices.block<1, 4>(i, 0).cast<float>();
-		  meshgl.avatar_V_poseWeights_vbo.row(i) = data.avatar_V_poseWeights.block<1, 4>(i, 0).cast<float>();
-		//  meshgl.avatar_V_colors_vbo.row(i) = data.avatar_V_colors.block<1, 3>(i, 0).cast<float>();
-	  }
-
-	  meshgl.avatar_F_vbo = data.avatar_F.cast<unsigned>();
-
-  }*/
 }
 
 IGL_INLINE void igl::opengl::ViewerData::rotate(Eigen::Quaternionf trackball_rotation) { //Takes the trackball rotation as parameter to ensure it has been updated
