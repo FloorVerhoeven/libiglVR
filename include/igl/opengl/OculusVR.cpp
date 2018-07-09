@@ -22,6 +22,8 @@
 #include <igl/opengl/gl.h> //TODO: remove afterwards. only used for error checking
 #include <igl/opengl/glfw/imgui/ImGuiMenu.h>
 #include <igl/ray_mesh_intersect.h>
+#include <igl/per_corner_normals.h>
+
 
 using namespace Eigen;
 using namespace OVR;
@@ -111,7 +113,7 @@ namespace igl {
 
 			//create OVR session & HMD-description
 			if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
-				std::cout << "Something went wrong when creating the session and HMD" << std::endl;
+				std::cout << "Something went wrong when creating the session and HMD. Check if it is connected and whether Oculus needs an update. " << std::endl;
 				FAIL("Unable to create HMD session");
 			}
 
@@ -708,7 +710,7 @@ void main() {
 					count = (prev_press == B) ? count + 1 : 1;
 					prev_press = B;
 				}
-				else if (inputState.IndexTrigger[ovrHand_Right] > 0.95f) {
+				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.99f) {
 					count = (prev_press == TRIG) ? count + 1 : 1;
 					prev_press = TRIG;
 				}
@@ -716,7 +718,7 @@ void main() {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
 					count = 0;
 				}
-				else if (inputState.IndexTrigger[ovrHand_Right] <= 0.95f ) { //Only count fully pressed state as something other than NONE
+				else if (inputState.IndexTrigger[ovrHand_Right] < 0.99f ) { //Only count fully pressed state as something other than NONE
 					count = (prev_press == NONE) ? count + 1 : 1;
 					prev_press = NONE;
 				}
@@ -760,6 +762,7 @@ void main() {
 					return;
 				}
 				else if (!menu_active && prev_press == B) { //Don't want B to be sent through
+					callback_button_down(prev_press, hand_pos); //TODO: REMOVE THIS. Useful for testing smoothing
 					count = 1;
 					return;
 				}
@@ -1728,7 +1731,9 @@ void main() {
 			data.set_mesh_translation();
 			igl::two_axis_valuator_fixed_up(2 * 1000, 2 * 1000, 0.1, old_rotation, 0, 0, thumb_pos.x * 1000, -thumb_pos.y * 1000, data.mesh_trackball_angle); //Multiply width, heigth, x-pos and y-pos with 1000 because function takes ints
 			data.rotate(data.mesh_trackball_angle);
-			data.compute_normals();
+			Eigen::MatrixXd N_corners;
+			igl::per_corner_normals(data.V, data.F, 50, N_corners);
+			data.set_normals(N_corners);		
 			callback_button_down(THUMB_MOVE, Eigen::Vector3f());
 			prev_sent = THUMB_MOVE;
 		}
