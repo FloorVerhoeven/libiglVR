@@ -109,6 +109,7 @@ public:
 			ovrSessionStatus sessionStatus;
 			ovrPosef handPoses[2];
 			Eigen::Vector4f index_top_pose;
+			Eigen::Vector4f hand_base_pose;
 			ovrInputState inputState;
 			double displayMidpointSeconds;
 
@@ -134,6 +135,7 @@ private:
 			};
 
 			OVR_buffer *eye_buffers[2];
+			OVR_buffer *eye_buffers_floor[2];
 			OVR_buffer *hand_buffers[2];
 			OVR_buffer *laser_buffers[2];
 			OVR_buffer *hud_buffer;

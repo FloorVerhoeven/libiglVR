@@ -49,17 +49,19 @@ namespace igl {
 		static Eigen::Matrix4f world; //TODO: handle nicely
 		static Eigen::Matrix4f local; //TODO: handle nicely
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
+		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
 		static Eigen::Vector3d menu_intersect_pt;
 
-		static function<void()> current_tool_HUD = [&]() {
+		/*static std::function<void()> current_tool_HUD = [&]() {
 
 			ImGui::SetNextWindowSize(ImVec2(200.0f, 200.0f), ImGuiSetCond_FirstUseEver);
 			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
 			ImGui::Begin("Current Tool", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
 			ImGui::PushID(0);
-			ImGui::Image(im_texID_cur, ImVec2(200.0f, 200.0f), ImVec2(0,0), ImVec2(1,1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255));
+			ImGui::Text("test");
+			//	ImGui::Image(im_texID_cur, ImVec2(200.0f, 200.0f), ImVec2(0,0), ImVec2(1,1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255));
 			ImGui::PopID();
-		};
+		};*/
 		static float menu_z_pos = -1.50f;
 		static float pixels_to_meter = 0.001013f; //Transform factor for going from pixels to meters in Oculus
 
@@ -185,8 +187,8 @@ namespace igl {
 				out vec4 vertexColor;
 				uniform mat4 worldViewProj;
 				void main() {
-				    gl_Position = worldViewProj * vec4(position, 1.0);
-				    vertexColor = color;
+					gl_Position = worldViewProj * vec4(position, 1.0);
+					vertexColor = color;
 				})";
 
 			std::string debug_fragment_shader_string =
@@ -194,7 +196,7 @@ namespace igl {
 				in vec4 vertexColor;
 				out vec4 fragmentColor;
 				void main() {
-				    fragmentColor = vertexColor;
+					fragmentColor = vertexColor;
 				})";
 
 			GLuint id = glCreateProgram();
@@ -648,6 +650,7 @@ void main() {
 
 		IGL_INLINE bool OculusVR::init_VR_buffers(int window_width, int window_height) {
 			for (int eye = 0; eye < 2; eye++) {
+				eye_buffers_floor[eye] = new OVR_buffer(session, eye);
 				eye_buffers[eye] = new OVR_buffer(session, eye);
 				hand_buffers[eye] = new OVR_buffer(session, eye);
 				laser_buffers[eye] = new OVR_buffer(session, eye);
@@ -703,9 +706,9 @@ void main() {
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
 				Eigen::Vector3f hand_pos;
-			//	hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
+				//	hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
 				hand_pos = (world*local*index_top_pose).topRows(3);
-				
+
 				Eigen::Vector3d menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos))).cast<double>();
 				Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
 				head_rot_tmp.normalize();
@@ -727,7 +730,7 @@ void main() {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
 					count = 0;
 				}
-				else if (inputState.IndexTrigger[ovrHand_Right] < 0.99f ) { //Only count fully pressed state as something other than NONE
+				else if (inputState.IndexTrigger[ovrHand_Right] < 0.99f) { //Only count fully pressed state as something other than NONE
 					count = (prev_press == NONE) ? count + 1 : 1;
 					prev_press = NONE;
 				}
@@ -827,11 +830,11 @@ void main() {
 				if (_avatar) {
 					update_avatar(deltaSeconds);
 				}
-				
-				update_laser(data_list[data_list.size()-1], update_screen_while_computing);
+
+				update_laser(data_list[data_list.size() - 1], update_screen_while_computing);
 
 				Eigen::Matrix4f proj, view;
-				for (int eye = 0; eye < 2; eye++){
+				for (int eye = 0; eye < 2; eye++) {
 					OVR::Matrix4f finalRollPitchYaw = OVR::Matrix4f(EyeRenderPose[eye].Orientation);
 					OVR::Vector3f finalUp = finalRollPitchYaw.Transform(OVR::Vector3f(0, 1, 0));
 					OVR::Vector3f finalForward = finalRollPitchYaw.Transform(OVR::Vector3f(0, 0, -1));
@@ -843,18 +846,16 @@ void main() {
 
 					if (menu_active) {
 						eye_buffers[eye]->OnRender();
-						/*for (int i = 0; i < data_list.size()-1; i++) {
-							core.draw(data_list[i], true, true, view, proj);
-						}*/ //TODO: check this. maybe only draw floor mesh?
+						core.draw(data_list[0], true, true, view, proj); //Only draw the floor mesh (and not the user-created mesh) when the menu is active to prevent stereo-fighting
 						eye_buffers[eye]->OnRenderFinish();
 
 						GLfloat prev_clear_color[4];
 						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
 						glClearColor(0, 0, 0, 0);
 						laser_buffers[eye]->OnRender();
-						core.draw(data_list[data_list.size()-1], true, true, view, proj);
+						core.draw(data_list[data_list.size() - 1], true, true, view, proj);
 						laser_buffers[eye]->OnRenderFinish();
-	
+
 						hand_buffers[eye]->OnRender();
 						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 							render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
@@ -862,45 +863,41 @@ void main() {
 						hand_buffers[eye]->OnRenderFinish();
 						glClearColor(prev_clear_color[0], prev_clear_color[1], prev_clear_color[2], prev_clear_color[3]);
 
-
 						ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);
 						ovr_CommitTextureSwapChain(session, laser_buffers[eye]->swapTextureChain);
 						ovr_CommitTextureSwapChain(session, hand_buffers[eye]->swapTextureChain);
 					}
 					else {
+						eye_buffers_floor[eye]->OnRender();
+						core.draw(data_list[0], true, true, view, proj);
+						eye_buffers_floor[eye]->OnRenderFinish();
+
+						GLfloat prev_clear_color[4];
+						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
+						glClearColor(0, 0, 0, 0);
 						eye_buffers[eye]->OnRender();
-						for (int i = 0; i < data_list.size(); i++) {
+						for (int i = 1; i < data_list.size(); i++) {
 							core.draw(data_list[i], true, true, view, proj);
 						}
 						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 							render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
 						}
 						eye_buffers[eye]->OnRenderFinish();
+						glClearColor(prev_clear_color[0], prev_clear_color[1], prev_clear_color[2], prev_clear_color[3]);
+
 						ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);
+						ovr_CommitTextureSwapChain(session, eye_buffers_floor[eye]->swapTextureChain);
+
 					}
 				}
 
-				if (((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->is_active()) {
 					hud_buffer->OnRenderHud();
 					gui->pre_draw();
 					gui->post_draw();
 					hud_buffer->OnRenderFinishHud();
 
 					ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
-				}
-				else {
-					//TODO: draw current selected toolmode somewhere in corner
-					hud_buffer->OnRenderHud();
-
-					function<void()> prev_callback = ((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->callback_draw_viewer_window;
-					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->callback_draw_viewer_window = current_tool_HUD;
-					gui->pre_draw();
-					gui->post_draw();
-					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->callback_draw_viewer_window = prev_callback;
-					hud_buffer->OnRenderFinishHud();
-
-					ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
-				}
+				
 				submit_frame();
 				blit_mirror();
 
@@ -1038,20 +1035,28 @@ void main() {
 
 		IGL_INLINE void OculusVR::submit_frame() {
 			// create the main eye layer
-			ovrLayerEyeFov eyeLayer, handLayer, laserLayer;
+			ovrLayerEyeFov eyeLayer, floorLayer, handLayer, laserLayer;
 			eyeLayer.Header.Type = ovrLayerType_EyeFov;
 			eyeLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
+			floorLayer.Header.Type = ovrLayerType_EyeFov;
+			floorLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
 			handLayer.Header.Type = ovrLayerType_EyeFov;
 			handLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
 			laserLayer.Header.Type = ovrLayerType_EyeFov;
 			laserLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
- 
+
 			for (int eye = 0; eye < 2; eye++) {
 				eyeLayer.ColorTexture[eye] = eye_buffers[eye]->swapTextureChain;
 				eyeLayer.Viewport[eye] = OVR::Recti(eye_buffers[eye]->eyeTextureSize);
 				eyeLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
 				eyeLayer.RenderPose[eye] = EyeRenderPose[eye];
 				eyeLayer.SensorSampleTime = sensorSampleTime;
+
+				floorLayer.ColorTexture[eye] = eye_buffers_floor[eye]->swapTextureChain;
+				floorLayer.Viewport[eye] = OVR::Recti(eye_buffers_floor[eye]->eyeTextureSize);
+				floorLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
+				floorLayer.RenderPose[eye] = EyeRenderPose[eye];
+				floorLayer.SensorSampleTime = sensorSampleTime;
 
 				handLayer.ColorTexture[eye] = hand_buffers[eye]->swapTextureChain;
 				handLayer.Viewport[eye] = OVR::Recti(hand_buffers[eye]->eyeTextureSize);
@@ -1066,7 +1071,7 @@ void main() {
 				laserLayer.SensorSampleTime = sensorSampleTime;
 			}
 
-			
+
 
 			ovrViewScaleDesc viewScaleDesc;
 			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
@@ -1076,24 +1081,24 @@ void main() {
 			// Create HUD layer, fixed to the player's torso
 			ovrLayerQuad hudLayer;
 			hudLayer.Header.Type = ovrLayerType_Quad;
-			hudLayer.Header.Flags = ovrLayerFlag_HighQuality | ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HeadLocked;
 			hudLayer.ColorTexture = hud_buffer->swapTextureChain;
 
 			if (menu_active) {
-			hudLayer.QuadPoseCenter.Position.x = 0.00f;
-			hudLayer.QuadPoseCenter.Position.y = 0.00f;
-			hudLayer.QuadPoseCenter.Position.z = menu_z_pos;
-			hudLayer.QuadPoseCenter.Orientation.x = 0;
-			hudLayer.QuadPoseCenter.Orientation.y = 0;
-			hudLayer.QuadPoseCenter.Orientation.z = 0;
-			hudLayer.QuadPoseCenter.Orientation.w = 1;
+				hudLayer.Header.Flags = ovrLayerFlag_HighQuality | ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HeadLocked;
+				hudLayer.QuadPoseCenter.Position.x = 0.00f;
+				hudLayer.QuadPoseCenter.Position.y = 0.00f;
+				hudLayer.QuadPoseCenter.Position.z = menu_z_pos;
+				hudLayer.QuadPoseCenter.Orientation.x = 0;
+				hudLayer.QuadPoseCenter.Orientation.y = 0;
+				hudLayer.QuadPoseCenter.Orientation.z = 0;
+				hudLayer.QuadPoseCenter.Orientation.w = 1;
 
-			hudLayer.QuadSize = OVR::Vector2f((float)hud_buffer->eyeTextureSize.w, (float)hud_buffer->eyeTextureSize.h) * pixels_to_meter;
-			// Display all of the HUD texture.
-			hudLayer.Viewport.Pos.x = 0.0f;
-			hudLayer.Viewport.Pos.y = 0.0f;
-			hudLayer.Viewport.Size.w = hud_buffer->eyeTextureSize.w;
-			hudLayer.Viewport.Size.h = hud_buffer->eyeTextureSize.h;
+				hudLayer.QuadSize = OVR::Vector2f((float)hud_buffer->eyeTextureSize.w, (float)hud_buffer->eyeTextureSize.h) * pixels_to_meter;
+				// Display all of the HUD texture.
+				hudLayer.Viewport.Pos.x = 0.0f;
+				hudLayer.Viewport.Pos.y = 0.0f;
+				hudLayer.Viewport.Size.w = hud_buffer->eyeTextureSize.w;
+				hudLayer.Viewport.Size.h = hud_buffer->eyeTextureSize.h;
 
 				ovrLayerHeader* layerList[4];
 				layerList[0] = &eyeLayer.Header;
@@ -1104,14 +1109,28 @@ void main() {
 				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 4);
 			}
 			else {
+				hudLayer.Header.Flags = ovrLayerFlag_HighQuality | ovrLayerFlag_TextureOriginAtBottomLeft;
+				//To place the current tool indicator at the hand base
+				/*Eigen::Vector3d hand_pos = (world*local*hand_base_pose).topRows(3).cast<double>();
+				hudLayer.QuadPoseCenter.Position.x = hand_pos[0];
+				hudLayer.QuadPoseCenter.Position.y = hand_pos[1];
+				hudLayer.QuadPoseCenter.Position.z = hand_pos[2];
 
-				hudLayer.QuadPoseCenter.Position.x = 1.00f;
-				hudLayer.QuadPoseCenter.Position.y = 0.5f;
-				hudLayer.QuadPoseCenter.Position.z = menu_z_pos;
-				hudLayer.QuadPoseCenter.Orientation.x = 0;
-				hudLayer.QuadPoseCenter.Orientation.y = 0;
-				hudLayer.QuadPoseCenter.Orientation.z = 0;
-				hudLayer.QuadPoseCenter.Orientation.w = 1;
+				hudLayer.QuadPoseCenter.Orientation = handPoses[1].Orientation; */ 
+
+				hudLayer.QuadPoseCenter.Position.x = 0;
+				hudLayer.QuadPoseCenter.Position.y = 0.01;
+				hudLayer.QuadPoseCenter.Position.z = -1.0;
+
+
+				Eigen::AngleAxisd roll(0, Eigen::Vector3d::UnitZ());
+				Eigen::AngleAxisd yaw(0, Eigen::Vector3d::UnitY());
+				Eigen::AngleAxisd pitch(-0.5*PI, Eigen::Vector3d::UnitX());
+				Eigen::Quaterniond tool_hud_rot = roll * yaw *pitch;
+				hudLayer.QuadPoseCenter.Orientation.x = tool_hud_rot.x();
+				hudLayer.QuadPoseCenter.Orientation.y = tool_hud_rot.y();
+				hudLayer.QuadPoseCenter.Orientation.z = tool_hud_rot.z();
+				hudLayer.QuadPoseCenter.Orientation.w = tool_hud_rot.w();
 
 				hudLayer.QuadSize = OVR::Vector2f(0.3, 0.3);// OVR::Vector2f((float)hud_buffer->eyeTextureSize.w, (float)hud_buffer->eyeTextureSize.h) * pixels_to_meter;
 				// Display all of the HUD texture.
@@ -1125,10 +1144,11 @@ void main() {
 				/*ovrLayerHeader* layerList[1];
 				layerList[0] = &eyeLayer.Header;
 				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 1);*/
-				ovrLayerHeader* layerList[2];
-				layerList[0] = &eyeLayer.Header;
+				ovrLayerHeader* layerList[3];
+				layerList[0] = &floorLayer.Header;
 				layerList[1] = &hudLayer.Header;
-				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 2);
+				layerList[2] = &eyeLayer.Header;
+				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 3);
 			}
 
 		}
@@ -1178,28 +1198,46 @@ void main() {
 		IGL_INLINE void OculusVR::update_laser(ViewerData& laser_data, bool update_screen_while_computing) {
 			Eigen::Vector3d hand_pos = (world*local*index_top_pose).topRows(3).cast<double>();
 			Eigen::Vector3d hand_dir = get_right_touch_direction().cast<double>();
-			laser_data.set_hand_point(hand_pos.transpose(), Eigen::RowVector3d(0.5f, 0.5f, 0.5f));
+			Eigen::RowVector3d active_color(0.4, 0.8, 0);
+			Eigen::RowVector3d inactive_color(0.5, 0.5, 0.5);
+
+			//Always set the hand point
+			if (update_screen_while_computing) {
+				laser_data.set_hand_point(hand_pos.transpose(), inactive_color);
+			}
+			else {
+				laser_data.set_hand_point(hand_pos.transpose(), active_color);
+			}
 
 			if (laser_data.show_laser) {
 				Eigen::MatrixX3d LP(2, 3);
 				LP.row(0) = hand_pos.transpose();
-				if (!menu_active) {
-					LP.row(1) = (hand_pos + 1000 * hand_dir).transpose();
-				}
-				else if (menu_active && menu_intersect_pt.isZero()) {
-					LP.row(1) = (hand_pos + -0.8*menu_z_pos * hand_dir).transpose();
 
-				}else{
-					LP.row(1) = menu_intersect_pt.transpose();
+				if (!menu_active) {
+					if (update_screen_while_computing) {
+						LP.row(1) = hand_pos; //Don't draw a laser while we're computing
+					}
+					else {
+						LP.row(1) = laser_data.laser_points.row(1).leftCols(3);
+					}
+				}
+				else {
+					if (menu_intersect_pt.isZero()) {
+						LP.row(1) = (hand_pos + -0.8*menu_z_pos * hand_dir).transpose();
+					}
+					else {
+						LP.row(1) = menu_intersect_pt.transpose();
+					}
 				}
 				Eigen::MatrixXd laser_color(2, 3);
 				if (update_screen_while_computing) {
-					laser_color.row(0) << 0.3, 0.3, 0.3;
-					laser_color.row(1) << 0.3, 0.3, 0.3;
+					laser_color.row(0) = inactive_color;
+					laser_color.row(1) = inactive_color;
 				}
 				else {
-					laser_color.row(0) << 0.4, 0.8, 0;
-					laser_color.row(1) << 0.4, 0.8, 0;
+					laser_color.row(0) = active_color;
+					laser_color.row(1) = active_color;
+					laser_data.add_hand_point(LP.row(1), active_color);
 				}
 				laser_data.set_laser_points(LP, laser_color);
 			}
@@ -1404,7 +1442,7 @@ void main() {
 			{
 				Eigen::Matrix4f local;
 				EigenFromOvrAvatarTransform(localPose.jointTransform[i], local);
-				
+
 				//std::cout << localPose.jointParents[i] << " local pose: " << localPose.jointNames[i] << "   " << local << std::endl << std::endl;
 				int parentIndex = localPose.jointParents[i];
 				if (parentIndex < 0)
@@ -1591,14 +1629,14 @@ void main() {
 			glDrawElements(GL_TRIANGLES, (GLsizei)data->elementCount, GL_UNSIGNED_SHORT, 0);
 			glBindVertexArray(0);
 
-		
+
 			/*if (renderJoints){
 				Eigen::Matrix4f local;
 				EigenFromOvrAvatarTransform(mesh->localTransform, local);
 				glDepthFunc(GL_ALWAYS);
 				_renderPose(proj * view * world * local, mesh->skinnedPose);
-			}*/	
-			
+			}*/
+
 			glDepthFunc(cur_depth_func);
 			glDepthMask(cur_depth_mask);
 
@@ -1613,10 +1651,9 @@ void main() {
 			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * skinnedPose.jointCount);
 			_computeWorldPose(skinnedPose, skinnedPoses);
 			index_top_pose = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
-			
-			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i)
-			{	
-				
+			hand_base_pose = Eigen::Vector4f((*(skinnedPoses + hand_base_joint))(0, 3), (*(skinnedPoses + hand_base_joint))(1, 3), (*(skinnedPoses + hand_base_joint))(2, 3), 1);
+
+			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i) {
 				*(skinnedPoses + i) = *(skinnedPoses + i) * data->inverseBindPose[i];
 			}
 
@@ -1739,15 +1776,15 @@ void main() {
 			glUniform1iv(uniformLocation, (GLsizei)count, textureUnits);
 		}
 
-	/*	IGL_INLINE void OculusVR::_renderPose(const Eigen::Matrix4f& worldViewProj, const ovrAvatarSkinnedMeshPose& pose){
-			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * pose.jointCount);
-			_computeWorldPose(pose, skinnedPoses);
-			for (uint32_t i = 1; i < pose.jointCount; ++i)
-			{
-				int parent = pose.jointParents[i];
-				_renderDebugLine(worldViewProj, Eigen::Vector3f((*(skinnedPoses+parent)).topRightCorner(3,1)), Eigen::Vector3f((*(skinnedPoses+i)).topRightCorner(3, 1)), Eigen::Vector4f(1, 1, 1, 1), Eigen::Vector4f(1, 0, 0, 1));
-			}
-		}*/
+		/*	IGL_INLINE void OculusVR::_renderPose(const Eigen::Matrix4f& worldViewProj, const ovrAvatarSkinnedMeshPose& pose){
+				Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * pose.jointCount);
+				_computeWorldPose(pose, skinnedPoses);
+				for (uint32_t i = 1; i < pose.jointCount; ++i)
+				{
+					int parent = pose.jointParents[i];
+					_renderDebugLine(worldViewProj, Eigen::Vector3f((*(skinnedPoses+parent)).topRightCorner(3,1)), Eigen::Vector3f((*(skinnedPoses+i)).topRightCorner(3, 1)), Eigen::Vector4f(1, 1, 1, 1), Eigen::Vector4f(1, 0, 0, 1));
+				}
+			}*/
 
 		IGL_INLINE void OculusVR::request_recenter() {
 			ovr_RecenterTrackingOrigin(session);
@@ -1769,7 +1806,7 @@ void main() {
 			data.rotate(data.mesh_trackball_angle);
 			Eigen::MatrixXd N_corners;
 			igl::per_corner_normals(data.V, data.F, 50, N_corners);
-			data.set_normals(N_corners);		
+			data.set_normals(N_corners);
 			callback_button_down(THUMB_MOVE, Eigen::Vector3f());
 			prev_sent = THUMB_MOVE;
 		}
