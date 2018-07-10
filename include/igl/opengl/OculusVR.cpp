@@ -51,6 +51,15 @@ namespace igl {
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static Eigen::Vector3d menu_intersect_pt;
 
+		static function<void()> current_tool_HUD = [&]() {
+
+			ImGui::SetNextWindowSize(ImVec2(200.0f, 200.0f), ImGuiSetCond_FirstUseEver);
+			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
+			ImGui::Begin("Current Tool", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
+			ImGui::PushID(0);
+			ImGui::Image(im_texID_cur, ImVec2(200.0f, 200.0f), ImVec2(0,0), ImVec2(1,1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255));
+			ImGui::PopID();
+		};
 		static float menu_z_pos = -1.50f;
 		static float pixels_to_meter = 0.001013f; //Transform factor for going from pixels to meters in Oculus
 
@@ -834,20 +843,16 @@ void main() {
 
 					if (menu_active) {
 						eye_buffers[eye]->OnRender();
-						for (int i = 0; i < data_list.size()-1; i++) {
+						/*for (int i = 0; i < data_list.size()-1; i++) {
 							core.draw(data_list[i], true, true, view, proj);
-						}
+						}*/ //TODO: check this. maybe only draw floor mesh?
 						eye_buffers[eye]->OnRenderFinish();
 
 						GLfloat prev_clear_color[4];
 						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
 						glClearColor(0, 0, 0, 0);
 						laser_buffers[eye]->OnRender();
-					//	bool prev_show_laser = data_list[data_list.size() - 1].show_laser;
-						//std::cout << "before: " << prev_show_laser << std::endl;
-						//data_list[data_list.size() - 1].show_laser = true;
 						core.draw(data_list[data_list.size()-1], true, true, view, proj);
-					//	data_list[data_list.size() - 1].show_laser = prev_show_laser;
 						laser_buffers[eye]->OnRenderFinish();
 	
 						hand_buffers[eye]->OnRender();
@@ -885,6 +890,16 @@ void main() {
 				}
 				else {
 					//TODO: draw current selected toolmode somewhere in corner
+					hud_buffer->OnRenderHud();
+
+					function<void()> prev_callback = ((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->callback_draw_viewer_window;
+					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->callback_draw_viewer_window = current_tool_HUD;
+					gui->pre_draw();
+					gui->post_draw();
+					((igl::opengl::glfw::imgui::ImGuiMenu*)gui)->callback_draw_viewer_window = prev_callback;
+					hud_buffer->OnRenderFinishHud();
+
+					ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
 				}
 				submit_frame();
 				blit_mirror();
@@ -1058,13 +1073,13 @@ void main() {
 			viewScaleDesc.HmdToEyePose[0] = eyeRenderDesc[0].HmdToEyePose;
 			viewScaleDesc.HmdToEyePose[1] = eyeRenderDesc[1].HmdToEyePose;
 
-			if (menu_active) {
-				// Create HUD layer, fixed to the player's torso
+			// Create HUD layer, fixed to the player's torso
 			ovrLayerQuad hudLayer;
 			hudLayer.Header.Type = ovrLayerType_Quad;
 			hudLayer.Header.Flags = ovrLayerFlag_HighQuality | ovrLayerFlag_TextureOriginAtBottomLeft | ovrLayerFlag_HeadLocked;
 			hudLayer.ColorTexture = hud_buffer->swapTextureChain;
 
+			if (menu_active) {
 			hudLayer.QuadPoseCenter.Position.x = 0.00f;
 			hudLayer.QuadPoseCenter.Position.y = 0.00f;
 			hudLayer.QuadPoseCenter.Position.z = menu_z_pos;
@@ -1089,10 +1104,31 @@ void main() {
 				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 4);
 			}
 			else {
+
+				hudLayer.QuadPoseCenter.Position.x = 1.00f;
+				hudLayer.QuadPoseCenter.Position.y = 0.5f;
+				hudLayer.QuadPoseCenter.Position.z = menu_z_pos;
+				hudLayer.QuadPoseCenter.Orientation.x = 0;
+				hudLayer.QuadPoseCenter.Orientation.y = 0;
+				hudLayer.QuadPoseCenter.Orientation.z = 0;
+				hudLayer.QuadPoseCenter.Orientation.w = 1;
+
+				hudLayer.QuadSize = OVR::Vector2f(0.3, 0.3);// OVR::Vector2f((float)hud_buffer->eyeTextureSize.w, (float)hud_buffer->eyeTextureSize.h) * pixels_to_meter;
+				// Display all of the HUD texture.
+				hudLayer.Viewport.Pos.x = 0.0f;
+				hudLayer.Viewport.Pos.y = 0.0f;
+				hudLayer.Viewport.Size.w = 200;// hud_buffer->eyeTextureSize.w;
+				hudLayer.Viewport.Size.h = 200;// hud_buffer->eyeTextureSize.h;
+
+
 				//We use a merged hand & mesh layer when the menu is disabled, to allow for depth testing between them
-				ovrLayerHeader* layerList[1];
+				/*ovrLayerHeader* layerList[1];
 				layerList[0] = &eyeLayer.Header;
-				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 1);
+				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 1);*/
+				ovrLayerHeader* layerList[2];
+				layerList[0] = &eyeLayer.Header;
+				layerList[1] = &hudLayer.Header;
+				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 2);
 			}
 
 		}
