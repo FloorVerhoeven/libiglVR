@@ -43,8 +43,8 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
   id(-1)
 {
   clear();
-  overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock); //Could consider splitting these into a separate mutex for base data and overlay, but coreVR.draw will set the data and then needs both locks --> potential deadlock?
-  base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
+  //overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock); //Could consider splitting these into a separate mutex for base data and overlay, but coreVR.draw will set the data and then needs both locks --> potential deadlock?
+ // base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
 };
 
 IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
@@ -73,7 +73,8 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
     const Eigen::MatrixXd& _V, const Eigen::MatrixXi& _F)
 {
   using namespace std;
-  base_data_lock.lock();
+ // base_data_lock.lock();
+  std::unique_lock<std::recursive_mutex> lck(mu_base);
 
   Eigen::MatrixXd V_temp;
 
@@ -91,6 +92,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
     V = V_temp;
     F = _F;
 
+	//See answer 3 on https://stackoverflow.com/questions/2415082/when-to-use-recursive-mutex for an alternative, non-recursive mutex implementation
     compute_normals();
     uniform_colors(
       Eigen::Vector3d(GOLD_AMBIENT[0], GOLD_AMBIENT[1], GOLD_AMBIENT[2]),
@@ -110,23 +112,27 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
       cerr << "ERROR (set_mesh): The new mesh has a different number of vertices/faces. Please clear the mesh before plotting."<<endl;
   }
   dirty |= MeshGL::DIRTY_FACE | MeshGL::DIRTY_POSITION;
-  base_data_lock.unlock();
+ // base_data_lock.unlock();
 
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_vertices(const Eigen::MatrixXd& _V)
 {
-  base_data_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
+  //base_data_lock.lock();
   V = _V;
   assert(F.size() == 0 || F.maxCoeff() < V.rows());
   dirty |= MeshGL::DIRTY_POSITION;
-  base_data_lock.unlock();
+ // base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
 {
   using namespace std;
-  base_data_lock.lock();
+  std::unique_lock<std::recursive_mutex> lck(mu_base);
+
+  //  base_data_lock.lock();
   if (N.rows() == V.rows())
   {
     set_face_based(false);
@@ -140,14 +146,16 @@ IGL_INLINE void igl::opengl::ViewerData::set_normals(const Eigen::MatrixXd& N)
   else
     cerr << "ERROR (set_normals): Please provide a normal per face, per corner or per vertex."<<endl;
   dirty |= MeshGL::DIRTY_NORMAL;
-  base_data_lock.unlock();
+ // base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
 {
   using namespace std;
   using namespace Eigen;
-  base_data_lock.lock();
+  std::unique_lock<std::recursive_mutex> lck(mu_base);
+
+//  base_data_lock.lock();
   if(C.rows()>0 && C.cols() == 1)
   {
     Eigen::MatrixXd C3;
@@ -221,13 +229,14 @@ IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
   else
     cerr << "ERROR (set_colors): Please provide a single color, or a color per face or per vertex."<<endl;
   dirty |= MeshGL::DIRTY_DIFFUSE;
-  base_data_lock.unlock();
+ // base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV)
 {
   using namespace std;
-  base_data_lock.lock();
+ // base_data_lock.lock();
+  std::unique_lock<std::recursive_mutex> lck(mu_base);
 
   if (UV.rows() == V.rows())
   {
@@ -237,17 +246,19 @@ IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV)
   else
     cerr << "ERROR (set_UV): Please provide uv per vertex."<<endl;;
   dirty |= MeshGL::DIRTY_UV;
-  base_data_lock.unlock();
+ // base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV_V, const Eigen::MatrixXi& UV_F)
 {
-  base_data_lock.lock();
+ // base_data_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
   set_face_based(true);
   V_uv = UV_V.block(0,0,UV_V.rows(),2);
   F_uv = UV_F;
   dirty |= MeshGL::DIRTY_UV;
-  base_data_lock.unlock();
+ // base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_texture(
@@ -255,13 +266,15 @@ IGL_INLINE void igl::opengl::ViewerData::set_texture(
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& G,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B)
 {
-  base_data_lock.lock();
+  //base_data_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
   texture_R = R;
   texture_G = G;
   texture_B = B;
   texture_A = Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>::Constant(R.rows(),R.cols(),255);
   dirty |= MeshGL::DIRTY_TEXTURE;
-  base_data_lock.unlock();
+  //base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_texture(
@@ -270,13 +283,15 @@ IGL_INLINE void igl::opengl::ViewerData::set_texture(
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& B,
   const Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>& A)
 {
-  base_data_lock.lock();
+ // base_data_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
   texture_R = R;
   texture_G = G;
   texture_B = B;
   texture_A = A;
   dirty |= MeshGL::DIRTY_TEXTURE;
-  base_data_lock.unlock();
+  //base_data_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_points(
@@ -284,16 +299,19 @@ IGL_INLINE void igl::opengl::ViewerData::set_points(
   const Eigen::MatrixXd& C)
 {
   // clear existing points
-  overlay_lock.lock();
+//  overlay_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
   points.resize(0,0);
   add_points(P,C);
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P, const Eigen::MatrixXd& C)
 {
-	if (!overlay_lock.owns_lock()) {
+	/*if (!overlay_lock.owns_lock()) {
 		overlay_lock.lock();
-	}
+	}*/
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
 
   Eigen::MatrixXd P_temp;
 
@@ -311,19 +329,23 @@ IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P, co
   for (unsigned i=0; i<P_temp.rows(); ++i)
     points.row(lastid+i) << P_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows()-1);
   dirty |= MeshGL::DIRTY_OVERLAY_POINTS;
-  overlay_lock.unlock();
+//  overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_stroke_points(const Eigen::MatrixXd& SP) {
-	overlay_lock.lock();
+	//overlay_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
 	stroke_points.resize(0, 0);
 	add_stroke_points(SP); //Will take care of unlocking
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_stroke_points(const Eigen::MatrixXd& SP) {
-	if (!overlay_lock.owns_lock()) {
+/*	if (!overlay_lock.owns_lock()) {
 		overlay_lock.lock();
-	}
+	}*/
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
 
 	Eigen::MatrixXd SP_temp;
 
@@ -341,25 +363,29 @@ IGL_INLINE void igl::opengl::ViewerData::add_stroke_points(const Eigen::MatrixXd
 		stroke_points.row(lastid + i) << SP_temp.row(i);
 	}
 	dirty |= MeshGL::DIRTY_STROKE;
-	overlay_lock.unlock();
+	//overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
-	overlay_lock.lock();
+	//overlay_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
 	laser_points.resize(0, 0);
 	if(LP.rows()>0) {
 		add_laser_points(LP, C); //Will take care of unlocking
 	}
 	else {
 		dirty |= MeshGL::DIRTY_LASER;
-		overlay_lock.unlock();
+		//overlay_lock.unlock();
 	}
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
-	if (!overlay_lock.owns_lock()) {
+	/*if (!overlay_lock.owns_lock()) {
 		overlay_lock.lock();
-	}
+	}*/
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
 
 	Eigen::MatrixXd LP_temp;
 
@@ -378,7 +404,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd&
 	}
 
 	dirty |= MeshGL::DIRTY_LASER;
-	overlay_lock.unlock();
+//	overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_hand_point(
@@ -386,16 +412,20 @@ IGL_INLINE void igl::opengl::ViewerData::set_hand_point(
 	const Eigen::MatrixXd& C)
 {
 	// clear existing points
-	overlay_lock.lock();
+	//overlay_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
 	hand_point.resize(0, 0);
 	add_hand_point(HP, C); //Will take care of unlocking
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_hand_point(const Eigen::MatrixXd& HP, const Eigen::MatrixXd& C)
 {
-	if (!overlay_lock.owns_lock()) {
+	/*if (!overlay_lock.owns_lock()) {
 		overlay_lock.lock();
-	}
+	}*/
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
 
 	Eigen::MatrixXd HP_temp;
 
@@ -414,7 +444,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_hand_point(const Eigen::MatrixXd& H
 		hand_point.row(lastid + i) << HP_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows() - 1);
 
 	dirty |= MeshGL::DIRTY_HAND_POINT;
-	overlay_lock.unlock();
+	//overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_edges(
@@ -423,7 +453,9 @@ IGL_INLINE void igl::opengl::ViewerData::set_edges(
   const Eigen::MatrixXd& C)
 {
   using namespace Eigen;
-  overlay_lock.lock();
+ // overlay_lock.lock();
+  std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
   lines.resize(E.rows(),9);
   assert(C.cols() == 3);
   for(int e = 0;e<E.rows();e++)
@@ -439,12 +471,14 @@ IGL_INLINE void igl::opengl::ViewerData::set_edges(
     lines.row(e)<< P.row(E(e,0)), P.row(E(e,1)), color;
   }
   dirty |= MeshGL::DIRTY_OVERLAY_LINES;
-  overlay_lock.unlock();
+ // overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_edges(const Eigen::MatrixXd& P1, const Eigen::MatrixXd& P2, const Eigen::MatrixXd& C)
 {
-	overlay_lock.lock();
+	//overlay_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
   Eigen::MatrixXd P1_temp,P2_temp;
 
   // If P1 only has two columns, pad with a column of zeros
@@ -467,12 +501,14 @@ IGL_INLINE void igl::opengl::ViewerData::add_edges(const Eigen::MatrixXd& P1, co
     lines.row(lastid+i) << P1_temp.row(i), P2_temp.row(i), i<C.rows() ? C.row(i) : C.row(C.rows()-1);
 
   dirty |= MeshGL::DIRTY_OVERLAY_LINES;
-  overlay_lock.unlock();
+  //overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P,  const std::string& str)
 {
-	overlay_lock.lock();
+//	overlay_lock.lock();
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
   Eigen::RowVectorXd P_temp;
 
   // If P only has two columns, pad with a column of zeros
@@ -488,12 +524,11 @@ IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P,  co
   labels_positions.conservativeResize(lastid+1, 3);
   labels_positions.row(lastid) = P_temp;
   labels_strings.push_back(str);
-  overlay_lock.unlock();
+ // overlay_lock.unlock();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::clear()
 {
-
   std::lock_guard<std::mutex> lock(mu);
 
   V                       = Eigen::MatrixXd (0,3);
@@ -529,18 +564,21 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
 
 IGL_INLINE void igl::opengl::ViewerData::compute_normals()
 {
-	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+	/*bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
 	if (!base_data_lock.owns_lock()) {
 		base_data_lock.lock();
 		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
-	}
+	}*/
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
 
   igl::per_face_normals(V, F, F_normals);
   igl::per_vertex_normals(V, F, F_normals, V_normals);
   dirty |= MeshGL::DIRTY_NORMAL;
-  if (unlock_at_end) {
+ /* if (unlock_at_end) {
 	  base_data_lock.unlock();
-  }
+  }*/
+
 }
 
 IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
@@ -548,11 +586,13 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
   const Eigen::Vector3d& diffuse,
   const Eigen::Vector3d& specular)
 {
-	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+/*	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
 	if (!base_data_lock.owns_lock()) {
 		base_data_lock.lock();
 		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
-	}
+	}*/
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
 
   Eigen::Vector4d ambient4;
   Eigen::Vector4d diffuse4;
@@ -564,9 +604,9 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
 
   uniform_colors(ambient4,diffuse4,specular4);
 
-  if (unlock_at_end) {
+/*  if (unlock_at_end) {
 	  base_data_lock.unlock();
-  }
+  }*/
 }
 
 IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
@@ -574,11 +614,13 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
   const Eigen::Vector4d& diffuse,
   const Eigen::Vector4d& specular)
 {
-	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+	/*bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
 	if (!base_data_lock.owns_lock()) {
 		base_data_lock.lock();
 		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
-	}
+	}*/
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
 
   V_material_ambient.resize(V.rows(),4);
   V_material_diffuse.resize(V.rows(),4);
@@ -602,18 +644,21 @@ IGL_INLINE void igl::opengl::ViewerData::uniform_colors(
     F_material_specular.row(i) = specular;
   }
   dirty |= MeshGL::DIRTY_SPECULAR | MeshGL::DIRTY_DIFFUSE | MeshGL::DIRTY_AMBIENT;
-  if (unlock_at_end) {
+  /*if (unlock_at_end) {
 	  base_data_lock.unlock();
-  }
+  }*/
 }
 
 IGL_INLINE void igl::opengl::ViewerData::grid_texture()
 {
-	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
+/*	bool unlock_at_end = false; //If we owned the lock when entering this function, then don't unlock it at the end
 	if (!base_data_lock.owns_lock()) {
 		base_data_lock.lock();
 		unlock_at_end = true; //If we didn't own the lock before entering this function, then also make sure we exit with the lock released
-	}
+	}*/
+
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+
 
   // Don't do anything for an empty mesh
   if(V.rows() == 0)
@@ -649,9 +694,10 @@ IGL_INLINE void igl::opengl::ViewerData::grid_texture()
   texture_B = texture_R;
   texture_A = Eigen::Matrix<unsigned char,Eigen::Dynamic,Eigen::Dynamic>::Constant(texture_R.rows(),texture_R.cols(),255);
   dirty |= MeshGL::DIRTY_TEXTURE;
-  if (unlock_at_end) {
+  /*if (unlock_at_end) {
 	  base_data_lock.unlock();
-  }
+  }*/
+
 }
 
 IGL_INLINE void igl::opengl::ViewerData::updateGL(
@@ -665,9 +711,10 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
     meshgl.init();
   }
 
-  std::lock(*overlay_lock.mutex(), *base_data_lock.mutex());
-  std::lock_guard<std::mutex> lock1(*overlay_lock.mutex(), std::adopt_lock);
-  std::lock_guard<std::mutex> lock2(*base_data_lock.mutex(), std::adopt_lock);
+  std::lock(mu_overlay, mu_base);
+ // std::lock(*overlay_lock.mutex(), *base_data_lock.mutex());
+  std::lock_guard<std::recursive_mutex> lock1(mu_overlay, std::adopt_lock);
+  std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);
 
   bool per_corner_uv = (data.F_uv.rows() == data.F.rows());
   bool per_corner_normals = (data.F_normals.rows() == 3 * data.F.rows());
@@ -927,9 +974,14 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 }
 
 IGL_INLINE void igl::opengl::ViewerData::rotate(Eigen::Quaternionf trackball_rotation) { //Takes the trackball rotation as parameter to ensure it has been updated
-	std::lock(*overlay_lock.mutex(), *base_data_lock.mutex());
+	/*std::lock(*overlay_lock.mutex(), *base_data_lock.mutex());
 	std::lock_guard<std::mutex> lock1(*overlay_lock.mutex(), std::adopt_lock);
-	std::lock_guard<std::mutex> lock2(*base_data_lock.mutex(), std::adopt_lock);
+	std::lock_guard<std::mutex> lock2(*base_data_lock.mutex(), std::adopt_lock);*/
+
+
+	std::lock(mu_overlay, mu_base);
+	std::lock_guard<std::recursive_mutex> lock1(mu_overlay, std::adopt_lock);
+	std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);
 
 	float mat[16];
 	igl::quat_to_mat((trackball_rotation).coeffs().data(), mat);

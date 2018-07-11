@@ -34,16 +34,24 @@ public:
   ViewerData();
 
   ViewerData& operator = (const ViewerData& other) {
-	  overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
-	  base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
+	 // overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
+	 // base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
 
-	  std::lock(mu, other.mu, *overlay_lock.mutex(), *other.overlay_lock.mutex(), *base_data_lock.mutex(), *other.base_data_lock.mutex());
+	  std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base);
+	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> self_lock1(mu_overlay, std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> other_lock1(other.mu_overlay, std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> self_lock2(mu_base, std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> other_lock2(other.mu_base, std::adopt_lock);
+
+	  /*std::lock(mu, other.mu, *overlay_lock.mutex(), *other.overlay_lock.mutex(), *base_data_lock.mutex(), *other.base_data_lock.mutex());
 	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> self_lock1(*overlay_lock.mutex(), std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock1(*other.overlay_lock.mutex(), std::adopt_lock);
 	  std::lock_guard<std::mutex> self_lock2(*base_data_lock.mutex(), std::adopt_lock);
-	  std::lock_guard<std::mutex> other_lock2(*other.base_data_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock2(*other.base_data_lock.mutex(), std::adopt_lock);*/
 
 	  V = other.V;
 	  F = other.F;
@@ -87,7 +95,6 @@ public:
 	  show_lines = other.show_lines;
 	  show_vertid = other.show_vertid;
 	  show_faceid = other.show_faceid;
-	//  show_avatar = other.show_avatar;
 	  invert_normals = other.invert_normals;
 
 	  point_size = other.point_size;
@@ -96,15 +103,6 @@ public:
 	  stroke_line_width = other.stroke_line_width;
 	  laser_line_width = other.laser_line_width;
 	  line_color = other.line_color;
-
-	 /* avatar_V = other.avatar_V;
-	  avatar_F=other.avatar_F;
-	  avatar_V_normals = other.avatar_V_normals; // One normal per vertex
-	  avatar_V_tangents = other.avatar_V_tangents;
-	  avatar_V_tex= other.avatar_V_tex;
-	  avatar_V_poseIndices = other.avatar_V_poseIndices;
-	  avatar_V_poseWeights= other.avatar_V_poseWeights;
-	  inverse_bind_pose = other.inverse_bind_pose;*/
 
 	  shininess = other.shininess;
 
@@ -117,16 +115,16 @@ public:
   }
 
   ViewerData(const ViewerData& other) {
-	  overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
-	  base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
+	  //overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
+	  //base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
 
-	  std::lock(mu, other.mu, *overlay_lock.mutex(), *other.overlay_lock.mutex(), *base_data_lock.mutex(), *other.base_data_lock.mutex());
+	  std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base);
 	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
-	  std::lock_guard<std::mutex> self_lock1(*overlay_lock.mutex(), std::adopt_lock);
-	  std::lock_guard<std::mutex> other_lock1(*other.overlay_lock.mutex(), std::adopt_lock);
-	  std::lock_guard<std::mutex> self_lock2(*base_data_lock.mutex(), std::adopt_lock);
-	  std::lock_guard<std::mutex> other_lock2(*other.base_data_lock.mutex(), std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> self_lock1(mu_overlay, std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> other_lock1(other.mu_overlay, std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> self_lock2(mu_base, std::adopt_lock);
+	  std::lock_guard<std::recursive_mutex> other_lock2(other.mu_base, std::adopt_lock);
 
 	  V = other.V;
 	  F = other.F;
@@ -140,7 +138,6 @@ public:
 	  V_material_ambient = other.V_material_ambient;
 	  V_material_diffuse = other.V_material_diffuse;
 	  V_material_specular = other.V_material_specular;
-
 
 	  V_uv = other.V_uv;
 	  F_uv = other.F_uv;
@@ -171,7 +168,6 @@ public:
 	  show_lines = other.show_lines;
 	  show_vertid = other.show_vertid;
 	  show_faceid = other.show_faceid;
-	//  show_avatar = other.show_avatar;
 	  invert_normals = other.invert_normals;
 
 	  point_size = other.point_size;
@@ -182,15 +178,6 @@ public:
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
-
-	/*  avatar_V = other.avatar_V;
-	  avatar_F = other.avatar_F;
-	  avatar_V_normals = other.avatar_V_normals; // One normal per vertex
-	  avatar_V_tangents = other.avatar_V_tangents;
-	  avatar_V_tex = other.avatar_V_tex;
-	  avatar_V_poseIndices = other.avatar_V_poseIndices;
-	  avatar_V_poseWeights = other.avatar_V_poseWeights;
-	  inverse_bind_pose = other.inverse_bind_pose;*/
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
 	  mesh_translation = other.mesh_translation;
@@ -325,10 +312,10 @@ public:
   IGL_INLINE void rotate(Eigen::Quaternionf trackball_rotation);
 
   mutable std::mutex mu;
-  mutable std::mutex mu_overlay;
-  mutable std::mutex mu_base;
-  mutable std::unique_lock<std::mutex> overlay_lock;
-  mutable std::unique_lock<std::mutex> base_data_lock;
+  mutable std::recursive_mutex mu_overlay;
+  mutable std::recursive_mutex mu_base;
+  //mutable std::unique_lock<std::mutex> overlay_lock;
+  //mutable std::unique_lock<std::mutex> base_data_lock;
 
   Eigen::MatrixXd V; // Vertices of the current mesh (#V x 3)
   Eigen::MatrixXi F; // Faces of the mesh (#F x 3)
@@ -383,14 +370,6 @@ public:
   Eigen::MatrixXd           labels_positions;
   std::vector<std::string>  labels_strings;
 
- /* Eigen::MatrixXd avatar_V;
-  Eigen::MatrixXi avatar_F;
-  Eigen::MatrixXd avatar_V_normals; // One normal per vertex
-  Eigen::MatrixXd avatar_V_tangents;
-  Eigen::MatrixXd avatar_V_tex;
-  Eigen::MatrixXi avatar_V_poseIndices;
-  Eigen::MatrixXd avatar_V_poseWeights;
-  std::vector<Eigen::Matrix4f> inverse_bind_pose;*/
   // Marks dirty buffers that need to be uploaded to OpenGL
   uint32_t dirty;
 
