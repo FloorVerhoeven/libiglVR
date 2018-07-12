@@ -974,11 +974,6 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 }
 
 IGL_INLINE void igl::opengl::ViewerData::rotate(Eigen::Quaternionf trackball_rotation) { //Takes the trackball rotation as parameter to ensure it has been updated
-	/*std::lock(*overlay_lock.mutex(), *base_data_lock.mutex());
-	std::lock_guard<std::mutex> lock1(*overlay_lock.mutex(), std::adopt_lock);
-	std::lock_guard<std::mutex> lock2(*base_data_lock.mutex(), std::adopt_lock);*/
-
-
 	std::lock(mu_overlay, mu_base);
 	std::lock_guard<std::recursive_mutex> lock1(mu_overlay, std::adopt_lock);
 	std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);

@@ -722,7 +722,7 @@ void main() {
 					count = (prev_press == B) ? count + 1 : 1;
 					prev_press = B;
 				}
-				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.99f) {
+				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f) {
 					count = (prev_press == TRIG) ? count + 1 : 1;
 					prev_press = TRIG;
 				}
@@ -730,7 +730,7 @@ void main() {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
 					count = 0;
 				}
-				else if (inputState.IndexTrigger[ovrHand_Right] < 0.99f) { //Only count fully pressed state as something other than NONE
+				else if (inputState.IndexTrigger[ovrHand_Right] < 0.995f) { //Only count fully pressed state as something other than NONE
 					count = (prev_press == NONE) ? count + 1 : 1;
 					prev_press = NONE;
 				}
