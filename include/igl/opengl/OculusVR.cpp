@@ -50,6 +50,7 @@ namespace igl {
 		static Eigen::Matrix4f local; //TODO: handle nicely
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
+		static int index_base_joint = 4;
 		static Eigen::Vector3d menu_intersect_pt;
 
 		/*static std::function<void()> current_tool_HUD = [&]() {
@@ -706,8 +707,8 @@ void main() {
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
 				Eigen::Vector3f hand_pos;
-				//	hand_pos << handPoses[ovrHand_Right].Position.x, handPoses[ovrHand_Right].Position.y, handPoses[ovrHand_Right].Position.z;
 				hand_pos = (world*local*index_top_pose).topRows(3);
+				//hand_pos = (world*local*hand_base_pose).topRows(3);
 
 				Eigen::Vector3d menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos))).cast<double>();
 				Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
@@ -1652,6 +1653,7 @@ void main() {
 			_computeWorldPose(skinnedPose, skinnedPoses);
 			index_top_pose = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
 			hand_base_pose = Eigen::Vector4f((*(skinnedPoses + hand_base_joint))(0, 3), (*(skinnedPoses + hand_base_joint))(1, 3), (*(skinnedPoses + hand_base_joint))(2, 3), 1);
+			index_base_pose = Eigen::Vector4f((*(skinnedPoses + index_base_joint))(0, 3), (*(skinnedPoses + index_base_joint))(1, 3), (*(skinnedPoses + index_base_joint))(2, 3), 1);
 
 			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i) {
 				*(skinnedPoses + i) = *(skinnedPoses + i) * data->inverseBindPose[i];

@@ -110,6 +110,7 @@ public:
 			ovrPosef handPoses[2];
 			Eigen::Vector4f index_top_pose;
 			Eigen::Vector4f hand_base_pose;
+			Eigen::Vector4f index_base_pose;
 			ovrInputState inputState;
 			double displayMidpointSeconds;
 
