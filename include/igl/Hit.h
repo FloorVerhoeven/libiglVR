@@ -19,7 +19,7 @@ namespace igl
     int id; // primitive id
     int gid; // geometry id
     float u,v; // barycentric coordinates
-    float t; // distance = direction*t to intersection
+    float t; // distance_to_vert = direction*t to intersection
   };
 }
 #endif 

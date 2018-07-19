@@ -48,7 +48,7 @@ inline int intersect_triangle(double orig[3], double dir[3],
      return 0;
    inv_det = 1.0 / det;
 
-   /* calculate distance from vert0 to ray origin */
+   /* calculate distance_to_vert from vert0 to ray origin */
    IGL_RAY_TRI_SUB(tvec, orig, vert0);
 
    /* calculate U parameter and test bounds */
@@ -92,7 +92,7 @@ inline int intersect_triangle1(double orig[3], double dir[3],
 
    if (det > IGL_RAY_TRI_EPSILON)
    {
-      /* calculate distance from vert0 to ray origin */
+      /* calculate distance_to_vert from vert0 to ray origin */
       IGL_RAY_TRI_SUB(tvec, orig, vert0);
       
       /* calculate U parameter and test bounds */
@@ -111,7 +111,7 @@ inline int intersect_triangle1(double orig[3], double dir[3],
    }
    else if(det < -IGL_RAY_TRI_EPSILON)
    {
-      /* calculate distance from vert0 to ray origin */
+      /* calculate distance_to_vert from vert0 to ray origin */
       IGL_RAY_TRI_SUB(tvec, orig, vert0);
       
       /* calculate U parameter and test bounds */
@@ -161,7 +161,7 @@ inline int intersect_triangle2(double orig[3], double dir[3],
    /* if determinant is near zero, ray lies in plane of triangle */
    det = IGL_RAY_TRI_DOT(edge1, pvec);
 
-   /* calculate distance from vert0 to ray origin */
+   /* calculate distance_to_vert from vert0 to ray origin */
    IGL_RAY_TRI_SUB(tvec, orig, vert0);
    inv_det = 1.0 / det;
    
@@ -226,7 +226,7 @@ inline int intersect_triangle3(double orig[3], double dir[3],
    /* if determinant is near zero, ray lies in plane of triangle */
    det = IGL_RAY_TRI_DOT(edge1, pvec);
 
-   /* calculate distance from vert0 to ray origin */
+   /* calculate distance_to_vert from vert0 to ray origin */
    IGL_RAY_TRI_SUB(tvec, orig, vert0);
    inv_det = 1.0 / det;
    

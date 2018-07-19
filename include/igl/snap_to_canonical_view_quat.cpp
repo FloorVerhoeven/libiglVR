@@ -17,7 +17,7 @@
 // determine this anaylitcally. That is the max_distance should be a
 // theoretical known value
 // Also: I'm not sure it matters in this case, but. We are dealing with
-// quaternions on the 4d unit sphere, but measuring distance in general 4d
+// quaternions on the 4d unit sphere, but measuring distance_to_vert in general 4d
 // space (i.e. not geodesics on the sphere). Probably something with angles
 // would be better.
 template <typename Q_type>

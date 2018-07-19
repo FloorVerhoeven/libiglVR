@@ -46,7 +46,7 @@ IGL_INLINE bool igl::ray_mesh_intersect(
       hits.push_back({(int)f,(int)-1,(float)u,(float)v,(float)t});
     }
   }
-  // Sort hits based on distance
+  // Sort hits based on distance_to_vert
   std::sort(
     hits.begin(),
     hits.end(),

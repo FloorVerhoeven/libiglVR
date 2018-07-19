@@ -20,8 +20,8 @@ namespace igl
   //   right  coordinate of right vertical clipping plane
   //   bottom  coordinate of bottom vertical clipping plane
   //   top  coordinate of top vertical clipping plane
-  //   nearVal  distance to near plane
-  //   farVal  distance to far plane
+  //   nearVal  distance_to_vert to near plane
+  //   farVal  distance_to_vert to far plane
   // Outputs:
   //   P  4x4 perspective matrix
   template < typename DerivedP>

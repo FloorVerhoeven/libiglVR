@@ -698,11 +698,11 @@ void main() {
 		  return clamp(mix(fadeStart, fadeEnd, p), 0.0, 1.0);
 	  }
 	  else if (maskType == MASK_TYPE_PULSE) {
-		  float distance = maskParameters.x;
+		  float distance_to_vert = maskParameters.x;
 		  float speed = maskParameters.y;
 		  float power = maskParameters.z;
 		  float d = dot(vertexObjPos, maskAxis.xyz);
-		  float theta = 6.2831 * fract((d - elapsedSeconds * speed) / distance);
+		  float theta = 6.2831 * fract((d - elapsedSeconds * speed) / distance_to_vert);
 		  return clamp(pow((sin(theta) * 0.5 + 0.5), power), 0.0, 1.0);
 	  }
 	  else {
