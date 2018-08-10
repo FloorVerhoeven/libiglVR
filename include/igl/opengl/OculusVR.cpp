@@ -53,16 +53,6 @@ namespace igl {
 		static int index_base_joint = 4;
 		static Eigen::Vector3d menu_intersect_pt;
 
-		/*static std::function<void()> current_tool_HUD = [&]() {
-
-			ImGui::SetNextWindowSize(ImVec2(200.0f, 200.0f), ImGuiSetCond_FirstUseEver);
-			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_FirstUseEver);
-			ImGui::Begin("Current Tool", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
-			ImGui::PushID(0);
-			ImGui::Text("test");
-			//	ImGui::Image(im_texID_cur, ImVec2(200.0f, 200.0f), ImVec2(0,0), ImVec2(1,1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 255));
-			ImGui::PopID();
-		};*/
 		static float menu_z_pos = -1.50f;
 		static float pixels_to_meter = 0.001013f; //Transform factor for going from pixels to meters in Oculus
 
@@ -1801,6 +1791,7 @@ void main() {
 			if (data.V.rows() == 0) {
 				return;
 			}
+
 			Eigen::Quaternionf old_rotation = Eigen::Quaternionf::Identity();
 			data.set_mesh_model_translation();
 			data.set_mesh_translation();
