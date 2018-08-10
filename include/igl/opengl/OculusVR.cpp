@@ -1804,8 +1804,11 @@ void main() {
 			Eigen::Quaternionf old_rotation = Eigen::Quaternionf::Identity();
 			data.set_mesh_model_translation();
 			data.set_mesh_translation();
+			data.mu_trackball_angle.lock();
 			igl::two_axis_valuator_fixed_up(2 * 1000, 2 * 1000, 0.1, old_rotation, 0, 0, thumb_pos.x * 1000, -thumb_pos.y * 1000, data.mesh_trackball_angle); //Multiply width, heigth, x-pos and y-pos with 1000 because function takes ints
-			data.rotate(data.mesh_trackball_angle);
+			data.mu_trackball_angle.unlock();
+			data.rotate();
+
 			Eigen::MatrixXd N_corners;
 			igl::per_corner_normals(data.V, data.F, 50, N_corners);
 			data.set_normals(N_corners);

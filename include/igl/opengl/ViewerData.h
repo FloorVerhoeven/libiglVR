@@ -34,24 +34,17 @@ public:
   ViewerData();
 
   ViewerData& operator = (const ViewerData& other) {
-	 // overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
-	 // base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
-
-	  std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base);
+	  std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base, mu_translations, other.mu_translations, mu_trackball_angle, other.mu_trackball_angle);
 	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
+	  std::lock_guard<std::mutex> self_lock(mu_translations, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu_translations, std::adopt_lock);
+	  std::lock_guard<std::mutex> self_lock(mu_trackball_angle, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu_trackball_angle, std::adopt_lock);
 	  std::lock_guard<std::recursive_mutex> self_lock1(mu_overlay, std::adopt_lock);
 	  std::lock_guard<std::recursive_mutex> other_lock1(other.mu_overlay, std::adopt_lock);
 	  std::lock_guard<std::recursive_mutex> self_lock2(mu_base, std::adopt_lock);
 	  std::lock_guard<std::recursive_mutex> other_lock2(other.mu_base, std::adopt_lock);
-
-	  /*std::lock(mu, other.mu, *overlay_lock.mutex(), *other.overlay_lock.mutex(), *base_data_lock.mutex(), *other.base_data_lock.mutex());
-	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
-	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
-	  std::lock_guard<std::mutex> self_lock1(*overlay_lock.mutex(), std::adopt_lock);
-	  std::lock_guard<std::mutex> other_lock1(*other.overlay_lock.mutex(), std::adopt_lock);
-	  std::lock_guard<std::mutex> self_lock2(*base_data_lock.mutex(), std::adopt_lock);
-	  std::lock_guard<std::mutex> other_lock2(*other.base_data_lock.mutex(), std::adopt_lock);*/
 
 	  V = other.V;
 	  F = other.F;
@@ -115,12 +108,13 @@ public:
   }
 
   ViewerData(const ViewerData& other) {
-	  //overlay_lock = std::unique_lock<std::mutex>(mu_overlay, std::defer_lock);
-	  //base_data_lock = std::unique_lock<std::mutex>(mu_base, std::defer_lock);
-
-	  std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base);
+	  std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base, mu_translations, other.mu_translations, mu_trackball_angle, other.mu_trackball_angle);
 	  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
+	  std::lock_guard<std::mutex> self_lock(mu_translations, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu-translations, std::adopt_lock);  
+	  std::lock_guard<std::mutex> self_lock(mu_trackball_angle, std::adopt_lock);
+	  std::lock_guard<std::mutex> other_lock(other.mu_trackball_angle, std::adopt_lock);
 	  std::lock_guard<std::recursive_mutex> self_lock1(mu_overlay, std::adopt_lock);
 	  std::lock_guard<std::recursive_mutex> other_lock1(other.mu_overlay, std::adopt_lock);
 	  std::lock_guard<std::recursive_mutex> self_lock2(mu_base, std::adopt_lock);
@@ -309,13 +303,14 @@ public:
   // Generates a default grid texture
   IGL_INLINE void grid_texture();
 
-  IGL_INLINE void rotate(Eigen::Quaternionf trackball_rotation);
+  IGL_INLINE void rotate();
+  IGL_INLINE void rotate_points(Eigen::MatrixXd& Points);
 
   mutable std::mutex mu;
+  mutable std::mutex mu_translations;
+  mutable std::mutex mu_trackball_angle;
   mutable std::recursive_mutex mu_overlay;
   mutable std::recursive_mutex mu_base;
-  //mutable std::unique_lock<std::mutex> overlay_lock;
-  //mutable std::unique_lock<std::mutex> base_data_lock;
 
   Eigen::MatrixXd V; // Vertices of the current mesh (#V x 3)
   Eigen::MatrixXi F; // Faces of the mesh (#F x 3)
@@ -466,7 +461,6 @@ namespace igl
       SERIALIZE_MEMBER(show_vertid);
       SERIALIZE_MEMBER(show_faceid);
       SERIALIZE_MEMBER(show_texture);
-	 // SERIALIZE_MEMBER(show_avatar);
       SERIALIZE_MEMBER(point_size);
       SERIALIZE_MEMBER(line_width);
 	  SERIALIZE_MEMBER(overlay_line_width);
