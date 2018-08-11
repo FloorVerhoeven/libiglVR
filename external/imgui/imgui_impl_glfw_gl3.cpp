@@ -408,11 +408,8 @@ void ImGui_ImplGlfwGL3_NewFrame()
     int display_w, display_h;
     glfwGetWindowSize(g_Window, &w, &h);
     glfwGetFramebufferSize(g_Window, &display_w, &display_h);
-    //io.DisplaySize = ImVec2((float)w, (float)h);
-   // io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
-
-	io.DisplaySize = ImVec2(1024.0f, 700.0f);
-	//io.DisplaySize = ImVec2(512.0f,512.0f);
+   
+	io.DisplaySize = ImVec2(1008.0f, 1036.0f);
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
     // Setup time step
@@ -422,23 +419,6 @@ void ImGui_ImplGlfwGL3_NewFrame()
 
 	// Setup inputs
 	// (we already got mouse wheel, keyboard keys & characters from glfw callbacks polled in glfwPollEvents())
-  /*  if (glfwGetWindowAttrib(g_Window, GLFW_FOCUSED))
-	{
-		if (io.WantMoveMouse)
-		{
-			glfwSetCursorPos(g_Window, (double)io.MousePos.x, (double)io.MousePos.y);   // Set mouse position if requested by io.WantMoveMouse flag (used when io.NavMovesTrue is enabled by user and using directional navigation)
-		}
-		else
-		{
-			double mouse_x, mouse_y;
-			glfwGetCursorPos(g_Window, &mouse_x, &mouse_y);
-			io.MousePos = ImVec2((float)mouse_x, (float)mouse_y);
-		}
-	}
-	else
-	{
-		io.MousePos = ImVec2(-FLT_MAX,-FLT_MAX);
-	}*/
 
     for (int i = 0; i < 3; i++)
     {
@@ -498,12 +478,6 @@ void ImGui_ImplGlfwGL3_NewFrame_VR(){
 
 
 	// Setup display size (every frame to accommodate for window resizing)
-	//int w, h;
-	//int display_w, display_h;
-	//glfwGetWindowSize(g_Window, &w, &h);
-	//glfwGetFramebufferSize(g_Window, &display_w, &display_h);
-	//io.DisplaySize = ImVec2((float)w, (float)h);
-	//io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float)display_w / w) : 0, h > 0 ? ((float)display_h / h) : 0);
 	io.DisplaySize = ImVec2((float)g_TexWidth, (float)g_TexHeight);
 	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 

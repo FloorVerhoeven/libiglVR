@@ -67,7 +67,6 @@ public:
 	  labels_positions = other.labels_positions;
 	  labels_strings = other.labels_strings;
 
-	  stroke_points = other.stroke_points;
 	  laser_points = other.laser_points;
 	  hand_point = other.hand_point;
 
@@ -82,7 +81,6 @@ public:
 	  show_overlay = other.show_overlay;
 	  show_overlay_depth = other.show_overlay_depth;
 	  show_texture = other.show_texture;
-	  show_strokes = other.show_strokes;
 	  show_laser = other.show_laser;
 	  show_faces = other.show_faces;
 	  show_lines = other.show_lines;
@@ -93,7 +91,6 @@ public:
 	  point_size = other.point_size;
 	  line_width = other.line_width;
 	  overlay_line_width = other.overlay_line_width;
-	  stroke_line_width = other.stroke_line_width;
 	  laser_line_width = other.laser_line_width;
 	  line_color = other.line_color;
 
@@ -141,7 +138,6 @@ public:
 	  labels_positions = other.labels_positions;
 	  labels_strings = other.labels_strings;
 
-	  stroke_points = other.stroke_points;
 	  laser_points = other.laser_points;
 	  hand_point = other.hand_point;
 
@@ -156,7 +152,6 @@ public:
 	  show_overlay = other.show_overlay;
 	  show_overlay_depth = other.show_overlay_depth;
 	  show_texture = other.show_texture;
-	  show_strokes = other.show_strokes;
 	  show_laser = other.show_laser;
 	  show_faces = other.show_faces;
 	  show_lines = other.show_lines;
@@ -167,7 +162,6 @@ public:
 	  point_size = other.point_size;
 	  line_width = other.line_width;
 	  overlay_line_width = other.overlay_line_width;
-	  stroke_line_width = other.stroke_line_width;
 	  laser_line_width = other.laser_line_width;
 	  line_color = other.line_color;
 
@@ -248,12 +242,6 @@ public:
     const Eigen::MatrixXd& P,
     const Eigen::MatrixXd& C);
   IGL_INLINE void add_points(const Eigen::MatrixXd& P,  const Eigen::MatrixXd& C);
-
-  //Sets linestrip points given a list of strokepoints
-  // Inputs:
-  // SP #SP by 3 (or 2) list of vertex positions
-  IGL_INLINE void set_stroke_points(const Eigen::MatrixXd& SP);
-  IGL_INLINE void add_stroke_points(const Eigen::MatrixXd& SP);
 
   //Sets linestrip points given a list of 2 laser points (start and end)
   // Inputs:
@@ -351,10 +339,6 @@ public:
   // with P the position in global coordinates of the center of the point, and C the color in floating point rgb format
   Eigen::MatrixXd points;
 
-  // Points belonging to curves that are drawn on the scene
-  // Every row contains 3 doubles in the following format: P_x, P_y, P_z, with P the position in global coordinates of the point
-  Eigen::MatrixXd stroke_points;
-
   //Start and end points belonging to laser rays that are drawn on the scene
   Eigen::MatrixXd laser_points;
   Eigen::MatrixXd hand_point;
@@ -375,20 +359,17 @@ public:
   bool show_overlay;
   bool show_overlay_depth;
   bool show_texture;
-  bool show_strokes;
   bool show_laser;
   bool show_faces;
   bool show_lines;
   bool show_vertid;
   bool show_faceid;
- // bool show_avatar;
   bool invert_normals;
 
   // Point size / line width
   float point_size;
   float line_width;
   float overlay_line_width;
-  float stroke_line_width;
   float laser_line_width;
   Eigen::Vector4f line_color;
 
@@ -446,25 +427,22 @@ namespace igl
       SERIALIZE_MEMBER(points);
       SERIALIZE_MEMBER(labels_positions);
       SERIALIZE_MEMBER(labels_strings);
-	  SERIALIZE_MEMBER(stroke_points);
 	  SERIALIZE_MEMBER(laser_points);
 	  SERIALIZE_MEMBER(hand_point);
       SERIALIZE_MEMBER(dirty);
       SERIALIZE_MEMBER(face_based);
-      SERIALIZE_MEMBER(show_faces);
-      SERIALIZE_MEMBER(show_lines);
-	  SERIALIZE_MEMBER(show_strokes);
-	  SERIALIZE_MEMBER(show_laser);
-      SERIALIZE_MEMBER(invert_normals);
       SERIALIZE_MEMBER(show_overlay);
       SERIALIZE_MEMBER(show_overlay_depth);
+	  SERIALIZE_MEMBER(show_texture);
+	  SERIALIZE_MEMBER(show_laser);
+	  SERIALIZE_MEMBER(show_faces);
+	  SERIALIZE_MEMBER(show_lines);
       SERIALIZE_MEMBER(show_vertid);
       SERIALIZE_MEMBER(show_faceid);
-      SERIALIZE_MEMBER(show_texture);
+	  SERIALIZE_MEMBER(invert_normals);
       SERIALIZE_MEMBER(point_size);
       SERIALIZE_MEMBER(line_width);
 	  SERIALIZE_MEMBER(overlay_line_width);
-	  SERIALIZE_MEMBER(stroke_line_width);
 	  SERIALIZE_MEMBER(laser_line_width);
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);

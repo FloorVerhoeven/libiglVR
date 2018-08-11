@@ -290,27 +290,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	if (data.show_strokes) {
-		if (data.stroke_points.rows() > 0) {
-			data.meshgl.bind_stroke();
-			modeli = glGetUniformLocation(data.meshgl.shader_stroke_points, "model");
-			viewi = glGetUniformLocation(data.meshgl.shader_stroke_points, "view");
-			proji = glGetUniformLocation(data.meshgl.shader_stroke_points, "proj");
-
-			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
-			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
-			// This must be enabled, otherwise glLineWidth has no effect
-			glEnable(GL_LINE_SMOOTH);
-			glLineWidth(data.stroke_line_width);
-			glPolygonOffset(1.0f, 1.0f);      // Shift depth values
-			glEnable(GL_POLYGON_OFFSET_LINE);
-		
-			data.meshgl.draw_stroke();
-			glDisable(GL_POLYGON_OFFSET_LINE);
-		}
-	}
-
 	if (data.show_laser) {
 		glEnable(GL_DEPTH_TEST);
 

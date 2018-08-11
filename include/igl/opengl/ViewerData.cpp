@@ -27,12 +27,10 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 	show_vertid(false),
 	show_faceid(false),
 	show_texture(false),
-	show_strokes(true),
 	show_laser(true),
 	point_size(30),
 	line_width(0.5f),
 	overlay_line_width(1.6f),
-	stroke_line_width(1.6f),
 	laser_line_width(1.6f),
 	line_color(0, 0, 0, 1),
 	shininess(35.0f),
@@ -309,35 +307,6 @@ IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P, co
 	dirty |= MeshGL::DIRTY_OVERLAY_POINTS;
 }
 
-IGL_INLINE void igl::opengl::ViewerData::set_stroke_points(const Eigen::MatrixXd& SP) {
-	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
-
-	stroke_points.resize(0, 0);
-	add_stroke_points(SP); //Will take care of unlocking
-}
-
-IGL_INLINE void igl::opengl::ViewerData::add_stroke_points(const Eigen::MatrixXd& SP) {
-	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
-
-
-	Eigen::MatrixXd SP_temp;
-
-	//If Sp only has 2 columns, pad with a zero column
-	if (SP.cols() == 2) {
-		SP_temp = Eigen::MatrixXd::Zero(SP.rows(), 3);
-		SP_temp.block(0, 0, SP.rows(), 2) = SP;
-	}
-	else {
-		SP_temp = SP;
-	}
-	int lastid = stroke_points.rows();
-	stroke_points.conservativeResize(stroke_points.rows() + SP_temp.rows(), 3);
-	for (unsigned i = 0; i < SP_temp.rows(); ++i) {
-		stroke_points.row(lastid + i) << SP_temp.row(i);
-	}
-	dirty |= MeshGL::DIRTY_STROKE;
-}
-
 IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
 	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
 
@@ -507,7 +476,6 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
 	lines = Eigen::MatrixXd(0, 9);
 	points = Eigen::MatrixXd(0, 6);
 	labels_positions = Eigen::MatrixXd(0, 3);
-	stroke_points = Eigen::MatrixXd(0, 3);
 	laser_points = Eigen::MatrixXd(0, 3);
 	hand_point = Eigen::MatrixXd(0, 3);
 	mesh_trackball_angle = Eigen::Quaternionf::Identity();
@@ -857,16 +825,6 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 			meshgl.points_V_vbo.row(i) = data.points.block<1, 3>(i, 0).cast<float>();
 			meshgl.points_V_colors_vbo.row(i) = data.points.block<1, 3>(i, 3).cast<float>();
 			meshgl.points_F_vbo(i) = i;
-		}
-	}
-
-	if (meshgl.dirty & MeshGL::DIRTY_STROKE)
-	{
-		meshgl.stroke_points_V_vbo.resize(data.stroke_points.rows(), 3);
-		meshgl.stroke_points_F_vbo.resize(data.stroke_points.rows(), 1);
-		for (unsigned i = 0; i < data.stroke_points.rows(); ++i) {
-			meshgl.stroke_points_V_vbo.row(i) = data.stroke_points.block<1, 3>(i, 0).transpose().cast<float>();
-			meshgl.stroke_points_F_vbo(i) = i;
 		}
 	}
 

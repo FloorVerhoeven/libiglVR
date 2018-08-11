@@ -945,8 +945,8 @@ void main() {
 			ovrTextureSwapChainDesc desc = {};
 			desc.Type = ovrTexture_2D;
 			desc.ArraySize = 1;
-			desc.Width = 1024;
-			desc.Height = 700;
+			desc.Width = 1008;
+			desc.Height = 1040;
 			desc.MipLevels = 1;
 			desc.Format = OVR_FORMAT_R8G8B8A8_UNORM_SRGB;
 			desc.SampleCount = 1;
