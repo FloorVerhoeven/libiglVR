@@ -54,8 +54,6 @@ public:
   GLuint shader_mesh;
   GLuint shader_overlay_lines;
   GLuint shader_overlay_points;
-  GLuint shader_laser_points;
-  GLuint shader_hand_point;
 
   GLuint vbo_V; // Vertices of the current mesh (#V x 3)
   GLuint vbo_V_uv; // UV coordinates for the current mesh (#V x 2)

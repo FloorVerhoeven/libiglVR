@@ -266,7 +266,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
-			//glEnable(GL_POINT_SMOOTH);
 			glPointSize(data.point_size);
 
 			data.meshgl.draw_overlay_points();
@@ -274,14 +273,14 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 		if (data.hand_point.rows() > 0) {
 			data.meshgl.bind_hand_point();
-			modeli = glGetUniformLocation(data.meshgl.shader_hand_point, "model");
-			viewi = glGetUniformLocation(data.meshgl.shader_hand_point, "view");
-			proji = glGetUniformLocation(data.meshgl.shader_hand_point, "proj");
+			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
+			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
+			proji = glGetUniformLocation(data.meshgl.shader_overlay_points, "proj");
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
-			//glEnable(GL_POINT_SMOOTH);
+
 			glPointSize(data.point_size);
 
 			data.meshgl.draw_hand_point();
@@ -295,9 +294,10 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 		if (data.laser_points.rows() > 0) {
 			data.meshgl.bind_laser();	
-			modeli = glGetUniformLocation(data.meshgl.shader_laser_points, "model");
-			viewi = glGetUniformLocation(data.meshgl.shader_laser_points, "view");
-			proji = glGetUniformLocation(data.meshgl.shader_laser_points, "proj");
+			modeli = glGetUniformLocation(data.meshgl.shader_overlay_lines, "model");
+			viewi = glGetUniformLocation(data.meshgl.shader_overlay_lines, "view");
+			proji = glGetUniformLocation(data.meshgl.shader_overlay_lines, "proj");
+
 
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
@@ -305,7 +305,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			// This must be enabled, otherwise glLineWidth has no effect
 			glEnable(GL_LINE_SMOOTH);
 			glLineWidth(data.laser_line_width);
-
 
 			data.meshgl.draw_laser();
 		}

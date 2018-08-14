@@ -161,11 +161,10 @@ IGL_INLINE void igl::opengl::MeshGL::bind_laser() {
 	bool is_dirty = dirty & MeshGL::DIRTY_LASER;
 
 	glBindVertexArray(vao_laser_points);
-	glUseProgram(shader_laser_points);
-	//glUseProgram(shader_overlay_lines);
+	glUseProgram(shader_overlay_lines);
 
-	bind_vertex_attrib_array(shader_overlay_points,"position", vbo_laser_points_V, laser_points_V_vbo, is_dirty);
-	bind_vertex_attrib_array(shader_overlay_points, "color", vbo_laser_V_colors, laser_V_colors_vbo, is_dirty);
+	bind_vertex_attrib_array(shader_overlay_lines,"position", vbo_laser_points_V, laser_points_V_vbo, is_dirty);
+	bind_vertex_attrib_array(shader_overlay_lines, "color", vbo_laser_V_colors, laser_V_colors_vbo, is_dirty);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_laser_points_F);
 	if (is_dirty) {
@@ -180,9 +179,9 @@ IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 	bool is_dirty = dirty & MeshGL::DIRTY_HAND_POINT;
 
 	glBindVertexArray(vao_hand_point);  
-	glUseProgram(shader_hand_point);
-	bind_vertex_attrib_array(shader_hand_point, "position", vbo_hand_point_V, hand_point_V_vbo, is_dirty);
-	bind_vertex_attrib_array(shader_hand_point,"color", vbo_hand_point_V_colors, hand_point_V_colors_vbo, is_dirty);
+	glUseProgram(shader_overlay_points);
+	bind_vertex_attrib_array(shader_overlay_points, "position", vbo_hand_point_V, hand_point_V_vbo, is_dirty);
+	bind_vertex_attrib_array(shader_overlay_points,"color", vbo_hand_point_V_colors, hand_point_V_colors_vbo, is_dirty);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_hand_point_F);
 
@@ -332,22 +331,6 @@ R"(#version 150
   }
 )";
 
-  std::string laser_vertex_shader_string =
-	  R"(#version 150
-	  uniform mat4 model;
-	  uniform mat4 view;
-	  uniform mat4 proj;
-	  in vec3 position;
-	  in vec3 color;
-	  out vec3 color_frag;
-
-	  void main()
-	  {
-	    gl_Position = proj * view * model * vec4 (position, 1.0);
-	    color_frag = color;
-	  }
-)";
-
   std::string overlay_fragment_shader_string =
 R"(#version 150
   in vec3 color_frag;
@@ -370,38 +353,6 @@ R"(#version 150
   }
 )"; 
 
-//Note: removed part that discards points that are on a coordinate that ain't big enough (otherwise it won't draw anything)
-  /*std::string overlay_point_fragment_shader_string =
-	  R"(#version 150
-	  in vec3 color_frag;
-	  out vec4 outColor;
-	  void main()
-	  {
-	    outColor = vec4(color_frag, 1.0);
-	  }
-)";*/
-
-  std::string overlay_laser_fragment_shader_string =
-
-	  R"(#version 150
-	  in vec3 color_frag;
-	  out vec4 outColor;
-	  void main()
-	  {
-	    outColor = vec4(color_frag, 1.0);
-	  }
-)";
-
-  std::string hand_fragment_shader_string =
-	  R"(#version 150
-	  in vec3 color_frag;
-	  out vec4 outColor;
-	  void main()
-	  {
-	    outColor = vec4(color_frag, 1.0);
-	  }
-)";
-
   init_buffers();
   create_shader_program(
     mesh_vertex_shader_string,
@@ -418,16 +369,6 @@ R"(#version 150
     overlay_point_fragment_shader_string,
     {},
     shader_overlay_points);
-  create_shader_program(
-	  laser_vertex_shader_string,
-	  overlay_laser_fragment_shader_string,
-	  {},
-	  shader_laser_points);
-  create_shader_program(
-	  overlay_vertex_shader_string,
-	  hand_fragment_shader_string,
-	  {},
-	  shader_hand_point);
 }
 
 IGL_INLINE void igl::opengl::MeshGL::free()
@@ -446,8 +387,6 @@ IGL_INLINE void igl::opengl::MeshGL::free()
     free(shader_mesh);
     free(shader_overlay_lines);
     free(shader_overlay_points);
-	free(shader_laser_points);
-	free(shader_hand_point);
     free_buffers();
   }
 }
