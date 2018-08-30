@@ -47,10 +47,6 @@ protected:
   };
   QuadData quad;
 
-  const std::string oculus_gui_vertex_shader = "../src/oculus_gui_vs.glsl"; //TODO: document that user has to include these in the src folder
-  const std::string oculus_gui_fragment_shader = "../src/oculus_gui_fs.glsl";
-  GLuint oculus_gui_shader_program = -1;
-  Eigen::Matrix4f oculus_proj, oculus_view, oculus_model;
   bool oculus = false, active = false;
 
 public:

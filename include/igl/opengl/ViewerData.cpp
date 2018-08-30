@@ -55,9 +55,7 @@ IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
 
 IGL_INLINE void igl::opengl::ViewerData::set_mesh_translation() {
 	std::unique_lock<std::mutex> lck(mu_translations);
-	Eigen::RowVector3d min_point = V.colwise().minCoeff();
-	Eigen::RowVector3d max_point = V.colwise().maxCoeff();
-	mesh_translation = -(0.5*(min_point + max_point)).eval().cast<float>();
+	mesh_translation = -V.colwise().mean().eval().cast<float>();
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_mesh_model_translation() {
