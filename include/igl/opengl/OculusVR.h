@@ -75,7 +75,6 @@ public:
 			IGL_INLINE Eigen::Vector3f to_Eigen(OVR::Vector3f& vec);
 			IGL_INLINE Eigen::Matrix4f to_Eigen(OVR::Matrix4f& mat);
 
-			IGL_INLINE Eigen::Vector3f get_last_eye_origin();
 			IGL_INLINE Eigen::Vector3f get_right_touch_direction();
 			IGL_INLINE Eigen::Matrix4f get_start_action_view();
 			IGL_INLINE void set_start_action_view(Eigen::Matrix4f new_start_action_view);

@@ -137,10 +137,6 @@ namespace igl {
 			ovr_RecenterTrackingOrigin(session);
 
 			on_render_start();
-			OVR::Vector3f eyePos = EyeRenderPose[1].Position;
-			eye_pos_lock.lock();
-			current_eye_origin = to_Eigen(eyePos);
-			eye_pos_lock.unlock();
 
 			for (int i = 0; i < hapticBufferSize; i++) {
 				hapticBuffer[i] = (unsigned char)0;
@@ -554,6 +550,7 @@ void main() {
 		IGL_INLINE void OculusVR::handle_input(std::atomic<bool>& update_screen_while_computing, ViewerData& data) {
 			ovr_GetSessionStatus(session, &sessionStatus);
 			if (sessionStatus.ShouldRecenter) {
+				ovr_RecenterTrackingOrigin(session);
 				request_recenter();
 			}
 			displayMidpointSeconds = ovr_GetPredictedDisplayTime(session, 0);
@@ -1592,12 +1589,7 @@ void main() {
 		}
 
 		IGL_INLINE void OculusVR::request_recenter() {
-			ovr_RecenterTrackingOrigin(session);
 			on_render_start();
-			OVR::Vector3f eyePos = EyeRenderPose[1].Position;
-			eye_pos_lock.lock();
-			current_eye_origin = to_Eigen(eyePos);
-			eye_pos_lock.unlock();
 		}
 
 		IGL_INLINE void OculusVR::navigate(ovrVector2f& thumb_pos, ViewerData& data) {
@@ -1640,11 +1632,6 @@ void main() {
 
 		IGL_INLINE int OculusVR::eyeTextureHeight() {
 			return eye_buffers[0]->eyeTextureSize.h;
-		}
-
-		IGL_INLINE Eigen::Vector3f OculusVR::get_last_eye_origin() {
-			std::lock_guard<std::mutex> guard1(mu_last_eye_origin);
-			return current_eye_origin;
 		}
 
 		IGL_INLINE Eigen::Vector3f OculusVR::get_right_touch_direction() {
