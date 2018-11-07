@@ -505,7 +505,6 @@ void main() {
 
 		IGL_INLINE bool OculusVR::init_VR_buffers(int window_width, int window_height) {
 			for (int eye = 0; eye < 2; eye++) {
-				eye_buffers_floor[eye] = new OVR_buffer(session, eye);
 				eye_buffers[eye] = new OVR_buffer(session, eye);
 				hand_buffers[eye] = new OVR_buffer(session, eye);
 				laser_buffers[eye] = new OVR_buffer(session, eye);
@@ -702,7 +701,7 @@ void main() {
 					if (menu_active) {
 						eye_buffers[eye]->OnRender();
 						for (int i = 0; i < data_list.size() - 2; i++) {
-							core.draw(data_list[i], true, true, view, proj); //Only draw the floor mesh (and not the user-created mesh) when the menu is active to prevent stereo-fighting
+							core.draw(data_list[i], true, true, view, proj); //Don't draw the user-created mesh when the menu is active to prevent stereo-fighting
 						}
 						eye_buffers[eye]->OnRenderFinish();
 
@@ -725,15 +724,12 @@ void main() {
 						ovr_CommitTextureSwapChain(session, hand_buffers[eye]->swapTextureChain);
 					}
 					else {
-						eye_buffers_floor[eye]->OnRender();
-						core.draw(data_list[0], true, true, view, proj);
-						eye_buffers_floor[eye]->OnRenderFinish();
 
 						GLfloat prev_clear_color[4];
 						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
 						glClearColor(0, 0, 0, 0);
 						eye_buffers[eye]->OnRender();
-						for (int i = 1; i < data_list.size(); i++) {
+						for (int i = 0; i < data_list.size(); i++) {
 							core.draw(data_list[i], true, true, view, proj);
 						}
 						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
@@ -743,7 +739,6 @@ void main() {
 						glClearColor(prev_clear_color[0], prev_clear_color[1], prev_clear_color[2], prev_clear_color[3]);
 
 						ovr_CommitTextureSwapChain(session, eye_buffers[eye]->swapTextureChain);
-						ovr_CommitTextureSwapChain(session, eye_buffers_floor[eye]->swapTextureChain);
 
 					}
 				}
@@ -967,11 +962,9 @@ void main() {
 
 		IGL_INLINE void OculusVR::submit_frame() {
 			// create the main eye layer
-			ovrLayerEyeFov eyeLayer, floorLayer, handLayer, laserLayer;
+			ovrLayerEyeFov eyeLayer, handLayer, laserLayer;
 			eyeLayer.Header.Type = ovrLayerType_EyeFov;
-			eyeLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
-			floorLayer.Header.Type = ovrLayerType_EyeFov;
-			floorLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
+			eyeLayer.Header.Flags = ovrLayerFlag_HighQuality | ovrLayerFlag_TextureOriginAtBottomLeft;   // Because OpenGL.
 			handLayer.Header.Type = ovrLayerType_EyeFov;
 			handLayer.Header.Flags = ovrLayerFlag_TextureOriginAtBottomLeft;
 			laserLayer.Header.Type = ovrLayerType_EyeFov;
@@ -983,12 +976,6 @@ void main() {
 				eyeLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
 				eyeLayer.RenderPose[eye] = EyeRenderPose[eye];
 				eyeLayer.SensorSampleTime = sensorSampleTime;
-
-				floorLayer.ColorTexture[eye] = eye_buffers_floor[eye]->swapTextureChain;
-				floorLayer.Viewport[eye] = OVR::Recti(eye_buffers_floor[eye]->eyeTextureSize);
-				floorLayer.Fov[eye] = hmdDesc.DefaultEyeFov[eye];
-				floorLayer.RenderPose[eye] = EyeRenderPose[eye];
-				floorLayer.SensorSampleTime = sensorSampleTime;
 
 				handLayer.ColorTexture[eye] = hand_buffers[eye]->swapTextureChain;
 				handLayer.Viewport[eye] = OVR::Recti(hand_buffers[eye]->eyeTextureSize);
@@ -1064,11 +1051,10 @@ void main() {
 
 
 				//We use a merged hand & mesh layer when the menu is disabled, to allow for depth testing between them
-				ovrLayerHeader* layerList[3];
-				layerList[0] = &floorLayer.Header;
-				layerList[1] = &hudLayer.Header;
-				layerList[2] = &eyeLayer.Header;
-				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 3);
+				ovrLayerHeader* layerList[2];
+				layerList[0] = &hudLayer.Header;
+				layerList[1] = &eyeLayer.Header;
+				ovrResult result = ovr_SubmitFrame(session, 0, &viewScaleDesc, layerList, 2);
 			}
 
 		}
