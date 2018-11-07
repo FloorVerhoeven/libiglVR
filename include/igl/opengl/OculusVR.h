@@ -121,8 +121,11 @@ private:
 			struct OVR_buffer {
 				IGL_INLINE OVR_buffer(const ovrSession &session, int eyeIdx);
 				IGL_INLINE OVR_buffer(const ovrSession &session);
+				IGL_INLINE void SetupMSAA();
 				IGL_INLINE void OnRender();
+				IGL_INLINE void OnRenderMSAA();
 				IGL_INLINE void OnRenderFinish();
+				IGL_INLINE void OnRenderFinishMSAA();
 				IGL_INLINE void OnRenderHud();
 				IGL_INLINE void OnRenderFinishHud();
 
@@ -130,6 +133,10 @@ private:
 				GLuint     eyeFbo = 0;
 				GLuint     eyeTexId = 0;
 				GLuint     depthBuffer = 0;
+
+				GLuint MSAAEyeFbo = 0; //Framebuffer for MSAA texture
+				GLuint eyeTexMSAA = 0; //Color texture for MSAA
+				GLuint depthTexMSAA = 0; //Depth texture for MSAA
 
 				ovrTextureSwapChain swapTextureChain = nullptr;
 			};

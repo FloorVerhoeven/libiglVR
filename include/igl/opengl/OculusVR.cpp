@@ -62,6 +62,8 @@ namespace igl {
 		static float _elapsedSeconds;
 		static ovrHapticsBuffer _hapticBuffer;
 
+		static bool MSAA_on = true;
+
 
 		IGL_INLINE void OculusVR::init() {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
@@ -75,7 +77,7 @@ namespace igl {
 
 			// Initialize the OVR Platform module
 			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(APP_ID))) {
-				std::cout << "Something went wrong when initializing Oculus Platform" << std::endl;
+				std::cerr << "Something went wrong when initializing Oculus Platform" << std::endl;
 				FAIL("Failed to initialize the Oculus platform");
 			}
 			ovr_Entitlement_GetIsViewerEntitled();
@@ -105,13 +107,13 @@ namespace igl {
 
 			// Create OVR Session Object
 			if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
-				std::cout << "Something went wrong when initializing Oculus session" << std::endl;
+				std::cerr << "Something went wrong when initializing Oculus session" << std::endl;
 				FAIL("Failed to initialize the Oculus SDK");
 			}
 
 			//create OVR session & HMD-description
 			if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
-				std::cout << "Something went wrong when creating the session and HMD. Check if it is connected and whether Oculus needs an update. " << std::endl;
+				std::cerr << "Something went wrong when creating the session and HMD. Check if it is connected and whether Oculus needs an update. " << std::endl;
 				FAIL("Unable to create HMD session");
 			}
 
@@ -699,7 +701,9 @@ void main() {
 
 					if (menu_active) {
 						eye_buffers[eye]->OnRender();
-						core.draw(data_list[0], true, true, view, proj); //Only draw the floor mesh (and not the user-created mesh) when the menu is active to prevent stereo-fighting
+						for (int i = 0; i < data_list.size() - 2; i++) {
+							core.draw(data_list[i], true, true, view, proj); //Only draw the floor mesh (and not the user-created mesh) when the menu is active to prevent stereo-fighting
+						}
 						eye_buffers[eye]->OnRenderFinish();
 
 						GLfloat prev_clear_color[4];
@@ -744,12 +748,12 @@ void main() {
 					}
 				}
 
-					hud_buffer->OnRenderHud();
-					gui->pre_draw();
-					gui->post_draw();
-					hud_buffer->OnRenderFinishHud();
+				hud_buffer->OnRenderHud();
+				gui->pre_draw();
+				gui->post_draw();
+				hud_buffer->OnRenderFinishHud();
 
-					ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
+				ovr_CommitTextureSwapChain(session, hud_buffer->swapTextureChain);
 				
 				submit_frame();
 				blit_mirror();
@@ -801,6 +805,8 @@ void main() {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, eyeTextureSize.w, eyeTextureSize.h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+
+			SetupMSAA();
 		}
 
 		IGL_INLINE OculusVR::OVR_buffer::OVR_buffer(const ovrSession &session) {
@@ -838,24 +844,108 @@ void main() {
 			glGenFramebuffers(1, &eyeFbo);
 		}
 
+		IGL_INLINE void OculusVR::OVR_buffer::SetupMSAA() {
+			glGenFramebuffers(1, &MSAAEyeFbo);
+
+			//Create color MSAA texture
+			int samples = 4;
+			int mipcount = 1;
+
+			glGenTextures(1, &eyeTexMSAA);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, eyeTexMSAA);
+
+			if (glGetError() != GL_NO_ERROR) {
+				std::cerr << "Could not create MSAA texture";
+			}
+
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_RGBA, eyeTextureSize.w, eyeTextureSize.h, false);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+			// linear filter
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, mipcount - 1);
+
+			// create MSAA depth buffer
+			glGenTextures(1, &depthTexMSAA);
+			glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, depthTexMSAA);
+
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, GL_DEPTH_COMPONENT, eyeTextureSize.w,  eyeTextureSize.h, false);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAX_LEVEL, mipcount - 1);
+
+			if (glGetError() != GL_NO_ERROR) {
+				std::cerr << "MSAA setup failed";
+			}
+		}
+
 		IGL_INLINE void OculusVR::OVR_buffer::OnRender() {
 			int currentIndex;
 			ovr_GetTextureSwapChainCurrentIndex(session, swapTextureChain, &currentIndex);
 			ovr_GetTextureSwapChainBufferGL(session, swapTextureChain, currentIndex, &eyeTexId);
 
+			if (MSAA_on) {
+				OnRenderMSAA();
+			}
+			else {
+				// Switch to eye render target
+				glBindFramebuffer(GL_FRAMEBUFFER, eyeFbo);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eyeTexId, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
+				glViewport(0, 0, eyeTextureSize.w, eyeTextureSize.h);
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glEnable(GL_FRAMEBUFFER_SRGB);
+			}
+		}
+
+		IGL_INLINE void OculusVR::OVR_buffer::OnRenderMSAA() {
 			// Switch to eye render target
-			glBindFramebuffer(GL_FRAMEBUFFER, eyeFbo);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eyeTexId, 0);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
+			glBindFramebuffer(GL_FRAMEBUFFER, MSAAEyeFbo);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, eyeTexMSAA, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D_MULTISAMPLE, depthTexMSAA, 0);
 			glViewport(0, 0, eyeTextureSize.w, eyeTextureSize.h);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			glEnable(GL_FRAMEBUFFER_SRGB);
 		}
 
 		IGL_INLINE void OculusVR::OVR_buffer::OnRenderFinish() {
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+			if (MSAA_on) {
+				OnRenderFinishMSAA();
+			}
+			else {
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+				glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			}
+		}
+
+		IGL_INLINE void OculusVR::OVR_buffer::OnRenderFinishMSAA() {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, MSAAEyeFbo);
+			glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, eyeTexMSAA, 0);
+			glFramebufferRenderbuffer(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
+
+			if (glCheckFramebufferStatus(GL_READ_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+				std::cerr << "Could not complete framebuffer operation";
+			}
+
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, eyeFbo);
+			glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, eyeTexId, 0);
+			glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, 0);
+
+			if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+				"Could not complete framebuffer operation";
+			}
+
+			glBlitFramebuffer(0, 0, eyeTextureSize.w, eyeTextureSize.h,
+				0, 0, eyeTextureSize.w, eyeTextureSize.h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
+
 
 		IGL_INLINE void OculusVR::OVR_buffer::OnRenderHud() {
 			int currentIndex;
