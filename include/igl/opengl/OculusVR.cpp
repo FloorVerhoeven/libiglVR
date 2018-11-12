@@ -51,6 +51,9 @@ namespace igl {
 
 		static float menu_z_pos = -1.50f;
 		static float pixels_to_meter = 0.001013f; //Transform factor for going from pixels to meters in Oculus
+		static Eigen::RowVector3d active_color(0.73, 0.42, 0.06);// (0.4, 0.8, 0); //green
+		static Eigen::RowVector3d inactive_color(0.5, 0.5, 0.5);
+		static Eigen::RowVector3d menu_color(0.15, 0.39, 0.48);
 
 		static ovrAvatar* _avatar;
 		static bool _combineMeshes = true;
@@ -945,7 +948,6 @@ void main() {
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 
-
 		IGL_INLINE void OculusVR::OVR_buffer::OnRenderHud() {
 			int currentIndex;
 			ovr_GetTextureSwapChainCurrentIndex(session, swapTextureChain, &currentIndex);
@@ -1117,15 +1119,18 @@ void main() {
 		IGL_INLINE void OculusVR::update_laser(ViewerData& laser_data, bool update_screen_while_computing) {
 			Eigen::Vector3d hand_pos = (world*local*index_top_pose).topRows(3).cast<double>();
 			Eigen::Vector3d hand_dir = get_right_touch_direction().cast<double>();
-			Eigen::RowVector3d active_color(0.4, 0.8, 0);
-			Eigen::RowVector3d inactive_color(0.5, 0.5, 0.5);
-
+		
 			//Always set the hand point
 			if (update_screen_while_computing) {
 				laser_data.set_hand_point(hand_pos.transpose(), inactive_color);
 			}
 			else {
-				laser_data.set_hand_point(hand_pos.transpose(), active_color);
+				if (menu_active) {
+					laser_data.set_hand_point(hand_pos.transpose(), menu_color);
+				}
+				else {
+					laser_data.set_hand_point(hand_pos.transpose(), active_color);
+				}
 			}
 
 			if (laser_data.show_laser) {
@@ -1142,7 +1147,7 @@ void main() {
 				}
 				else {
 					if (menu_intersect_pt.isZero()) {
-						LP.row(1) = (hand_pos + -0.8*menu_z_pos * hand_dir).transpose();
+						LP.row(1) = (hand_pos + -0.8*menu_z_pos * hand_dir).transpose(); //Can't test for intersection with the scene due to stereo-fighting when pointing behind the menu from underneath
 					}
 					else {
 						LP.row(1) = menu_intersect_pt.transpose();
@@ -1152,6 +1157,11 @@ void main() {
 				if (update_screen_while_computing) {
 					laser_color.row(0) = inactive_color;
 					laser_color.row(1) = inactive_color;
+				}
+				else if (menu_active) {
+					laser_color.row(0) = menu_color;
+					laser_color.row(1) = menu_color;
+					laser_data.add_hand_point(LP.row(1), menu_color);
 				}
 				else {
 					laser_color.row(0) = active_color;

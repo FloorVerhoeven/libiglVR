@@ -28,7 +28,7 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 	show_faceid(false),
 	show_texture(false),
 	show_laser(true),
-	point_size(30),
+	point_size(15),
 	line_width(0.5f),
 	overlay_line_width(1.6f),
 	laser_line_width(1.6f),
