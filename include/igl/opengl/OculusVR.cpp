@@ -603,7 +603,7 @@ void main() {
 					head_rot_tmp.normalize();
 					Eigen::Matrix3d head_rot = head_rot_tmp.toRotationMatrix().cast<double>();
 					set_menu_3D_mouse(hand_pos, right_touch_direction, head_rot, menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
-					if (prev_press == TRIG || prev_press == B) {
+					if (prev_press == TRIG || prev_press == A) {
 						if (prev_press == prev_unsent) {
 							return;
 						}
@@ -611,31 +611,31 @@ void main() {
 						prev_unsent = prev_press;
 						return;
 					}
-					else if (prev_press == A) { //Click to close GUI
-						if (prev_unsent == A) {
+					else if (prev_press == B) { //Click to close GUI
+						if (prev_unsent == B) {
 							return;
 						}
 						callback_menu_closed();
 						count = 1;
-						prev_unsent = A;
+						prev_unsent = B;
 						return;
 					}
 				}
-				else if (!menu_active && prev_press == A) { //Bring up the menu
-					if (prev_unsent == A) {
+				else if (!menu_active && prev_press == B) { //Bring up the menu
+					if (prev_unsent == B) {
 						return;
 					}
 					callback_menu_opened();
 					count = 1;
-					prev_unsent = A;
+					prev_unsent = B;
 					//TODO: check whether to return or proceed to below
 					return;
 				}
-				else if (!menu_active && prev_press == B) { //Don't want B to be sent through
+			/*	else if (!menu_active && prev_press == A) { //Don't want A to be sent through
 					callback_button_down(prev_press, hand_pos); //TODO: REMOVE THIS. Useful for testing smoothing
 					count = 1;
 					return;
-				}
+				}*/
 				else if (prev_press == TRIG && prev_unsent == TRIG) { //We just closed the menu but did not release the trigger button (yet). Do not go straight to action mode but ignore
 					return;
 				}
