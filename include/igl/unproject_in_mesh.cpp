@@ -26,7 +26,7 @@ template < typename Derivedobj>
 {
   using namespace std;
   using namespace Eigen;
-  Vector3f s,dir;
+  Eigen::Vector3f s,dir;
   unproject_ray(pos,model,proj,viewport,s,dir);
   shoot_ray(s,dir,hits);
   switch(hits.size())
@@ -41,7 +41,7 @@ template < typename Derivedobj>
     case 2:
     default:
     {
-      obj = 0.5*((s + dir*hits[0].t) + (s + dir*hits[1].t)).cast<typename Derivedobj::Scalar>();
+      obj = 0.5f*((s + dir*hits[0].t) + (s + dir*hits[1].t)).cast<typename Derivedobj::Scalar>();
       break;
     }
   }
