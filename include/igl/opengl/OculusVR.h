@@ -58,8 +58,8 @@ public:
 			IGL_INLINE void render_avatar(ovrAvatar* avatar, uint32_t visibilityMask, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints);
 			IGL_INLINE static void _computeWorldPose(const ovrAvatarSkinnedMeshPose& localPose, Eigen::Matrix4f* worldPose);
 			IGL_INLINE static void EigenFromOvrAvatarTransform(const ovrAvatarTransform& transform, Eigen::Matrix4f& target);
-			IGL_INLINE void _setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const AvatarMeshData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos);
-			IGL_INLINE void _renderSkinnedMeshPart(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints);
+			IGL_INLINE void _setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const AvatarMeshData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos, bool left_hand);
+			IGL_INLINE void _renderSkinnedMeshPart(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints, bool left_hand);
 			IGL_INLINE void _setMaterialState(GLuint program, const ovrAvatarMaterialState* state, Eigen::Matrix4f* projectorInv);
 			IGL_INLINE void _setTextureSampler(GLuint program, int textureUnit, const char uniformName[], ovrAvatarAssetID assetID);
 			IGL_INLINE void _setTextureSamplers(GLuint program, const char uniformName[], size_t count, const int textureUnits[], const ovrAvatarAssetID assetIDs[]);
@@ -77,6 +77,7 @@ public:
 
 			IGL_INLINE Eigen::Vector3f get_right_touch_direction();
 			IGL_INLINE Eigen::Matrix4f get_start_action_view();
+			IGL_INLINE Eigen::Vector3f get_left_hand_pos();
 			IGL_INLINE void set_start_action_view(Eigen::Matrix4f new_start_action_view);
 	
 			Eigen::Matrix4f start_action_view;
@@ -89,7 +90,7 @@ public:
 			std::unique_lock<std::mutex> eye_pos_lock;
 			std::unique_lock<std::mutex> touch_dir_lock;
 
-			enum ButtonCombo { A, B, THUMB_MOVE, TRIG, NONE, X, Y};
+			enum ButtonCombo { A, B, THUMB_MOVE, TRIG, NONE, X, Y, GRIPTRIGBOTH};
 
 			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos)> callback_button_down;
 			std::function<void()> callback_menu_opened;
@@ -107,7 +108,8 @@ public:
 			int count;
 			ovrSessionStatus sessionStatus;
 			ovrPosef handPoses[2];
-			Eigen::Vector4f index_top_pose;
+			Eigen::Vector4f index_top_pose_left;
+			Eigen::Vector4f index_top_pose_right;
 			Eigen::Vector4f hand_base_pose;
 			Eigen::Vector4f index_base_pose;
 			ovrInputState inputState;

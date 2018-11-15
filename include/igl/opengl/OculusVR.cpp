@@ -42,7 +42,8 @@ namespace igl {
 		static GLuint _mirrorFbo{ 0 };
 		static GLuint _skinnedMeshProgram;
 	
-		static Eigen::Matrix4f world;
+		static Eigen::Matrix4f world_left_hand;
+		static Eigen::Matrix4f world_right_hand;
 		static Eigen::Matrix4f local;
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
@@ -564,9 +565,8 @@ void main() {
 			handPoses[ovrHand_Left] = hmdState.HandPoses[ovrHand_Left].ThePose;
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
-				Eigen::Vector3f hand_pos;
-				hand_pos = (world*local*index_top_pose).topRows(3);
-
+				Eigen::Vector3f hand_pos = (world_right_hand*local*index_top_pose_right).topRows(3);
+				
 				Eigen::Vector3d menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos))).cast<double>();
 				Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
 				head_rot_tmp.normalize();
@@ -580,7 +580,19 @@ void main() {
 					count = (prev_press == B) ? count + 1 : 1;
 					prev_press = B;
 				}
-				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f) {
+				else if (inputState.Buttons & ovrButton_X) {
+					count = (prev_press == X) ? count + 1 : 1;
+					prev_press = X;
+				}
+				else if (inputState.Buttons & ovrButton_Y) {
+					count = (prev_press == Y) ? count + 1 : 1;
+					prev_press = Y;
+				}
+				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.HandTrigger[ovrHand_Left] >= 0.995f) { //Both the left and right triggers and grips are being pressed
+					count = (prev_press == GRIPTRIGBOTH) ? count + 1 : 1;
+					prev_press = GRIPTRIGBOTH;
+				}
+				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Only the right Trigger is being pressed
 					count = (prev_press == TRIG) ? count + 1 : 1;
 					prev_press = TRIG;
 				}
@@ -640,7 +652,7 @@ void main() {
 					return;
 				}
 
-				//Only TRIG and NONE can come here with count >=3
+				
 				if (count >= 3) { //Only do a callback when we have at least 3 of the same buttonCombos in a row (to prevent doing a GRIP/TRIG action when we were actually starting up a GRIPTRIG)
 					if (prev_press == NONE && prev_press != prev_unsent) {
 						prev_unsent = prev_press; //Update prev_unsent although we are actually sending it. Needs to get wiped out (e.g. with a NONE) before we can toggle the menu again
@@ -1117,7 +1129,7 @@ void main() {
 		}
 
 		IGL_INLINE void OculusVR::update_laser(ViewerData& laser_data, bool update_screen_while_computing) {
-			Eigen::Vector3d hand_pos = (world*local*index_top_pose).topRows(3).cast<double>();
+			Eigen::Vector3d hand_pos = (world_right_hand*local*index_top_pose_right).topRows(3).cast<double>();
 			Eigen::Vector3d hand_dir = get_right_touch_direction().cast<double>();
 		
 			//Always set the hand point
@@ -1479,9 +1491,19 @@ void main() {
 			for (uint32_t i = 0; i < componentCount; ++i)
 			{
 				const ovrAvatarComponent* component = ovrAvatarComponent_Get(avatar, i);
+
 				const bool useCombinedMeshProgram = _combineMeshes && bodyComponent == component;
 				// Compute the transform for this component
+				Eigen::Matrix4f world;
+				bool left_hand = false;
 				EigenFromOvrAvatarTransform(component->transform, world);
+				if (strcmp((*component).name, "hand_left") == 0) {
+					left_hand = true;
+					world_left_hand = world;
+				}
+				else if (strcmp((*component).name, "hand_right") == 0) {
+					world_right_hand = world;
+				}
 				// Render each render part attached to the component
 				for (uint32_t j = 0; j < component->renderPartCount; ++j)
 				{
@@ -1491,7 +1513,7 @@ void main() {
 					{
 					case ovrAvatarRenderPartType_SkinnedMeshRender:
 						//For hands
-						_renderSkinnedMeshPart(ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints);
+						_renderSkinnedMeshPart(ovrAvatarRenderPart_GetSkinnedMeshRender(renderPart), visibilityMask, world, view, proj, viewPos, renderJoints, left_hand);
 						break;
 					case ovrAvatarRenderPartType_SkinnedMeshRenderPBS:
 						//For controllers
@@ -1506,7 +1528,7 @@ void main() {
 			}
 		}
 
-		IGL_INLINE void OculusVR::_renderSkinnedMeshPart(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints)
+		IGL_INLINE void OculusVR::_renderSkinnedMeshPart(const ovrAvatarRenderPart_SkinnedMeshRender* mesh, uint32_t visibilityMask, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f& proj, const Eigen::Vector3f& viewPos, bool renderJoints, bool left_hand)
 		{
 			// If this part isn't visible from the viewpoint we're rendering from, do nothing
 			if ((mesh->visibilityMask & visibilityMask) == 0)
@@ -1519,7 +1541,7 @@ void main() {
 			glUseProgram((GLuint)_skinnedMeshProgram);
 
 			// Apply the vertex state
-			_setMeshState(_skinnedMeshProgram, mesh->localTransform, data, mesh->skinnedPose, world, view, proj, viewPos);
+			_setMeshState(_skinnedMeshProgram, mesh->localTransform, data, mesh->skinnedPose, world, view, proj, viewPos, left_hand);
 
 			// Apply the material state
 			_setMaterialState(_skinnedMeshProgram, &mesh->materialState, nullptr);
@@ -1552,7 +1574,7 @@ void main() {
 
 		}
 
-		IGL_INLINE void OculusVR::_setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const AvatarMeshData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos) {
+		IGL_INLINE void OculusVR::_setMeshState(GLuint program, const ovrAvatarTransform& localTransform, const AvatarMeshData* data, const ovrAvatarSkinnedMeshPose& skinnedPose, const Eigen::Matrix4f& world, const Eigen::Matrix4f& view, const Eigen::Matrix4f proj, const Eigen::Vector3f& viewPos, bool left_hand) {
 			// Compute the final world and viewProjection matrices for this part
 			EigenFromOvrAvatarTransform(localTransform, local);
 			Eigen::Matrix4f worldMat = world * local;
@@ -1560,7 +1582,13 @@ void main() {
 			// Compute the skinned pose
 			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * skinnedPose.jointCount);
 			_computeWorldPose(skinnedPose, skinnedPoses);
-			index_top_pose = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
+			
+			if (left_hand) {
+				index_top_pose_left = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
+			}
+			else {
+				index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
+			}
 			hand_base_pose = Eigen::Vector4f((*(skinnedPoses + hand_base_joint))(0, 3), (*(skinnedPoses + hand_base_joint))(1, 3), (*(skinnedPoses + hand_base_joint))(2, 3), 1);
 			index_base_pose = Eigen::Vector4f((*(skinnedPoses + index_base_joint))(0, 3), (*(skinnedPoses + index_base_joint))(1, 3), (*(skinnedPoses + index_base_joint))(2, 3), 1);
 
@@ -1741,6 +1769,11 @@ void main() {
 		IGL_INLINE Eigen::Matrix4f OculusVR::get_start_action_view() {
 			std::lock_guard<std::mutex> guard1(mu_start_view);
 			return start_action_view;
+		}
+
+		IGL_INLINE Eigen::Vector3f OculusVR::get_left_hand_pos() {
+			Eigen::Vector3f left_pos = (world_left_hand*local*index_top_pose_left).topRows(3);
+			return left_pos;
 		}
 
 		IGL_INLINE void OculusVR::set_start_action_view(Eigen::Matrix4f new_start_action_view) {
