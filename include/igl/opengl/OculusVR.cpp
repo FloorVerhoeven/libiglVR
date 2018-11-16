@@ -607,6 +607,7 @@ void main() {
 
 				touch_dir_lock.lock();
 				right_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Right].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
+				left_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Left].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
 				touch_dir_lock.unlock();
 
 				if (menu_active) { //The menu is open, process input in a special way
@@ -1120,6 +1121,7 @@ void main() {
 
 			touch_dir_lock.lock();
 			right_touch_direction = to_Eigen(OVR::Matrix4f(trackingState.HandPoses[ovrHand_Right].ThePose.Orientation).Transform(OVR::Vector3f(0, 0, -1)));
+			left_touch_direction = to_Eigen(OVR::Matrix4f(trackingState.HandPoses[ovrHand_Left].ThePose.Orientation).Transform(OVR::Vector3f(0, 0, -1)));
 			touch_dir_lock.unlock();
 
 			// Update the avatar pose from the inputs
@@ -1129,10 +1131,18 @@ void main() {
 		}
 
 		IGL_INLINE void OculusVR::update_laser(ViewerData& laser_data, bool update_screen_while_computing) {
-			Eigen::Vector3d hand_pos = (world_right_hand*local*index_top_pose_right).topRows(3).cast<double>();
-			Eigen::Vector3d hand_dir = get_right_touch_direction().cast<double>();
+			Eigen::Vector3d hand_pos, hand_dir;
+			if (right_hand_visible) {
+				hand_pos = (world_right_hand*local*index_top_pose_right).topRows(3).cast<double>();
+				hand_dir = get_right_touch_direction().cast<double>();
+			}
+			else {
+				hand_pos = (world_left_hand*local*index_top_pose_left).topRows(3).cast<double>();
+				hand_dir = get_left_touch_direction().cast<double>();
+			}
 		
-			//Always set the hand point
+			//Normally show the right hand point, but sometimes let SketchMeshVR override this (and then it will set the left hand point there, e.g. for smoothing rub)
+			
 			if (update_screen_while_computing) {
 				laser_data.set_hand_point(hand_pos.transpose(), inactive_color);
 			}
@@ -1144,6 +1154,7 @@ void main() {
 					laser_data.set_hand_point(hand_pos.transpose(), active_color);
 				}
 			}
+			
 
 			if (laser_data.show_laser) {
 				Eigen::MatrixX3d LP(2, 3);
@@ -1764,6 +1775,11 @@ void main() {
 		IGL_INLINE Eigen::Vector3f OculusVR::get_right_touch_direction() {
 			std::lock_guard<std::mutex> guard1(mu_touch_dir);
 			return right_touch_direction;
+		}
+
+		IGL_INLINE Eigen::Vector3f OculusVR::get_left_touch_direction() {
+			std::lock_guard<std::mutex> guard1(mu_touch_dir);
+			return left_touch_direction;
 		}
 
 		IGL_INLINE Eigen::Matrix4f OculusVR::get_start_action_view() {

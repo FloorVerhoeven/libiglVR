@@ -76,12 +76,14 @@ public:
 			IGL_INLINE Eigen::Matrix4f to_Eigen(OVR::Matrix4f& mat);
 
 			IGL_INLINE Eigen::Vector3f get_right_touch_direction();
+			IGL_INLINE Eigen::Vector3f get_left_touch_direction();
 			IGL_INLINE Eigen::Matrix4f get_start_action_view();
 			IGL_INLINE Eigen::Vector3f get_left_hand_pos();
 			IGL_INLINE void set_start_action_view(Eigen::Matrix4f new_start_action_view);
 	
 			Eigen::Matrix4f start_action_view;
 			Eigen::Vector3f right_touch_direction;
+			Eigen::Vector3f left_touch_direction;
 			Eigen::Vector3f current_eye_origin;
 
 			std::mutex mu_start_view;
@@ -100,6 +102,7 @@ public:
 			std::function<void()> callback_GUI_button_release;
 
 			bool menu_active = false;
+			bool right_hand_visible = true;
 
 			//Variables for input handling
 			ButtonCombo prev_press;
