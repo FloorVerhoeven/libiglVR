@@ -644,11 +644,6 @@ void main() {
 					//TODO: check whether to return or proceed to below
 					return;
 				}
-			/*	else if (!menu_active && prev_press == A) { //Don't want A to be sent through
-					callback_button_down(prev_press, hand_pos); //TODO: REMOVE THIS. Useful for testing smoothing
-					count = 1;
-					return;
-				}*/
 				else if (prev_press == TRIG && prev_unsent == TRIG) { //We just closed the menu but did not release the trigger button (yet). Do not go straight to action mode but ignore
 					return;
 				}
