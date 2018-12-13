@@ -92,9 +92,9 @@ public:
 			std::unique_lock<std::mutex> eye_pos_lock;
 			std::unique_lock<std::mutex> touch_dir_lock;
 
-			enum ButtonCombo { A, B, THUMB_MOVE, TRIG, NONE, X, Y, GRIPTRIGBOTH};
+			enum ButtonCombo { A, B, THUMB_MOVE, TRIG_RIGHT, NONE, X, Y, GRIPTRIGBOTH};
 
-			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos)> callback_button_down;
+			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos_left, Eigen::Vector3f& hand_pos_right)> callback_button_down;
 			std::function<void()> callback_menu_opened;
 			std::function<void()> callback_menu_closed;
 			std::function<void(Eigen::Vector2f& mouse_pos)> callback_GUI_set_mouse;
@@ -103,6 +103,7 @@ public:
 
 			bool menu_active = false;
 			bool right_hand_visible = true;
+			bool left_hand_visible = true;
 
 			//Variables for input handling
 			ButtonCombo prev_press;

@@ -565,7 +565,8 @@ void main() {
 			handPoses[ovrHand_Left] = hmdState.HandPoses[ovrHand_Left].ThePose;
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
-				Eigen::Vector3f hand_pos = (world_right_hand*local*index_top_pose_right).topRows(3);
+				Eigen::Vector3f hand_pos_left = (world_left_hand*local*index_top_pose_left).topRows(3);
+				Eigen::Vector3f hand_pos_right = (world_right_hand*local*index_top_pose_right).topRows(3);
 				
 				Eigen::Vector3d menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos))).cast<double>();
 				Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
@@ -593,8 +594,16 @@ void main() {
 					prev_press = GRIPTRIGBOTH;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Only the right Trigger is being pressed
-					count = (prev_press == TRIG) ? count + 1 : 1;
-					prev_press = TRIG;
+					count = (prev_press == TRIG_RIGHT) ? count + 1 : 1;
+					prev_press = TRIG_RIGHT;
+				}
+				else if (inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f) { //Only the left Trigger is being pressed
+				//	count = (prev_press == TRIG_LEFT) ? count + 1 : 1;
+				//	prev_press = TRIG_LEFT;
+				}
+				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Both Triggers are being pressed
+				//	count = (prev_press == TRIG_BOTH) ? count + 1 : 1;
+				//	prev_press = TRIG_BOTH;
 				}
 				else if (inputState.Thumbstick[ovrHand_Right].x > 0.1f || inputState.Thumbstick[ovrHand_Right].x < -0.1f || inputState.Thumbstick[ovrHand_Right].y > 0.1f || inputState.Thumbstick[ovrHand_Right].y < -0.1f) {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
@@ -615,8 +624,8 @@ void main() {
 					Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
 					head_rot_tmp.normalize();
 					Eigen::Matrix3d head_rot = head_rot_tmp.toRotationMatrix().cast<double>();
-					set_menu_3D_mouse(hand_pos, right_touch_direction, head_rot, menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
-					if (prev_press == TRIG || prev_press == A) {
+					set_menu_3D_mouse(hand_pos_right, right_touch_direction, head_rot, menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
+					if (prev_press == TRIG_RIGHT || prev_press == A) {
 						if (prev_press == prev_unsent) {
 							return;
 						}
@@ -644,7 +653,7 @@ void main() {
 					//TODO: check whether to return or proceed to below
 					return;
 				}
-				else if (prev_press == TRIG && prev_unsent == TRIG) { //We just closed the menu but did not release the trigger button (yet). Do not go straight to action mode but ignore
+				else if (prev_press == TRIG_RIGHT && prev_unsent == TRIG_RIGHT) { //We just closed the menu but did not release the trigger button (yet). Do not go straight to action mode but ignore
 					return;
 				}
 
@@ -655,11 +664,11 @@ void main() {
 					}
 					if ((prev_press == NONE && count == 3 && prev_sent != NONE)) {
 						update_screen_while_computing = true;
-						std::thread t1(callback_button_down, prev_press, hand_pos);
+						std::thread t1(callback_button_down, prev_press, hand_pos_left, hand_pos_right);
 						t1.detach();
 					}
 					else {
-						callback_button_down(prev_press, hand_pos);
+						callback_button_down(prev_press, hand_pos_left, hand_pos_right);
 					}
 
 					count = 3; //Avoid overflow
@@ -1126,38 +1135,42 @@ void main() {
 		}
 
 		IGL_INLINE void OculusVR::update_laser(ViewerData& laser_data, bool update_screen_while_computing) {
-			Eigen::Vector3d hand_pos, hand_dir;
+			Eigen::MatrixXd hand_pos(0,3), hand_dir(0,3);
 			if (right_hand_visible) {
-				hand_pos = (world_right_hand*local*index_top_pose_right).topRows(3).cast<double>();
-				hand_dir = get_right_touch_direction().cast<double>();
+				hand_pos.conservativeResize(hand_pos.rows() + 1, Eigen::NoChange);
+				hand_pos.bottomRows(1) = (world_right_hand*local*index_top_pose_right).topRows(3).cast<double>().transpose();
+				hand_dir.conservativeResize(hand_dir.rows() + 1, Eigen::NoChange);
+				hand_dir.bottomRows(1) = get_right_touch_direction().cast<double>().transpose();
 			}
-			else {
-				hand_pos = (world_left_hand*local*index_top_pose_left).topRows(3).cast<double>();
-				hand_dir = get_left_touch_direction().cast<double>();
+			if(left_hand_visible) {
+				hand_pos.conservativeResize(hand_pos.rows() + 1, Eigen::NoChange);
+				hand_pos.bottomRows(1) = (world_left_hand*local*index_top_pose_left).topRows(3).cast<double>().transpose();
+				hand_dir.conservativeResize(hand_dir.rows() + 1, Eigen::NoChange);
+				hand_dir.bottomRows(1) = get_left_touch_direction().cast<double>().transpose();
 			}
 		
 			//Normally show the right hand point, but sometimes let SketchMeshVR override this (and then it will set the left hand point there, e.g. for smoothing rub)
 			
 			if (update_screen_while_computing) {
-				laser_data.set_hand_point(hand_pos.transpose(), inactive_color);
+				laser_data.set_hand_point(hand_pos, inactive_color);
 			}
 			else {
 				if (menu_active) {
-					laser_data.set_hand_point(hand_pos.transpose(), menu_color);
+					laser_data.set_hand_point(hand_pos, menu_color);
 				}
 				else {
-					laser_data.set_hand_point(hand_pos.transpose(), active_color);
+					laser_data.set_hand_point(hand_pos, active_color);
 				}
 			}
 			
-
+			//For the laser we assume that it is only ever displayed when only the right hand is displayed
 			if (laser_data.show_laser) {
 				Eigen::MatrixX3d LP(2, 3);
-				LP.row(0) = hand_pos.transpose();
+				LP.row(0) = hand_pos.row(0);
 
 				if (!menu_active) {
 					if (update_screen_while_computing) {
-						LP.row(1) = hand_pos; //Don't draw a laser while we're computing
+						LP.row(1) = hand_pos.row(0); //Don't draw a laser while we're computing
 					}
 					else {
 						LP.row(1) = laser_data.laser_points.row(1).leftCols(3);
@@ -1165,7 +1178,7 @@ void main() {
 				}
 				else {
 					if (menu_intersect_pt.isZero()) {
-						LP.row(1) = (hand_pos + -0.8*menu_z_pos * hand_dir).transpose(); //Can't test for intersection with the scene due to stereo-fighting when pointing behind the menu from underneath
+						LP.row(1) = (hand_pos.row(0) + -0.8*menu_z_pos * hand_dir.row(0)).transpose(); //Can't test for intersection with the scene due to stereo-fighting when pointing behind the menu from underneath
 					}
 					else {
 						LP.row(1) = menu_intersect_pt.transpose();
@@ -1741,7 +1754,7 @@ void main() {
 			Eigen::MatrixXd N_corners;
 			igl::per_corner_normals(data.V, data.F, 50, N_corners);
 			data.set_normals(N_corners);
-			callback_button_down(THUMB_MOVE, Eigen::Vector3f());
+ 			callback_button_down(THUMB_MOVE, Eigen::Vector3f(), Eigen::Vector3f());
 			prev_sent = THUMB_MOVE;
 		}
 
