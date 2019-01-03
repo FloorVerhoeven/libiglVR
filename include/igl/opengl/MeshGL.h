@@ -41,7 +41,8 @@ public:
     DIRTY_OVERLAY_POINTS = 0x0200,
 	DIRTY_LASER			 = 0x0400,
 	DIRTY_HAND_POINT	 = 0x0800,
-	DIRTY_ALL			 = 0x08FF
+	DIRTY_OVERLAY_STRIP  = 0x0FFF,
+	DIRTY_ALL			 = 0x1000
   };
 
   bool is_initialized = false;
@@ -49,6 +50,7 @@ public:
   GLuint vao_overlay_lines;
   GLuint vao_overlay_points;
   GLuint vao_laser_points;
+  GLuint vao_overlay_strip;
   GLuint vao_hand_point;
 
   GLuint shader_mesh;
@@ -73,7 +75,10 @@ public:
   GLuint vbo_points_V_colors; // Color values of the point overlay
   GLuint vbo_laser_points_F;	  // Indices of the laser overlay
   GLuint vbo_laser_points_V;	  // Vertices of the laser overlay
+  GLuint vbo_overlay_strip_F; //Indices of the linestrip overlay
+  GLuint vbo_overlay_strip_V; //Vertices of the linestrip overlay
   GLuint vbo_laser_V_colors;
+  GLuint vbo_overlay_strip_V_colors;
   GLuint vbo_hand_point_F;
   GLuint vbo_hand_point_V;
   GLuint vbo_hand_point_V_colors;
@@ -95,6 +100,8 @@ public:
 
   RowMatrixXf laser_points_V_vbo;
   RowMatrixXf laser_V_colors_vbo;
+  RowMatrixXf overlay_strip_V_vbo;
+  RowMatrixXf overlay_strip_V_colors_vbo;
   RowMatrixXf hand_point_V_vbo;
   RowMatrixXf hand_point_V_colors_vbo;
 
@@ -106,6 +113,7 @@ public:
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> lines_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> laser_points_F_vbo;
+  Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> overlay_strip_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> hand_point_F_vbo;
 
 
@@ -151,6 +159,12 @@ public:
 
   /// Draw the currently buffered overlay hand marker
   IGL_INLINE void draw_hand_point();
+
+  // Bind the underlying OpenGL buffer objects for subsequent linestrip overlay draw calls
+  IGL_INLINE void bind_overlay_linestrip();
+
+  ///Draw the currently buffered overlay linestrip
+  IGL_INLINE void draw_overlay_linestrip();
 
  // IGL_INLINE void bind_avatar();
 

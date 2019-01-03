@@ -48,6 +48,13 @@ IGL_INLINE void igl::opengl::MeshGL::init_buffers()
   glGenBuffers(1, &vbo_laser_V_colors);
 
 
+  // Linestrip overlay
+  glGenVertexArrays(1, &vao_overlay_strip);
+  glBindVertexArray(vao_overlay_strip);
+  glGenBuffers(1, &vbo_overlay_strip_F);
+  glGenBuffers(1, &vbo_overlay_strip_V);
+  glGenBuffers(1, &vbo_overlay_strip_V_colors);
+
   // Hand marker overlay
   glGenVertexArrays(1, &vao_hand_point);
   glBindVertexArray(vao_hand_point);
@@ -67,6 +74,7 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
     glDeleteVertexArrays(1, &vao_overlay_lines);
     glDeleteVertexArrays(1, &vao_overlay_points);
 	glDeleteVertexArrays(1, &vao_laser_points);
+	glDeleteVertexArrays(1, &vao_overlay_strip);
 	glDeleteVertexArrays(1, &vao_hand_point);
 
     glDeleteBuffers(1, &vbo_V);
@@ -85,6 +93,9 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteBuffers(1, &vbo_laser_points_V);
 	glDeleteBuffers(1, &vbo_laser_points_F);
 	glDeleteBuffers(1, &vbo_laser_V_colors);
+	glDeleteBuffers(1, &vbo_overlay_strip_F);
+	glDeleteBuffers(1, &vbo_overlay_strip_V);
+	glDeleteBuffers(1, &vbo_overlay_strip_V_colors);
 	glDeleteBuffers(1, &vbo_hand_point_F);
 	glDeleteBuffers(1, &vbo_hand_point_V);
 	glDeleteBuffers(1, &vbo_hand_point_V_colors);
@@ -176,6 +187,23 @@ IGL_INLINE void igl::opengl::MeshGL::bind_laser() {
 	dirty &= ~MeshGL::DIRTY_LASER;
 }
 
+IGL_INLINE void igl::opengl::MeshGL::bind_overlay_linestrip() {
+	bool is_dirty = dirty & MeshGL::DIRTY_OVERLAY_STRIP;
+
+	glBindVertexArray(vao_overlay_strip);
+	glUseProgram(shader_overlay_lines);
+
+	bind_vertex_attrib_array(shader_overlay_lines, "position", vbo_overlay_strip_V, overlay_strip_V_vbo, is_dirty);
+	bind_vertex_attrib_array(shader_overlay_lines, "color", vbo_overlay_strip_V_colors, overlay_strip_V_colors_vbo, is_dirty);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_overlay_strip_F);
+	if (is_dirty) {
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*overlay_strip_F_vbo.size(), overlay_strip_F_vbo.data(), GL_DYNAMIC_DRAW);
+	}
+
+	dirty &= ~MeshGL::DIRTY_OVERLAY_STRIP;
+}
+
 IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 {
 	bool is_dirty = dirty & MeshGL::DIRTY_HAND_POINT;
@@ -229,6 +257,10 @@ IGL_INLINE void igl::opengl::MeshGL::draw_laser()
 	glDrawElements(GL_LINE_STRIP, laser_points_F_vbo.rows(), GL_UNSIGNED_INT, 0);
 }
 
+IGL_INLINE void igl::opengl::MeshGL::draw_overlay_linestrip() {
+	//glLineWidth(2.0);
+	glDrawElements(GL_LINE_STRIP, overlay_strip_F_vbo.rows(), GL_UNSIGNED_INT, 0);
+}
 IGL_INLINE void igl::opengl::MeshGL::draw_hand_point()
 {
 	glDrawElements(GL_POINTS, hand_point_F_vbo.rows(), GL_UNSIGNED_INT, 0);
