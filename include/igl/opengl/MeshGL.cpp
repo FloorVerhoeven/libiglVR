@@ -258,9 +258,9 @@ IGL_INLINE void igl::opengl::MeshGL::draw_laser()
 }
 
 IGL_INLINE void igl::opengl::MeshGL::draw_overlay_linestrip() {
-	//glLineWidth(2.0);
 	glDrawElements(GL_LINE_STRIP, overlay_strip_F_vbo.rows(), GL_UNSIGNED_INT, 0);
 }
+
 IGL_INLINE void igl::opengl::MeshGL::draw_hand_point()
 {
 	glDrawElements(GL_POINTS, hand_point_F_vbo.rows(), GL_UNSIGNED_INT, 0);

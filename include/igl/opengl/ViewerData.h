@@ -64,6 +64,7 @@ public:
 
 	  lines = other.lines;
 	  points = other.points;
+	  linestrip = other.linestrip;
 	  labels_positions = other.labels_positions;
 	  labels_strings = other.labels_strings;
 
@@ -92,6 +93,7 @@ public:
 	  line_width = other.line_width;
 	  overlay_line_width = other.overlay_line_width;
 	  laser_line_width = other.laser_line_width;
+	  linestrip_line_width = other.linestrip_line_width;
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
@@ -135,6 +137,7 @@ public:
 
 	  lines = other.lines;
 	  points = other.points;
+	  linestrip = other.linestrip;
 	  labels_positions = other.labels_positions;
 	  labels_strings = other.labels_strings;
 
@@ -163,6 +166,7 @@ public:
 	  line_width = other.line_width;
 	  overlay_line_width = other.overlay_line_width;
 	  laser_line_width = other.laser_line_width;
+	  linestrip_line_width = other.linestrip_line_width;
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
@@ -248,6 +252,9 @@ public:
   // LP #LP by 3 (or 2) list of vertex positions
   IGL_INLINE void set_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C);
   IGL_INLINE void add_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C);
+
+  IGL_INLINE void set_linestrip(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C);
+  IGL_INLINE void add_linestrip(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C);
 
   // Sets hand point given a list of point vertices. In constrast to `add_points`
   // this will (purposefully) clober existing points.
@@ -342,6 +349,8 @@ public:
   //Start and end points belonging to laser rays that are drawn on the scene
   Eigen::MatrixXd laser_points;
   Eigen::MatrixXd hand_point;
+  
+  Eigen::MatrixXd linestrip;
 
   // Text labels plotted over the scene
   // Textp contains, in the i-th row, the position in global coordinates where the i-th label should be anchored
@@ -371,6 +380,7 @@ public:
   float line_width;
   float overlay_line_width;
   float laser_line_width;
+  float linestrip_line_width;
   Eigen::Vector4f line_color;
 
   // Shape material
@@ -429,6 +439,7 @@ namespace igl
       SERIALIZE_MEMBER(labels_strings);
 	  SERIALIZE_MEMBER(laser_points);
 	  SERIALIZE_MEMBER(hand_point);
+	  SERIALIZE_MEMBER(linestrip);
       SERIALIZE_MEMBER(dirty);
       SERIALIZE_MEMBER(face_based);
       SERIALIZE_MEMBER(show_overlay);
@@ -444,6 +455,7 @@ namespace igl
       SERIALIZE_MEMBER(line_width);
 	  SERIALIZE_MEMBER(overlay_line_width);
 	  SERIALIZE_MEMBER(laser_line_width);
+	  SERIALIZE_MEMBER(linestrip_line_width);
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);
 	  SERIALIZE_MEMBER(mesh_trackball_angle);

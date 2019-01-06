@@ -32,6 +32,7 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 	line_width(0.5f),
 	overlay_line_width(1.6f),
 	laser_line_width(1.6f),
+	linestrip_line_width(2.0f),
 	line_color(0, 0, 0, 1),
 	shininess(35.0f),
 	mesh_trackball_angle(Eigen::Quaternionf::Identity()),
@@ -319,8 +320,6 @@ IGL_INLINE void igl::opengl::ViewerData::set_laser_points(const Eigen::MatrixXd&
 
 IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
 	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
-
-
 	Eigen::MatrixXd LP_temp;
 
 	//If LP only has 2 columns, pad with a zero column
@@ -338,6 +337,39 @@ IGL_INLINE void igl::opengl::ViewerData::add_laser_points(const Eigen::MatrixXd&
 	}
 
 	dirty |= MeshGL::DIRTY_LASER;
+}
+
+IGL_INLINE void igl::opengl::ViewerData::set_linestrip(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+
+	linestrip.resize(0, 0);
+	if (LP.rows() > 0) {
+		add_linestrip(LP, C); //Will take care of unlocking
+	}
+	else {
+		dirty |= MeshGL::DIRTY_OVERLAY_STRIP;
+	}
+}
+
+IGL_INLINE void igl::opengl::ViewerData::add_linestrip(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C) {
+	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
+	Eigen::MatrixXd LP_temp;
+
+	//If LP only has 2 columns, pad with a zero column
+	if (LP.cols() == 2) {
+		LP_temp = Eigen::MatrixXd::Zero(LP.rows(), 3);
+		LP_temp.block(0, 0, LP.rows(), 2) = LP;
+	}
+	else {
+		LP_temp = LP;
+	}
+	int lastid = linestrip.rows();
+	linestrip.conservativeResize(linestrip.rows() + LP_temp.rows(), 6);
+	for (unsigned i = 0; i < LP_temp.rows(); ++i) {
+		linestrip.row(lastid + i) << LP_temp.row(i), i < C.rows() ? C.row(i) : C.row(C.rows() - 1);
+	}
+
+	dirty |= MeshGL::DIRTY_OVERLAY_STRIP;
 }
 
 IGL_INLINE void igl::opengl::ViewerData::set_hand_point(
@@ -476,6 +508,7 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
 	labels_positions = Eigen::MatrixXd(0, 3);
 	laser_points = Eigen::MatrixXd(0, 3);
 	hand_point = Eigen::MatrixXd(0, 3);
+	linestrip = Eigen::MatrixXd(0, 3);
 	mesh_trackball_angle = Eigen::Quaternionf::Identity();
 	mesh_translation = Eigen::Vector3f::Zero();
 	mesh_model_translation = Eigen::Matrix4f::Identity();
@@ -846,6 +879,18 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 			meshgl.hand_point_V_colors_vbo.row(i) = data.hand_point.block<1, 3>(i, 3).transpose().cast<float>();
 			meshgl.hand_point_F_vbo(i) = i;
 		}
+	}
+
+	if (meshgl.dirty & MeshGL::DIRTY_OVERLAY_STRIP) {
+		meshgl.overlay_strip_V_vbo.resize(data.linestrip.rows(), 3);
+		meshgl.overlay_strip_F_vbo.resize(data.linestrip.rows(), 1);
+		meshgl.overlay_strip_V_colors_vbo.resize(data.linestrip.rows(), 3);
+		for (unsigned i = 0; i < data.linestrip.rows(); ++i) {
+			meshgl.overlay_strip_V_vbo.row(i) = data.linestrip.block<1, 3>(i, 0).transpose().cast<float>();
+			meshgl.overlay_strip_F_vbo(i) = i;
+			meshgl.overlay_strip_V_colors_vbo.row(i) = data.linestrip.block<1, 3>(i, 3).transpose().cast<float>();
+		}
+
 	}
 }
 

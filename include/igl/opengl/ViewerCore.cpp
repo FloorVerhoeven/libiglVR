@@ -286,6 +286,22 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			data.meshgl.draw_hand_point();
 		}
 
+		if (data.linestrip.rows() > 0) {
+			data.meshgl.bind_overlay_linestrip();
+			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
+			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
+			proji = glGetUniformLocation(data.meshgl.shader_overlay_points, "proj");
+
+			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
+			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
+			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+			// This must be enabled, otherwise glLineWidth has no effect
+			glEnable(GL_LINE_SMOOTH);
+			glLineWidth(data.linestrip_line_width);
+
+			data.meshgl.draw_overlay_linestrip();
+		}
+
 		glEnable(GL_DEPTH_TEST);
 	}
 
