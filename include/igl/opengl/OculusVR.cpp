@@ -69,6 +69,12 @@ namespace igl {
 		static bool MSAA_on = true;
 
 
+		static Eigen::Vector3f prev_rollpitchyawleft;
+		static Eigen::Vector3f cur_rollpitchyawleft;
+		static Eigen::Vector3f prev_rollpitchyawright;
+		static Eigen::Vector3f cur_rollpitchyawright;
+
+
 		IGL_INLINE void OculusVR::init() {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
 			touch_dir_lock = std::unique_lock<std::mutex>(mu_touch_dir, std::defer_lock);
@@ -617,6 +623,13 @@ void main() {
 				touch_dir_lock.lock();
 				right_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Right].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
 				left_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Left].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
+				prev_rollpitchyawright = cur_rollpitchyawright;
+				prev_rollpitchyawleft = cur_rollpitchyawleft;
+				float roll, pitch, yaw;
+				OVR::Quatf(handPoses[ovrHand_Right].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
+				cur_rollpitchyawright = Eigen::Vector3f(roll, pitch, yaw);
+				OVR::Quatf(handPoses[ovrHand_Left].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
+				cur_rollpitchyawleft = Eigen::Vector3f(roll, pitch, yaw);
 				touch_dir_lock.unlock();
 
 				if (menu_active) { //The menu is open, process input in a special way
@@ -1805,5 +1818,17 @@ void main() {
 			start_action_view = new_start_action_view;
 		}
 
+		IGL_INLINE Eigen::Vector3f OculusVR::get_delta_yawpitchroll(int side) { //Side 1 is left, 2 is right
+			if (side == 1) {
+				return cur_rollpitchyawleft - prev_rollpitchyawleft;
+			}
+			else if (side == 2) {
+				return cur_rollpitchyawright - prev_rollpitchyawright;
+			}
+			else {
+				std::cerr << "You chose a non-existing side. Please only choose 1 (for left) or 2 (for right)." << std::endl;
+				return Eigen::Vector3f(0,0,0);
+			}
+		}
 	}
 }
