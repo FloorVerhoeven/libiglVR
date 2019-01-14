@@ -628,6 +628,7 @@ void main() {
 				float roll, pitch, yaw;
 				OVR::Quatf(handPoses[ovrHand_Right].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_rollpitchyawright = Eigen::Vector3f(roll, pitch, yaw);
+				std::cout << cur_rollpitchyawright << std::endl;
 				OVR::Quatf(handPoses[ovrHand_Left].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_rollpitchyawleft = Eigen::Vector3f(roll, pitch, yaw);
 				touch_dir_lock.unlock();
@@ -1820,9 +1821,11 @@ void main() {
 
 		IGL_INLINE Eigen::Vector3f OculusVR::get_delta_yawpitchroll(int side) { //Side 1 is left, 2 is right
 			if (side == 1) {
+				std::cout << "cur: " << cur_rollpitchyawleft << std::endl;
 				return cur_rollpitchyawleft - prev_rollpitchyawleft;
 			}
 			else if (side == 2) {
+				std::cout << "cur: " << cur_rollpitchyawright << std::endl;
 				return cur_rollpitchyawright - prev_rollpitchyawright;
 			}
 			else {
