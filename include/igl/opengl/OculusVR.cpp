@@ -628,7 +628,7 @@ void main() {
 				float roll, pitch, yaw;
 				OVR::Quatf(handPoses[ovrHand_Right].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_rollpitchyawright = Eigen::Vector3f(roll, pitch, yaw);
-				std::cout << cur_rollpitchyawright << std::endl;
+				//std::cout << "new: " << std::endl << cur_rollpitchyawright << std::endl << std::endl;
 				OVR::Quatf(handPoses[ovrHand_Left].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_rollpitchyawleft = Eigen::Vector3f(roll, pitch, yaw);
 				touch_dir_lock.unlock();
