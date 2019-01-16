@@ -80,7 +80,7 @@ public:
 			IGL_INLINE Eigen::Matrix4f get_start_action_view();
 			IGL_INLINE Eigen::Vector3f get_left_hand_pos();
 			IGL_INLINE void set_start_action_view(Eigen::Matrix4f new_start_action_view);
-			IGL_INLINE Eigen::Vector3f get_delta_yawpitchroll(int side);
+			IGL_INLINE Eigen::Vector3f get_delta_rollpitchyaw(int side);
 	
 			Eigen::Matrix4f start_action_view;
 			Eigen::Vector3f right_touch_direction;

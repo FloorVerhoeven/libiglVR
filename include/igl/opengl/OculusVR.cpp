@@ -628,9 +628,14 @@ void main() {
 				float roll, pitch, yaw;
 				OVR::Quatf(handPoses[ovrHand_Right].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_rollpitchyawright = Eigen::Vector3f(roll, pitch, yaw);
-				//std::cout << "new: " << std::endl << cur_rollpitchyawright << std::endl << std::endl;
+				if (cur_rollpitchyawright[0] < 0) {
+					cur_rollpitchyawright[0] += 2 * igl::PI;
+				}
 				OVR::Quatf(handPoses[ovrHand_Left].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_rollpitchyawleft = Eigen::Vector3f(roll, pitch, yaw);
+				if (cur_rollpitchyawleft[0] < 0) {
+					cur_rollpitchyawleft[0] += 2 * igl::PI;
+				}
 				touch_dir_lock.unlock();
 
 				if (menu_active) { //The menu is open, process input in a special way
@@ -1819,13 +1824,13 @@ void main() {
 			start_action_view = new_start_action_view;
 		}
 
-		IGL_INLINE Eigen::Vector3f OculusVR::get_delta_yawpitchroll(int side) { //Side 1 is left, 2 is right
+		IGL_INLINE Eigen::Vector3f OculusVR::get_delta_rollpitchyaw(int side) { //Side 1 is left, 2 is right
 			if (side == 1) {
-				std::cout << "cur: " << cur_rollpitchyawleft << std::endl;
+			//	std::cout << "cur: " << cur_rollpitchyawleft << std::endl;
 				return cur_rollpitchyawleft - prev_rollpitchyawleft;
 			}
 			else if (side == 2) {
-				std::cout << "cur: " << cur_rollpitchyawright << std::endl;
+			//	std::cout << "cur: " << cur_rollpitchyawright << std::endl;
 				return cur_rollpitchyawright - prev_rollpitchyawright;
 			}
 			else {
