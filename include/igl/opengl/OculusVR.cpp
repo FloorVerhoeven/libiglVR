@@ -610,12 +610,12 @@ void main() {
 					prev_press = TRIG_RIGHT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f) { //Only the left Trigger is being pressed
-				//	count = (prev_press == TRIG_LEFT) ? count + 1 : 1;
-				//	prev_press = TRIG_LEFT;
+					count = (prev_press == TRIG_LEFT) ? count + 1 : 1;
+					prev_press = TRIG_LEFT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Both Triggers are being pressed
-				//	count = (prev_press == TRIG_BOTH) ? count + 1 : 1;
-				//	prev_press = TRIG_BOTH;
+					count = (prev_press == TRIG_BOTH) ? count + 1 : 1;
+					prev_press = TRIG_BOTH;
 				}
 				else if (inputState.Thumbstick[ovrHand_Right].x > 0.1f || inputState.Thumbstick[ovrHand_Right].x < -0.1f || inputState.Thumbstick[ovrHand_Right].y > 0.1f || inputState.Thumbstick[ovrHand_Right].y < -0.1f) {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
@@ -626,34 +626,16 @@ void main() {
 					prev_press = NONE;
 				}
 
+				float roll, pitch, yaw;
+				prev_orient_left = cur_orient_left;
+				prev_orient_right = cur_orient_right;
 				touch_dir_lock.lock();
 				right_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Right].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
 				left_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Left].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
-				prev_orient_left = cur_orient_left;
-				prev_orient_right = cur_orient_right;
-			//	prev_rollpitchyawright = cur_rollpitchyawright;
-			//	prev_rollpitchyawleft = cur_rollpitchyawleft;
-				float roll, pitch, yaw;
-				OVR::Quatf(handPoses[ovrHand_Right].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_orient_right = OVR::Quatf(handPoses[ovrHand_Right].Orientation);
-				//cur_rollpitchyawright = Eigen::Vector3f(roll, pitch, yaw);
-			//	std::cout << "Pitch: " << pitch << std::endl;
-			/*	if (cur_rollpitchyawright[0] < 0) {
-					cur_rollpitchyawright[0] += 2 * igl::PI;
-				}
-				if (cur_rollpitchyawright[2] < 0) {
-					cur_rollpitchyawright[2] += 2 * igl::PI;
-				}*/
-				OVR::Quatf(handPoses[ovrHand_Left].Orientation).GetYawPitchRoll(&yaw, &pitch, &roll);
 				cur_orient_left = OVR::Quatf(handPoses[ovrHand_Left].Orientation);
-
-			/*	cur_rollpitchyawleft = Eigen::Vector3f(roll, pitch, yaw);
-				if (cur_rollpitchyawleft[0] < 0) {
-					cur_rollpitchyawleft[0] += 2 * igl::PI;
-				}
-				if (cur_rollpitchyawleft[2] < 0) {
-					cur_rollpitchyawleft[2] += 2 * igl::PI;
-				}*/
+				//cur_orient_right.GetYawPitchRoll(&yaw, &pitch, &roll);
+				//cur_orient_left.GetYawPitchRoll(&yaw, &pitch, &roll);
 				touch_dir_lock.unlock();
 
 				if (menu_active) { //The menu is open, process input in a special way

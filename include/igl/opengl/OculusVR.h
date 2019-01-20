@@ -93,7 +93,7 @@ public:
 			std::unique_lock<std::mutex> eye_pos_lock;
 			std::unique_lock<std::mutex> touch_dir_lock;
 
-			enum ButtonCombo { A, B, THUMB_MOVE, TRIG_RIGHT, NONE, X, Y, GRIPTRIGBOTH};
+			enum ButtonCombo { A, B, THUMB_MOVE, TRIG_RIGHT, TRIG_LEFT, TRIG_BOTH, NONE, X, Y, GRIPTRIGBOTH};
 
 			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos_left, Eigen::Vector3f& hand_pos_right)> callback_button_down;
 			std::function<void()> callback_menu_opened;
