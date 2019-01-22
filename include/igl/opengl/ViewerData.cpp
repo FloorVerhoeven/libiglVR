@@ -30,7 +30,7 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 	show_laser(true),
 	point_size(15),
 	line_width(0.5f),
-	overlay_line_width(1.6f),
+	overlay_line_width(1000.6f),
 	laser_line_width(1.6f),
 	linestrip_line_width(2.0f),
 	line_color(0, 0, 0, 1),
@@ -834,6 +834,7 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 	{
 		meshgl.lines_V_vbo.resize(data.lines.rows() * 2, 3);
 		meshgl.lines_V_colors_vbo.resize(data.lines.rows() * 2, 3);
+		meshgl.lines_V_normals_vbo.resize(data.lines.rows() * 2, 3);
 		meshgl.lines_F_vbo.resize(data.lines.rows() * 2, 1);
 		for (unsigned i = 0; i < data.lines.rows(); ++i)
 		{
@@ -841,6 +842,8 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 			meshgl.lines_V_vbo.row(2 * i + 1) = data.lines.block<1, 3>(i, 3).cast<float>();
 			meshgl.lines_V_colors_vbo.row(2 * i + 0) = data.lines.block<1, 3>(i, 6).cast<float>();
 			meshgl.lines_V_colors_vbo.row(2 * i + 1) = data.lines.block<1, 3>(i, 6).cast<float>();
+		//	meshgl.lines_V_normals_vbo.row(2 * i + 0) = data.lines.block<1, 3>(i, 6).cast<float>();
+			//meshgl.lines_V_normals_vbo.row(2 * i + 1) = data.lines.block<1, 3>(i, 6).cast<float>();
 			meshgl.lines_F_vbo(2 * i + 0) = 2 * i + 0;
 			meshgl.lines_F_vbo(2 * i + 1) = 2 * i + 1;
 		}

@@ -56,6 +56,7 @@ public:
   GLuint shader_mesh;
   GLuint shader_overlay_lines;
   GLuint shader_overlay_points;
+  GLunit shader_vol_overlay_lines;
 
   GLuint vbo_V; // Vertices of the current mesh (#V x 3)
   GLuint vbo_V_uv; // UV coordinates for the current mesh (#V x 2)
@@ -70,6 +71,7 @@ public:
   GLuint vbo_lines_F;         // Indices of the line overlay
   GLuint vbo_lines_V;         // Vertices of the line overlay
   GLuint vbo_lines_V_colors;  // Color values of the line overlay
+  GLuint vbo_lines_V_normals;
   GLuint vbo_points_F;        // Indices of the point overlay
   GLuint vbo_points_V;        // Vertices of the point overlay
   GLuint vbo_points_V_colors; // Color values of the point overlay
@@ -95,6 +97,7 @@ public:
   RowMatrixXf V_uv_vbo;
   RowMatrixXf lines_V_vbo;
   RowMatrixXf lines_V_colors_vbo;
+  RowMatrixXf lines_V_normals_vbo;
   RowMatrixXf points_V_vbo;
   RowMatrixXf points_V_colors_vbo;
 
