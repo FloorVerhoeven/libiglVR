@@ -512,6 +512,8 @@ PFNGLGETUNIFORMBLOCKINDEXPROC glad_glGetUniformBlockIndex;
 PFNGLTEXIMAGE2DMULTISAMPLEPROC glad_glTexImage2DMultisample;
 PFNGLGETACTIVEUNIFORMPROC glad_glGetActiveUniform;
 PFNGLFRONTFACEPROC glad_glFrontFace;
+int GLAD_GL_EXT_geometry_shader4 = 0;
+PFNGLPROGRAMPARAMETERIEXTPROC glad_glProgramParameteriEXT = NULL;
 static void load_GL_VERSION_1_0(GLADloadproc load) {
 	if(!GLAD_GL_VERSION_1_0) return;
 	glad_glCullFace = (PFNGLCULLFACEPROC)load("glCullFace");
@@ -925,12 +927,23 @@ static void load_GL_VERSION_3_3(GLADloadproc load) {
 	glad_glSecondaryColorP3ui = (PFNGLSECONDARYCOLORP3UIPROC)load("glSecondaryColorP3ui");
 	glad_glSecondaryColorP3uiv = (PFNGLSECONDARYCOLORP3UIVPROC)load("glSecondaryColorP3uiv");
 }
+static void load_GL_EXT_geometry_shader4(GLADloadproc load) {
+	if (!GLAD_GL_EXT_geometry_shader4) return;
+	glad_glProgramParameteriEXT = (PFNGLPROGRAMPARAMETERIEXTPROC)load("glProgramParameteriEXT");
+}
+static int find_extensionsGL(void) {
+	if (!get_exts()) return 0;
+	GLAD_GL_EXT_geometry_shader4 = has_ext("GL_EXT_geometry_shader4");
+	free_exts();
+	return 1;
+}
+/*
 static int find_extensionsGL(void) {
 	if (!get_exts()) return 0;
 	(void)&has_ext;
 	free_exts();
 	return 1;
-}
+}*/
 
 static void find_coreGL(void) {
 
@@ -1005,7 +1018,8 @@ int gladLoadGLLoader(GLADloadproc load) {
 	load_GL_VERSION_3_2(load);
 	load_GL_VERSION_3_3(load);
 
-	if (!find_extensionsGL()) return 0;
+	if (!find_extensionsGL()) return 0; 
+	load_GL_EXT_geometry_shader4(load);
 	return GLVersion.major != 0 || GLVersion.minor != 0;
 }
 

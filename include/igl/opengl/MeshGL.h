@@ -42,7 +42,8 @@ public:
 	DIRTY_LASER			 = 0x0400,
 	DIRTY_HAND_POINT	 = 0x0800,
 	DIRTY_OVERLAY_STRIP  = 0x0FFF,
-	DIRTY_ALL			 = 0x1000
+	DIRTY_VOLUMETRIC_LINES = 0x1000,
+	DIRTY_ALL			 = 0x2000
   };
 
   bool is_initialized = false;
@@ -52,11 +53,12 @@ public:
   GLuint vao_laser_points;
   GLuint vao_overlay_strip;
   GLuint vao_hand_point;
+  GLuint vao_volumetric_overlay_lines;
 
   GLuint shader_mesh;
   GLuint shader_overlay_lines;
   GLuint shader_overlay_points;
-  GLunit shader_vol_overlay_lines;
+  GLuint shader_volumetric_overlay_lines;
 
   GLuint vbo_V; // Vertices of the current mesh (#V x 3)
   GLuint vbo_V_uv; // UV coordinates for the current mesh (#V x 2)
@@ -72,14 +74,18 @@ public:
   GLuint vbo_lines_V;         // Vertices of the line overlay
   GLuint vbo_lines_V_colors;  // Color values of the line overlay
   GLuint vbo_lines_V_normals;
+  GLuint vbo_volumetric_lines_F;
+  GLuint vbo_volumetric_lines_V;
+  GLuint vbo_volumetric_lines_colors;
+  GLuint vbo_volumetric_lines_normals;
   GLuint vbo_points_F;        // Indices of the point overlay
   GLuint vbo_points_V;        // Vertices of the point overlay
   GLuint vbo_points_V_colors; // Color values of the point overlay
   GLuint vbo_laser_points_F;	  // Indices of the laser overlay
   GLuint vbo_laser_points_V;	  // Vertices of the laser overlay
+  GLuint vbo_laser_V_colors;
   GLuint vbo_overlay_strip_F; //Indices of the linestrip overlay
   GLuint vbo_overlay_strip_V; //Vertices of the linestrip overlay
-  GLuint vbo_laser_V_colors;
   GLuint vbo_overlay_strip_V_colors;
   GLuint vbo_hand_point_F;
   GLuint vbo_hand_point_V;
@@ -107,6 +113,10 @@ public:
   RowMatrixXf overlay_strip_V_colors_vbo;
   RowMatrixXf hand_point_V_vbo;
   RowMatrixXf hand_point_V_colors_vbo;
+  RowMatrixXf volumetric_lines_V_vbo;
+  RowMatrixXf volumetric_lines_colors_vbo;
+  RowMatrixXf volumetric_lines_normals_vbo;
+
 
   int tex_u;
   int tex_v;
@@ -118,6 +128,7 @@ public:
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> laser_points_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> overlay_strip_F_vbo;
   Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic> hand_point_F_vbo;
+  Eigen::Matrix<unsigned, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> volumetric_lines_F_vbo;
 
 
   // Marks dirty buffers that need to be uploaded to OpenGL
@@ -163,11 +174,16 @@ public:
   /// Draw the currently buffered overlay hand marker
   IGL_INLINE void draw_hand_point();
 
+  IGL_INLINE void draw_volumetric_lines();
+
   // Bind the underlying OpenGL buffer objects for subsequent linestrip overlay draw calls
   IGL_INLINE void bind_overlay_linestrip();
 
   ///Draw the currently buffered overlay linestrip
   IGL_INLINE void draw_overlay_linestrip();
+
+  IGL_INLINE void bind_volumetric_lines();
+
 
  // IGL_INLINE void bind_avatar();
 

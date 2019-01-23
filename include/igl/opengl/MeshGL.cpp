@@ -63,7 +63,13 @@ IGL_INLINE void igl::opengl::MeshGL::init_buffers()
   glGenBuffers(1, &vbo_hand_point_V);
   glGenBuffers(1, &vbo_hand_point_V_colors);
 
-
+  //Volumetric line overlay
+  glGenVertexArrays(1, &vao_volumetric_overlay_lines);
+  glBindVertexArray(vao_volumetric_overlay_lines);
+  glGenBuffers(1, &vbo_volumetric_lines_F);
+  glGenBuffers(1, &vbo_volumetric_lines_V);
+  glGenBuffers(1, &vbo_volumetric_lines_colors);
+  glGenBuffers(1, &vbo_volumetric_lines_normals);
   dirty = MeshGL::DIRTY_ALL;
 }
 
@@ -77,6 +83,7 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteVertexArrays(1, &vao_laser_points);
 	glDeleteVertexArrays(1, &vao_overlay_strip);
 	glDeleteVertexArrays(1, &vao_hand_point);
+	glDeleteVertexArrays(1, &vao_volumetric_overlay_lines);
 
     glDeleteBuffers(1, &vbo_V);
     glDeleteBuffers(1, &vbo_V_normals);
@@ -101,7 +108,10 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteBuffers(1, &vbo_hand_point_F);
 	glDeleteBuffers(1, &vbo_hand_point_V);
 	glDeleteBuffers(1, &vbo_hand_point_V_colors);
-
+	glDeleteBuffers(1, &vbo_volumetric_lines_F);
+	glDeleteBuffers(1, &vbo_volumetric_lines_V);
+	glDeleteBuffers(1, &vbo_volumetric_lines_colors);
+	glDeleteBuffers(1, &vbo_volumetric_lines_normals);
 
     glDeleteTextures(1, &vbo_tex);
   }
@@ -141,7 +151,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_mesh()
 
 IGL_INLINE void igl::opengl::MeshGL::bind_overlay_lines()
 {
- /* bool is_dirty = dirty & MeshGL::DIRTY_OVERLAY_LINES;
+  bool is_dirty = dirty & MeshGL::DIRTY_OVERLAY_LINES;
 
   glBindVertexArray(vao_overlay_lines);
   glUseProgram(shader_overlay_lines);
@@ -152,22 +162,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_overlay_lines()
   if (is_dirty)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*lines_F_vbo.size(), lines_F_vbo.data(), GL_DYNAMIC_DRAW);
 
-  dirty &= ~MeshGL::DIRTY_OVERLAY_LINES;*/
-
-	bool is_dirty = dirty & MeshGL::DIRTY_OVERLAY_LINES;
-
-	glBindVertexArray(vao_overlay_lines);
-	glUseProgram(shader_vol_overlay_lines);
-	bind_vertex_attrib_array(shader_vol_overlay_lines, "position", vbo_lines_V, lines_V_vbo, is_dirty);
-	bind_vertex_attrib_array(shader_vol_overlay_lines, "color", vbo_lines_V_colors, lines_V_colors_vbo, is_dirty);
-	bind_vertex_attrib_array(shader_vol_overlay_lines, "normal", vbo_lines_V_normals, lines_V_normals_vbo, is_dirty);
-
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo_lines_F);
-	if (is_dirty)
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*lines_F_vbo.size(), lines_F_vbo.data(), GL_DYNAMIC_DRAW);
-
-	dirty &= ~MeshGL::DIRTY_OVERLAY_LINES;
+  dirty &= ~MeshGL::DIRTY_OVERLAY_LINES;
 }
 
 IGL_INLINE void igl::opengl::MeshGL::bind_overlay_points()
@@ -239,6 +234,41 @@ IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 	dirty &= ~MeshGL::DIRTY_HAND_POINT;
 }
 
+IGL_INLINE void igl::opengl::MeshGL::bind_volumetric_lines() {
+	bool is_dirty = dirty & MeshGL::DIRTY_VOLUMETRIC_LINES;
+
+	int nr_segments = volumetric_lines_V_vbo.rows();
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_volumetric_lines_V);
+	if (is_dirty) {
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * nr_segments, volumetric_lines_V_vbo.data(), GL_STATIC_DRAW);
+	}
+	GLint id_pos = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("position").c_str());
+	GLint id_col = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("color").c_str());
+	GLint id_nor = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("normal").c_str());
+
+	glEnableVertexAttribArray(id_pos);
+	glEnableVertexAttribArray(id_col);
+	glEnableVertexAttribArray(id_nor);
+
+	GLsizei stride = sizeof(float) * 9;
+	const GLvoid* colorOffset = (GLvoid*)(sizeof(float) * 3);
+	const GLvoid* normalOffset = (GLvoid*)(sizeof(float) * 6);
+
+	glVertexAttribPointer(id_pos, 3, GL_FLOAT, GL_FALSE, stride, 0);
+	glVertexAttribPointer(id_col, 3, GL_FLOAT, GL_FALSE, stride, colorOffset);
+	glVertexAttribPointer(id_nor, 3, GL_FLOAT, GL_FALSE, stride, normalOffset);
+
+	glDrawArrays(GL_LINE_STRIP_ADJACENCY_EXT, 0, nr_segments);
+
+	glDisableVertexAttribArray(id_pos);
+	glDisableVertexAttribArray(id_col);
+	glDisableVertexAttribArray(id_nor);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	dirty &= ~MeshGL::DIRTY_VOLUMETRIC_LINES;
+
+}
+
 IGL_INLINE void igl::opengl::MeshGL::draw_mesh(bool solid)
 {
   glPolygonMode(GL_FRONT_AND_BACK, solid ? GL_FILL : GL_LINE);
@@ -283,6 +313,10 @@ IGL_INLINE void igl::opengl::MeshGL::draw_hand_point()
 	glDrawElements(GL_POINTS, hand_point_F_vbo.rows(), GL_UNSIGNED_INT, 0);
 }
 
+/*IGL_INLINE void igl::opengl::MeshGL::draw_volumetric_lines() {
+	glDrawElements(GL_LINES, volumetric_lines_F_vbo.rows(), GL_UNSIGNED_INT, 0);
+}*/
+
 IGL_INLINE void igl::opengl::MeshGL::init()
 {
   if(is_initialized)
@@ -293,7 +327,6 @@ IGL_INLINE void igl::opengl::MeshGL::init()
   std::string mesh_vertex_shader_string =
 R"(#version 150
   uniform mat4 model;
-  //uniform mat4 model_trans;
   uniform mat4 view;
   uniform mat4 proj;
   in vec3 position;
@@ -311,8 +344,8 @@ R"(#version 150
 
   void main()
   {
-    position_eye = vec3 (view * model * vec4 (position, 1.0)); //TODO: document that model_trans was added here
-    normal_eye = vec3 (view * model * vec4 (normal, 0.0)); //TODO: document that model_trans was added here
+    position_eye = vec3 (view * model * vec4 (position, 1.0));
+    normal_eye = vec3 (view * model * vec4 (normal, 0.0));
     normal_eye = normalize(normal_eye);
     gl_Position = proj * vec4 (position_eye, 1.0); //proj * view * model * vec4(position, 1.0);
     Kai = Ka;
@@ -405,7 +438,7 @@ R"(#version 150
 )"; 
 
   std::string overlay_vertex_shader_string_lines =
-	  R"(#version 150
+	  R"(#version 420
 		in vec3 position;
 		in vec3 normal;
 		in vec3 color;
@@ -426,17 +459,18 @@ R"(#version 150
 
   std::string  overlay_geometry_shader_string_lines =
 	  R"(
+#version 420
 #extension GL_EXT_geometry_shader4 : enable
 
-varying in vec3 vPosition[4];
-varying in vec3 vNormal[4];
-varying out vec3 gPosition;
-varying out vec3 gEndpoints[4];
-varying out vec3 gEndplanes[2];
+ in vec3 vPosition[4];
+ in vec3 vNormal[4];
+ out vec3 gPosition;
+ out vec3 gEndpoints[4];
+ out vec3 gEndplanes[2];
 uniform float Radius;
 uniform mat4 model;
 uniform mat4 view;
-uniform mat4 Projection;
+uniform mat4 proj;
 
 vec4 obb[8];
 vec4 obbPrime[8];
@@ -500,7 +534,7 @@ void main()
     obb[6] = Modelview*vec4(p2 - i*r - k*r,1);
     obb[7] = Modelview*vec4(p2 - i*r + k*r,1);
     for (int i = 0; i < 8; i++)
-        obbPrime[i] = Projection * obb[i];
+        obbPrime[i] = proj * obb[i];
     
     // Emit the front faces of the cuboid:
     if (isFront(0,1,3)) emit(0,1,3,2); EndPrimitive();
@@ -515,19 +549,21 @@ void main()
 
   std::string  overlay_fragment_shader_string_lines =
 	  R"(
+#version 420
 uniform vec4 Color;
 
-varying vec3 gEndpoints[4];
-varying vec3 gEndplanes[2];
-varying vec3 gPosition;
+in vec3 gEndpoints[4];
+in vec3 gEndplanes[2];
+in vec3 gPosition;
 
 uniform float Radius;
-uniform mat4 Projection;
+uniform mat4 proj;
 uniform vec3 LightDirection;
 uniform vec3 DiffuseMaterial;
 uniform vec3 AmbientMaterial;
 uniform vec3 SpecularMaterial;
 uniform float Shininess;
+out vec4 out_Color;
 
 vec3 perp(vec3 v)
 {
@@ -633,9 +669,9 @@ void main()
 
     // Perform lighting and write out a new depth value:
     vec3 color = AmbientMaterial + ComputeLight(LightDirection, N, true);
-    vec4 ndc = Projection * vec4(hitPoint, 1);
+    vec4 ndc = proj * vec4(hitPoint, 1);
     gl_FragDepth = ndc.z / ndc.w;
-    gl_FragColor = vec4(color, 1.0);
+	out_Color = vec4(color, 1.0);
 }
 )";
 
@@ -660,7 +696,13 @@ void main()
 	  overlay_vertex_shader_string_lines,
 	  overlay_fragment_shader_string_lines,
 	  {},
-	  shader_vol_overlay_lines);
+	  shader_volumetric_overlay_lines);
+
+  //Specific for volumetric lines
+  /*
+  glProgramParameteriEXT(shader_volumetric_overlay_lines, GL_GEOMETRY_INPUT_TYPE_EXT, GL_LINES_ADJACENCY_EXT);
+  glProgramParameteriEXT(shader_volumetric_overlay_lines, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
+  glProgramParameteriEXT(shader_volumetric_overlay_lines, GL_GEOMETRY_VERTICES_OUT_EXT, 24);*/
 }
 
 IGL_INLINE void igl::opengl::MeshGL::free()
@@ -679,7 +721,7 @@ IGL_INLINE void igl::opengl::MeshGL::free()
     free(shader_mesh);
     free(shader_overlay_lines);
     free(shader_overlay_points);
-	free(shader_vol_overlay_lines);
+	free(shader_volumetric_overlay_lines);
     free_buffers();
   }
 }
