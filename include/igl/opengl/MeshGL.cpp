@@ -242,6 +242,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_volumetric_lines() {
 	if (is_dirty) {
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 9 * nr_segments, volumetric_lines_V_vbo.data(), GL_STATIC_DRAW);
 	}
+
 	GLint id_pos = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("position").c_str());
 	GLint id_col = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("color").c_str());
 	GLint id_nor = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("normal").c_str());
@@ -249,7 +250,7 @@ IGL_INLINE void igl::opengl::MeshGL::bind_volumetric_lines() {
 	glEnableVertexAttribArray(id_pos);
 	glEnableVertexAttribArray(id_col);
 	glEnableVertexAttribArray(id_nor);
-
+	
 	GLsizei stride = sizeof(float) * 9;
 	const GLvoid* colorOffset = (GLvoid*)(sizeof(float) * 3);
 	const GLvoid* normalOffset = (GLvoid*)(sizeof(float) * 6);
@@ -263,10 +264,8 @@ IGL_INLINE void igl::opengl::MeshGL::bind_volumetric_lines() {
 	glDisableVertexAttribArray(id_pos);
 	glDisableVertexAttribArray(id_col);
 	glDisableVertexAttribArray(id_nor);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+//	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	dirty &= ~MeshGL::DIRTY_VOLUMETRIC_LINES;
-
 }
 
 IGL_INLINE void igl::opengl::MeshGL::draw_mesh(bool solid)
@@ -312,10 +311,6 @@ IGL_INLINE void igl::opengl::MeshGL::draw_hand_point()
 {
 	glDrawElements(GL_POINTS, hand_point_F_vbo.rows(), GL_UNSIGNED_INT, 0);
 }
-
-/*IGL_INLINE void igl::opengl::MeshGL::draw_volumetric_lines() {
-	glDrawElements(GL_LINES, volumetric_lines_F_vbo.rows(), GL_UNSIGNED_INT, 0);
-}*/
 
 IGL_INLINE void igl::opengl::MeshGL::init()
 {
@@ -447,13 +442,13 @@ R"(#version 150
 		uniform mat4 proj;
 		out vec3 vPosition;
 		out vec3 vNormal;
-		out vec3 color_frag;
+		out vec3 vColor_frag;
 
 	void main(){
 		gl_Position = proj*view*model*vec4(position, 1.0);
 		vPosition = position;
 		vNormal = normal;
-		color_frag = color;
+		vColor_frag = color;
 }
 )";
 
@@ -464,9 +459,11 @@ R"(#version 150
 
  in vec3 vPosition[4];
  in vec3 vNormal[4];
+ in vec3 vColor_frag[4];
  out vec3 gPosition;
  out vec3 gEndpoints[4];
  out vec3 gEndplanes[2];
+ out vec3 gColor;
 uniform float Radius;
 uniform mat4 model;
 uniform mat4 view;
@@ -493,6 +490,7 @@ void emit(int a, int b, int c, int d)
 void main()
 {
 	mat4 Modelview = view*model;
+	gColor = vColor_frag[0];
     // Pass raytracing inputs to fragment shader:
     vec3 p0, p1, p2, p3, n0, n1, n2;
     p0 = (Modelview * vec4(vPosition[0], 1)).xyz;
@@ -550,11 +548,12 @@ void main()
   std::string  overlay_fragment_shader_string_lines =
 	  R"(
 #version 420
-uniform vec4 Color;
+//uniform vec4 Color;
 
 in vec3 gEndpoints[4];
 in vec3 gEndplanes[2];
 in vec3 gPosition;
+in vec3 gColor;
 
 uniform float Radius;
 uniform mat4 proj;
@@ -643,18 +642,18 @@ void main()
     float d;
     if (!IntersectCylinder(rayStart, rayDir, d)) {
         discard;
-        return;
+       return;
     }
 
     vec3 hitPoint = rayStart + d * rayDir;
     if (dot(hitPoint - gEndpoints[1], gEndplanes[0]) < 0.0) {
-        discard;
-        return;
+     //  discard;
+     //   return;
     }
 
     if (dot(hitPoint - gEndpoints[2], gEndplanes[1]) > 0.0) {
-        discard;
-        return;
+  //    discard;
+    //   return;
     }
 
     // Compute a lighting normal:
@@ -672,6 +671,7 @@ void main()
     vec4 ndc = proj * vec4(hitPoint, 1);
     gl_FragDepth = ndc.z / ndc.w;
 	out_Color = vec4(color, 1.0);
+	//out_Color = vec4(color+gColor, 1.0);
 }
 )";
 

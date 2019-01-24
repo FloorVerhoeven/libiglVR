@@ -186,6 +186,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 
 	}
+	GLenum err;
 
 	// Send transformations to the GPU
 	GLint modeli = glGetUniformLocation(data.meshgl.shader_mesh, "model");
@@ -194,7 +195,11 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 	glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 	glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+	while ((err = glGetError()) != GL_NO_ERROR)
+	{
+		std::cout <<"tst: " << err << std::endl;
 
+	}
 	// Light parameters
 	GLint specular_exponenti = glGetUniformLocation(data.meshgl.shader_mesh, "specular_exponent");
 	GLint light_position_worldi = glGetUniformLocation(data.meshgl.shader_mesh, "light_position_world");
@@ -303,16 +308,9 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		}
 
 		if (data.volumetric_lines.rows() > 0) {
-			GLenum err;
-			
-			glUseProgram(data.meshgl.shader_volumetric_overlay_lines);
-			std::cout << "After" << std::endl;
-			modeli = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "model"); 
-			while ((err = glGetError()) != GL_NO_ERROR)
-			{
-				std::cout << err << std::endl;
 
-			}
+			glUseProgram(data.meshgl.shader_volumetric_overlay_lines); 
+			modeli = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "model"); 
 			viewi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "view");
 			proji = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "proj");
 			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
@@ -326,8 +324,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			GLint shininessi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "Shininess");
 			GLint volumetric_radiusi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "Radius");
 			GLint light_position_worldi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "LightDirection");
-
-			//	GLint texture_factori = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "texture_factor");
+			
 
 			glUniform3f(diffuse_materiali, data.volumetric_diffuse[0], data.volumetric_diffuse[1], data.volumetric_diffuse[2]);
 			glUniform3f(diffuse_materiali, data.volumetric_ambient[0], data.volumetric_ambient[1], data.volumetric_ambient[2]);
@@ -338,15 +335,14 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			Eigen::Vector4f light_pos_world;
 			light_pos_world << rev_light, 1.0f;
 			Eigen::Vector3f tmp = (view * light_pos_world).topRows(3);
-			tmp = -1 * tmp.normalized();
+			tmp = 1 * tmp.normalized();
 			glUniform3fv(light_position_worldi, 1, tmp.data());
+			glEnable(GL_DEPTH_TEST);
+			glDisable(GL_BLEND);
 			data.meshgl.bind_volumetric_lines();
-			
-			while ((err = glGetError()) != GL_NO_ERROR)
-			{
-				std::cout << err << std::endl;
-			}
-		//	data.meshgl.draw_volumetric_lines();
+			glEnable(GL_BLEND);
+			glBlendEquation(GL_FUNC_ADD);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}
 
 		glEnable(GL_DEPTH_TEST);

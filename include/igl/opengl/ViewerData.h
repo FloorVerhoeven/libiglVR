@@ -401,12 +401,12 @@ public:
 
   // Shape material
   float shininess;
-  float volumetric_shininess = 50.0f;
+  float volumetric_shininess = 0.0f;
 
   Eigen::Vector3f volumetric_diffuse;
   Eigen::Vector3f volumetric_ambient;
   Eigen::Vector3f volumetric_specular;
-  float volumetric_radius = 0.5f;
+  float volumetric_radius = 0.005f;
 
   // Trackball rotator for the mesh
   Eigen::Quaternionf mesh_trackball_angle;

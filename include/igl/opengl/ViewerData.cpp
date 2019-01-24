@@ -548,7 +548,7 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
 	laser_points = Eigen::MatrixXd(0, 3);
 	hand_point = Eigen::MatrixXd(0, 3);
 	linestrip = Eigen::MatrixXd(0, 3);
-	volumetric_lines = Eigen::MatrixXd(0, 12);
+	volumetric_lines = Eigen::MatrixXd(0, 9);
 	mesh_trackball_angle = Eigen::Quaternionf::Identity();
 	mesh_translation = Eigen::Vector3f::Zero();
 	mesh_model_translation = Eigen::Matrix4f::Identity();
