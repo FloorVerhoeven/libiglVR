@@ -47,9 +47,13 @@ IGL_INLINE bool igl::opengl::create_shader_program(
       return false;
     }
     glAttachShader(id,g);
-	glProgramParameteriEXT(id, GL_GEOMETRY_INPUT_TYPE_EXT, GL_LINES_ADJACENCY_EXT);
+	/*glProgramParameteriEXT(id, GL_GEOMETRY_INPUT_TYPE_EXT, GL_LINES_ADJACENCY_EXT);
 	glProgramParameteriEXT(id, GL_GEOMETRY_OUTPUT_TYPE_EXT, GL_TRIANGLE_STRIP);
-	glProgramParameteriEXT(id, GL_GEOMETRY_VERTICES_OUT_EXT, 24);
+	glProgramParameteriEXT(id, GL_GEOMETRY_VERTICES_OUT_EXT, 24);*/
+		glProgramParameteriEXT(id, GL_GEOMETRY_INPUT_TYPE_EXT, GL_POINTS);
+	glProgramParameteriEXT(id, GL_GEOMETRY_OUTPUT_TYPE_EXT,
+		GL_TRIANGLE_STRIP);
+	glProgramParameteriEXT(id, GL_GEOMETRY_VERTICES_OUT_EXT, 6);
   }
 
   if(vert_source != "")

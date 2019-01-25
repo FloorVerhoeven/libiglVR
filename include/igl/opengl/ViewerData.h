@@ -292,8 +292,8 @@ public:
   IGL_INLINE void add_edges (const Eigen::MatrixXd& P1, const Eigen::MatrixXd& P2, const Eigen::MatrixXd& C);
   IGL_INLINE void add_label (const Eigen::VectorXd& P,  const std::string& str);
 
-  IGL_INLINE void set_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N);
-  IGL_INLINE void add_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N);
+  IGL_INLINE void set_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
+  IGL_INLINE void add_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
 
   // Computes the normals of the mesh
   IGL_INLINE void compute_normals();
