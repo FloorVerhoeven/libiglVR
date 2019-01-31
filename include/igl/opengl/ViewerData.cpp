@@ -35,9 +35,9 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 	linestrip_line_width(2.0f),
 	line_color(0, 0, 0, 1),
 	shininess(35.0f),
-	volumetric_diffuse(1.0f, 0.5f, 0.125f),
-	volumetric_ambient(0.125f, 0.125f, 0.0f),
-	volumetric_specular(0.5f, 0.5f, 0.5f),
+	volumetric_diffuse(CYAN_DIFFUSE[0], CYAN_DIFFUSE[1], CYAN_DIFFUSE[2]), // (1.0f, 0.5f, 0.125f),
+	volumetric_ambient(CYAN_AMBIENT[0], CYAN_AMBIENT[1], CYAN_AMBIENT[2]),//0.125f, 0.125f, 0.0f),
+	volumetric_specular(CYAN_SPECULAR[0], CYAN_SPECULAR[1], CYAN_SPECULAR[2]),// 0.5f, 0.5f, 0.5f),
 	mesh_trackball_angle(Eigen::Quaternionf::Identity()),
 	mesh_translation(Eigen::Vector3f::Zero()),
 	mesh_model_translation(Eigen::Matrix4f::Identity()),
@@ -464,7 +464,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_edges(const Eigen::MatrixXd& P1, co
 	dirty |= MeshGL::DIRTY_OVERLAY_LINES;
 }
 
-IGL_INLINE void igl::opengl::ViewerData::set_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C) {
+/*IGL_INLINE void igl::opengl::ViewerData::set_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C) {
 	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
 
 	volumetric_lines.resize(0, 0);
@@ -498,9 +498,9 @@ IGL_INLINE void igl::opengl::ViewerData::add_volumetric_lines(const Eigen::Matri
 		volumetric_lines.row(lastid + i) << pos_temp.row(i), lengths[i], dir_temp.row(i), i < C.rows() ? C.row(i) : C.row(C.rows() - 1);
 
 	dirty |= MeshGL::DIRTY_VOLUMETRIC_LINES;
-}
+}*/
 
-/*IGL_INLINE void igl::opengl::ViewerData::set_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N) {
+IGL_INLINE void igl::opengl::ViewerData::set_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N) {
 	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
 
 	volumetric_lines.resize(0, 0);
@@ -531,10 +531,12 @@ IGL_INLINE void igl::opengl::ViewerData::add_volumetric_lines(const Eigen::Matri
 	int lastid = volumetric_lines.rows();
 	volumetric_lines.conservativeResize(volumetric_lines.rows() + LP_temp.rows(), 9);
 	for (unsigned i = 0; i < LP_temp.rows(); ++i)
-		volumetric_lines.row(lastid + i) << LP_temp.row(i), i < C.rows() ? C.row(i) : C.row(C.rows() - 1), i < N_temp.rows() ? N_temp.row(i) : N_temp.row(N_temp.rows()-1);
+		//volumetric_lines.row(lastid + i) << LP_temp.row(i), i < C.rows() ? C.row(i) : C.row(C.rows() - 1), i < N_temp.rows() ? N_temp.row(i) : N_temp.row(N_temp.rows()-1);
+		volumetric_lines.row(lastid + i) << LP_temp.row(i), i < N_temp.rows() ? N_temp.row(i) : N_temp.row(N_temp.rows() - 1);
+
 
 	dirty |= MeshGL::DIRTY_VOLUMETRIC_LINES;
-}*/
+}
 
 IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P, const std::string& str)
 {
@@ -584,7 +586,7 @@ IGL_INLINE void igl::opengl::ViewerData::clear()
 	laser_points = Eigen::MatrixXd(0, 3);
 	hand_point = Eigen::MatrixXd(0, 3);
 	linestrip = Eigen::MatrixXd(0, 3);
-	volumetric_lines = Eigen::MatrixXd(0, 10);
+	volumetric_lines = Eigen::MatrixXd(0, 6);
 	mesh_trackball_angle = Eigen::Quaternionf::Identity();
 	mesh_translation = Eigen::Vector3f::Zero();
 	mesh_model_translation = Eigen::Matrix4f::Identity();
@@ -969,12 +971,12 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 	}
 
 	if (meshgl.dirty & MeshGL::DIRTY_VOLUMETRIC_LINES) {
-		meshgl.volumetric_lines_V_vbo.resize(data.volumetric_lines.rows(), 10);
+		meshgl.volumetric_lines_V_vbo.resize(data.volumetric_lines.rows(), 6);
 	//	meshgl.volumetric_lines_F_vbo.resize(data.volumetric_lines.rows() * 2, 1);
 	//	meshgl.volumetric_lines_colors_vbo.resize(data.volumetric_lines.rows() * 2, 3);
 	//	meshgl.volumetric_lines_normals_vbo.resize(data.volumetric_lines.rows() * 2, 3);
 		for (unsigned i = 0; i < data.volumetric_lines.rows(); ++i) {
-			meshgl.volumetric_lines_V_vbo.row(i) = data.volumetric_lines.block<1, 10>(i, 0).transpose().cast<float>();
+			meshgl.volumetric_lines_V_vbo.row(i) = data.volumetric_lines.block<1, 6>(i, 0).transpose().cast<float>();
 		//	meshgl.volumetric_lines_V_vbo.row(2 * i + 1) = data.volumetric_lines.block<1, 3>(i, 3).transpose().cast<float>();
 		//	meshgl.volumetric_lines_F_vbo(2 * i + 0) = 2 * i + 0;
 		//	meshgl.volumetric_lines_F_vbo(2 * i + 1) = 2 * i + 1;

@@ -238,13 +238,13 @@ IGL_INLINE void igl::opengl::MeshGL::bind_volumetric_lines() {
 	bool is_dirty = dirty & MeshGL::DIRTY_VOLUMETRIC_LINES;
 
 	int nr_segments = volumetric_lines_V_vbo.rows();
-	glBindVertexArray(vao_volumetric_overlay_lines);
+//	glBindVertexArray(vao_volumetric_overlay_lines);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_volumetric_lines_V);
 	if (is_dirty) {
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 10 * nr_segments, volumetric_lines_V_vbo.data(), GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * nr_segments, volumetric_lines_V_vbo.data(), GL_STATIC_DRAW);
 	}
 
-	GLint id_pos = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("CylinderPosition").c_str());
+/*	GLint id_pos = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("CylinderPosition").c_str());
 	GLint id_length = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("CylinderExt").c_str());
 	GLint id_dir = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("CylinderDirection").c_str());
 	GLint id_col = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("CylinderColor").c_str());
@@ -269,9 +269,28 @@ IGL_INLINE void igl::opengl::MeshGL::bind_volumetric_lines() {
 	glDisableVertexAttribArray(id_pos);
 	glDisableVertexAttribArray(id_length);
 	glDisableVertexAttribArray(id_col);
-	glDisableVertexAttribArray(id_dir);
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDisableVertexAttribArray(id_dir);*/
+
+	GLint id_pos = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("position").c_str());
+	//GLint id_col = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("color").c_str());
+	GLint id_nor = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("normal").c_str());
+	glEnableVertexAttribArray(id_pos);
+	//glEnableVertexAttribArray(id_col);
+	glEnableVertexAttribArray(id_nor);
+	GLsizei stride = sizeof(float) * 6;
+	//const GLvoid* colorOffset = (GLvoid*)(sizeof(float) * 3);
+	const GLvoid* normalOffset = (GLvoid*)(sizeof(float) * 3);
+	glVertexAttribPointer(id_pos, 3, GL_FLOAT, GL_FALSE, stride, 0);
+	//glVertexAttribPointer(id_col, 3, GL_FLOAT, GL_FALSE, stride, colorOffset);
+	glVertexAttribPointer(id_nor, 3, GL_FLOAT, GL_FALSE, stride, normalOffset);
+
+	glDrawArrays(GL_LINE_STRIP_ADJACENCY_EXT, 0, nr_segments);
+	glDisableVertexAttribArray(id_pos);
+	glDisableVertexAttribArray(id_nor);
+	//glDisableVertexAttribArray(id_col);
+
+	//glBindVertexArray(0);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
 	dirty &= ~MeshGL::DIRTY_VOLUMETRIC_LINES;
 }
 
@@ -439,23 +458,20 @@ R"(#version 150
   }
 )"; 
 
- /* std::string overlay_vertex_shader_string_lines =
+  std::string overlay_vertex_shader_string_lines =
 	  R"(#version 420
 		in vec3 position;
 		in vec3 normal;
-		in vec3 color;
 		uniform mat4 model;
 		uniform mat4 view;
 		uniform mat4 proj;
 		out vec3 vPosition;
 		out vec3 vNormal;
-		out vec3 vColor_frag;
 
 	void main(){
 		gl_Position = proj*view*model*vec4(position, 1.0);
 		vPosition = position;
 		vNormal = normal;
-		vColor_frag = color;
 }
 )";
 
@@ -466,11 +482,9 @@ R"(#version 150
 
  in vec3 vPosition[4];
  in vec3 vNormal[4];
- in vec3 vColor_frag[4];
  out vec3 gPosition;
  out vec3 gEndpoints[4];
  out vec3 gEndplanes[2];
- out vec3 gColor;
 uniform float Radius;
 uniform mat4 model;
 uniform mat4 view;
@@ -497,7 +511,6 @@ void emit(int a, int b, int c, int d)
 void main()
 {
 	mat4 Modelview = view*model;
-	gColor = vColor_frag[0];
     // Pass raytracing inputs to fragment shader:
     vec3 p0, p1, p2, p3, n0, n1, n2;
     p0 = (Modelview * vec4(vPosition[0], 1)).xyz;
@@ -555,12 +568,10 @@ void main()
   std::string  overlay_fragment_shader_string_lines =
 	  R"(
 #version 420
-//uniform vec4 Color;
 
 in vec3 gEndpoints[4];
 in vec3 gEndplanes[2];
 in vec3 gPosition;
-in vec3 gColor;
 
 uniform float Radius;
 uniform mat4 proj;
@@ -641,9 +652,9 @@ void main()
     vec3 rayEnd = vec3(0);
     vec3 rayDir = normalize(rayEnd - rayStart);
 
-    if (distance(rayStart, rayEnd) < 0.1) {
+    if (distance(rayStart, rayEnd) < 0.1) { //Acts as an extra near-clipping plane, disable
      //  discard;
-      //  return;
+       // return;
     }
     
     float d;
@@ -654,23 +665,15 @@ void main()
 
     vec3 hitPoint = rayStart + d * rayDir;
     if (dot(hitPoint - gEndpoints[1], gEndplanes[0]) < 0.0) {
-      // discard;
-     //   return;
+		discard;
+       return;
     }
 
     if (dot(hitPoint - gEndpoints[2], gEndplanes[1]) > 0.0) {
-    //  discard;
-    //   return;
+      discard;
+     return;
     }
-float rSqr = Radius*Radius;
-	if(dot(hitPoint - gEndpoints[1], hitPoint - gEndpoints[1]) > rSqr){
-		discard;
-		return;
-	}
-	if(dot(hitPoint - gEndpoints[2], hitPoint - gEndpoints[2]) > rSqr){
-		discard;
-		return;
-	}
+
 
     // Compute a lighting normal:
     vec3 x0 = hitPoint;
@@ -685,13 +688,12 @@ float rSqr = Radius*Radius;
     // Perform lighting and write out a new depth value:
     vec3 color = AmbientMaterial + ComputeLight(LightDirection, N, true);
     vec4 ndc = proj * vec4(hitPoint, 1);
-    gl_FragDepth = ndc.z / ndc.w;
+    gl_FragDepth = 0.5*(1 + (ndc.z / ndc.w));
 	out_Color = vec4(color, 1.0);
-	//out_Color = vec4(color+gColor, 1.0);
 }
-)";*/
+)";
 
-std::string overlay_vertex_shader_string_lines =
+/*std::string overlay_vertex_shader_string_lines =
 R"(#version 330 core
 #extension GL_EXT_gpu_shader4 : enable
 
@@ -886,7 +888,8 @@ void main()
   vec4 color = vec4(cylinder_color,1.0);
   vec3 ray_target = surface_point;
   vec3 ray_origin = vec3(0.0);
-  vec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), ortho);
+  //vec3 ray_direction = mix(normalize(ray_origin - ray_target), vec3(0.0, 0.0, 1.0), ortho);
+ vec3 ray_direction = normalize(ray_origin - ray_target);
   mat3 basis = mat3(U, V, axis);
 
   vec3 diff = ray_target - 0.5 * (base + end_cyl);
@@ -988,7 +991,7 @@ void main()
   
   out_Color = color;//final_color;
 }
-)";
+)";*/
 
 
   init_buffers();

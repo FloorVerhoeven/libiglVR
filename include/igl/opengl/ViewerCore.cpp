@@ -310,6 +310,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		if (data.volumetric_lines.rows() > 0) {
 
 			glUseProgram(data.meshgl.shader_volumetric_overlay_lines); 
+			/*
 			modeli = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "MMatrix"); 
 			viewi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "VMatrix");
 			proji = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "PMatrix");
@@ -328,19 +329,30 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			glUniform3fv(light_posi, 1, light_pos_world.data());
 			glUniform3fv(eye_pointi, 1, camera_eye.data());
 			glUniform1f(volumetric_radiusi, data.volumetric_radius);
-/*
+*/
+
+modeli = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "model");
+viewi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "view");
+proji = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "proj");
+
+
+glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
+glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
+glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
+
+
 			// Light parameters
 			GLint diffuse_materiali = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "DiffuseMaterial");
 			GLint ambient_materiali = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "AmbientMaterial");
 			GLint specular_materiali = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "SpecularMaterial");
 			GLint shininessi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "Shininess");
-			GLint volumetric_radiusi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "CylinderRadius");
+			GLint volumetric_radiusi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "Radius");
 			GLint light_position_worldi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "LightDirection");
 			
 
 			glUniform3f(diffuse_materiali, data.volumetric_diffuse[0], data.volumetric_diffuse[1], data.volumetric_diffuse[2]);
-			glUniform3f(diffuse_materiali, data.volumetric_ambient[0], data.volumetric_ambient[1], data.volumetric_ambient[2]);
-			glUniform3f(diffuse_materiali, data.volumetric_specular[0], data.volumetric_specular[1], data.volumetric_specular[2]);
+			glUniform3f(ambient_materiali, data.volumetric_ambient[0], data.volumetric_ambient[1], data.volumetric_ambient[2]);
+			glUniform3f(specular_materiali, data.volumetric_specular[0], data.volumetric_specular[1], data.volumetric_specular[2]);
 			glUniform1f(shininessi, data.volumetric_shininess);
 			glUniform1f(volumetric_radiusi, data.volumetric_radius);
 			Eigen::Vector3f rev_light = -1.*light_position;
@@ -348,11 +360,11 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			light_pos_world << rev_light, 1.0f;
 			Eigen::Vector3f tmp = (view * light_pos_world).topRows(3);
 			tmp = 1 * tmp.normalized();
-			glUniform3fv(light_position_worldi, 1, tmp.data());*/
-			glDisable(GL_DEPTH_TEST);
-		//	glDisable(GL_BLEND);
+			glUniform3fv(light_position_worldi, 1, tmp.data());
+			glEnable(GL_DEPTH_TEST);
+			glDisable(GL_BLEND);
 			data.meshgl.bind_volumetric_lines();
-		//	glEnable(GL_BLEND);
+		    glEnable(GL_BLEND);
 			glBlendEquation(GL_FUNC_ADD);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		}

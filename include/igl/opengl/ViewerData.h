@@ -292,8 +292,10 @@ public:
   IGL_INLINE void add_edges (const Eigen::MatrixXd& P1, const Eigen::MatrixXd& P2, const Eigen::MatrixXd& C);
   IGL_INLINE void add_label (const Eigen::VectorXd& P,  const std::string& str);
 
-  IGL_INLINE void set_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
-  IGL_INLINE void add_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
+  //IGL_INLINE void set_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
+  //IGL_INLINE void add_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
+  IGL_INLINE void set_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N);
+  IGL_INLINE void add_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N);
 
   // Computes the normals of the mesh
   IGL_INLINE void compute_normals();
@@ -401,12 +403,12 @@ public:
 
   // Shape material
   float shininess;
-  float volumetric_shininess = 0.0f;
+  float volumetric_shininess = 0.3f;
 
   Eigen::Vector3f volumetric_diffuse;
   Eigen::Vector3f volumetric_ambient;
   Eigen::Vector3f volumetric_specular;
-  float volumetric_radius = 0.005f;
+  float volumetric_radius = 0.05f;
 
   // Trackball rotator for the mesh
   Eigen::Quaternionf mesh_trackball_angle;
