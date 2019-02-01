@@ -529,7 +529,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_volumetric_lines(const Eigen::Matri
 	}	
 
 	int lastid = volumetric_lines.rows();
-	volumetric_lines.conservativeResize(volumetric_lines.rows() + LP_temp.rows(), 9);
+	volumetric_lines.conservativeResize(volumetric_lines.rows() + LP_temp.rows(), 6);
 	for (unsigned i = 0; i < LP_temp.rows(); ++i)
 		//volumetric_lines.row(lastid + i) << LP_temp.row(i), i < C.rows() ? C.row(i) : C.row(C.rows() - 1), i < N_temp.rows() ? N_temp.row(i) : N_temp.row(N_temp.rows()-1);
 		volumetric_lines.row(lastid + i) << LP_temp.row(i), i < N_temp.rows() ? N_temp.row(i) : N_temp.row(N_temp.rows() - 1);
