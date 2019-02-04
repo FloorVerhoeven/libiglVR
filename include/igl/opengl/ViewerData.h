@@ -408,7 +408,7 @@ public:
   Eigen::Vector3f volumetric_diffuse;
   Eigen::Vector3f volumetric_ambient;
   Eigen::Vector3f volumetric_specular;
-  float volumetric_radius = 0.05f;
+  float volumetric_radius = 0.005f;
 
   // Trackball rotator for the mesh
   Eigen::Quaternionf mesh_trackball_angle;
