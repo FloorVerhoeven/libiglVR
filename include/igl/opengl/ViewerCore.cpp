@@ -186,7 +186,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 
 	}
-	GLenum err;
+
 
 	// Send transformations to the GPU
 	GLint modeli = glGetUniformLocation(data.meshgl.shader_mesh, "model");
@@ -195,11 +195,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
 	glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
 	glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
-	while ((err = glGetError()) != GL_NO_ERROR)
-	{
-		std::cout <<"tst: " << err << std::endl;
 
-	}
 	// Light parameters
 	GLint specular_exponenti = glGetUniformLocation(data.meshgl.shader_mesh, "specular_exponent");
 	GLint light_position_worldi = glGetUniformLocation(data.meshgl.shader_mesh, "light_position_world");

@@ -299,9 +299,9 @@ IGL_INLINE void igl::opengl::ViewerData::add_points(const Eigen::MatrixXd& P, co
 		P_temp = Eigen::MatrixXd::Zero(P.rows(), 3);
 		P_temp.block(0, 0, P.rows(), 2) = P;
 	}
-	else
+	else{
 		P_temp = P;
-
+	}
 	int lastid = points.rows();
 	points.conservativeResize(points.rows() + P_temp.rows(), 6);
 	for (unsigned i = 0; i < P_temp.rows(); ++i)
