@@ -68,6 +68,7 @@ namespace igl {
 
 		static bool MSAA_on = true;
 
+		static int laser_data_idx = -1;
 
 	/*	static Eigen::Vector3f prev_rollpitchyawleft;
 		static Eigen::Vector3f cur_rollpitchyawleft;
@@ -89,7 +90,8 @@ namespace igl {
 			callback_menu_closed = nullptr;
 			callback_GUI_set_mouse = nullptr;
 			callback_GUI_button_press = nullptr;
-			callback_GUI_button_release = nullptr;
+			//callback_GUI_button_release = nullptr;
+			callback_set_laser_viewerdata_idx = nullptr;
 
 			// Initialize the OVR Platform module
 			if (!OVR_SUCCESS(ovr_PlatformInitializeWindows(APP_ID))) {
@@ -725,7 +727,11 @@ void main() {
 					update_avatar(deltaSeconds);
 				}
 
-				update_laser(data_list[data_list.size() - 1], update_screen_while_computing);
+			//	update_laser(data_list[data_list.size() - 1], update_screen_while_computing);
+				if (laser_data_idx == -1) {
+					laser_data_idx = callback_set_laser_viewerdata_idx();
+				}
+				update_laser(data_list[laser_data_idx], update_screen_while_computing);
 
 				Eigen::Matrix4f proj, view;
 				for (int eye = 0; eye < 2; eye++) {

@@ -101,6 +101,7 @@ public:
 			std::function<void(Eigen::Vector2f& mouse_pos)> callback_GUI_set_mouse;
 			std::function<void()> callback_GUI_button_press;
 			std::function<void()> callback_GUI_button_release;
+			std::function<int()> callback_set_laser_viewerdata_idx;
 
 			bool menu_active = false;
 			bool right_hand_visible = true;
