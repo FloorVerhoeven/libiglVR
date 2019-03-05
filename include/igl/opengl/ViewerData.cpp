@@ -53,7 +53,8 @@ IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
 	if (face_based != newvalue)
 	{
 		face_based = newvalue;
-		dirty = MeshGL::DIRTY_ALL;
+	//	dirty |= MeshGL::DIRTY_ALL;
+		dirty |= MeshGL::DIRTY_MESH;
 	}
 }
 
@@ -1009,7 +1010,9 @@ IGL_INLINE void igl::opengl::ViewerData::rotate() { //Takes the trackball rotati
 	V_tmp.row(3) = Eigen::RowVectorXd::Constant(V.rows(), 1);
 	V = ((place_back.cast<double>()*rotation.cast<double>()*V_tmp).topRows(3)).transpose();
 
-	dirty |= MeshGL::DIRTY_ALL;
+	//dirty |= MeshGL::DIRTY_ALL | MeshGL::DIRTY_MESH;
+	dirty |= MeshGL::DIRTY_MESH | MeshGL::DIRTY_OVERLAY_LINES | MeshGL::DIRTY_OVERLAY_POINTS;
+
 }
 
 IGL_INLINE void igl::opengl::ViewerData::rotate_points(Eigen::MatrixXd& points_3D) {

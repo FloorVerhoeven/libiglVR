@@ -214,6 +214,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		// Render fill
 		if (data.show_faces)
 		{
+
 			// Texture
 			glUniform1f(texture_factori, data.show_texture ? 1.0f : 0.0f);
 			data.meshgl.draw_mesh(true);

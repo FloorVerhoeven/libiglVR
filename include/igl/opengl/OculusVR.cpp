@@ -1046,8 +1046,6 @@ void main() {
 				laserLayer.SensorSampleTime = sensorSampleTime;
 			}
 
-
-
 			ovrViewScaleDesc viewScaleDesc;
 			viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
 			viewScaleDesc.HmdToEyePose[0] = eyeRenderDesc[0].HmdToEyePose;
