@@ -18,7 +18,10 @@ namespace igl
   const float GOLD_SPECULAR[4] =  { 255.0/255.0,235.0/255.0,80.0/255.0,1.0f };
   const float SILVER_AMBIENT[4] = { 0.2f, 0.2f, 0.2f, 1.0f };
   const float SILVER_DIFFUSE[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  const float SILVER_DIFFUSE2[4] = { 179.0 / 255.0, 182.0 / 255.0, 175.0 / 255.0 };
   const float SILVER_SPECULAR[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  const float SILVER_SPECULAR2[4] = { 230.0 / 255.0, 230.0 / 255.0, 230. / 255.0 };
+
   // Blue/Cyan more similar to Jovan Popovic's blue than to Mario Botsch's blue
   const float CYAN_AMBIENT[4] =   {  59.0/255.0, 68.0/255.0,255.0/255.0,1.0f };
   const float CYAN_DIFFUSE[4] =   {  94.0/255.0,185.0/255.0,238.0/255.0,1.0f };
@@ -53,5 +56,21 @@ namespace igl
     MAYA_GREY(0.5,0.5,0.5,1.0),
     MAYA_CYAN(131./255.,219./255.,252./255.,1.),
     MAYA_SEA_GREEN(70./255.,252./255.,167./255.,1.);
+
+  const float METAL_BLUE_DIFFUSE[4] = { 186.0 / 255.0, 211.0 / 255.0, 225.0 / 255.0, 1.0f };
+  const float COPPER_DIFFUSE[4] = { 0.7038f, 0.27048f, 0.0828f, 1.0f };
+  const float COPPER_AMBIENT[4] = { 0.19125f, 0.0735f, 0.0225f, 1.0f };
+  const float COPPER_SPECULAR[4] = { 0.256777f,	0.137622f,0.086014f, 1.0f };
+
+  //Use chrome with shininess = 80.8f
+  const float CHROME_DIFFUSE[4] = { 0.4f,0.4f, 0.4f, 1.0f };
+  const float CHROME_AMBIENT[4] = { 0.25f, 0.25f, 0.25f, 1.0f };
+  const float CHROME_SPECULAR[4] = { 0.774597f, 0.774597f, 0.774597f, 1.0f };
+
+  const float COPPER_SHINE_DIFFUSE[4] = { 0.5508f, 0.2118f, 0.066f, 1.0f };
+  const float COPPER_SHINE_AMBIENT[4] = { 0.2295f, 0.08825f, 0.0275f, 1.0f };
+ // const float COPPER_SHINE_SPECULAR[4] = { 0.580594f, 0.223257f, 0.0695701f, 1.0f };
+  const float COPPER_SHINE_SPECULAR[4] = { 220.0/255.0, 124.0/255.0, 83.0/255.0, 1.0f };
+
 }
 #endif
