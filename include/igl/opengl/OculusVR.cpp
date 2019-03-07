@@ -780,6 +780,7 @@ void main() {
 						glClearColor(0, 0, 0, 0);
 						eye_buffers[eye]->OnRender();
 						for (int i = 1; i < data_list.size(); i++) {
+							std::cout << "Drawing data " << i << " with " << data_list[i].V.rows() << " vertices and " << data_list[i].F.rows() << " faces " << std::endl;
 							core.draw(data_list[i], true, true, view, proj);
 						}
 						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
