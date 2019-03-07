@@ -730,6 +730,7 @@ void main() {
 			//	update_laser(data_list[data_list.size() - 1], update_screen_while_computing);
 				if (laser_data_idx == -1) {
 					laser_data_idx = callback_set_laser_viewerdata_idx();
+					std::cout << "Test oculus: " << laser_data_idx << std::endl;
 				}
 				update_laser(data_list[laser_data_idx], update_screen_while_computing);
 
