@@ -102,7 +102,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	using namespace std;
 	using namespace Eigen;
 
-
+	//std::cout << "Data id: " << data.id <<" " << depth_test;
 	glDepthRange(0.01, 1000.0);
 	glEnable(GL_FRAMEBUFFER_SRGB);
 	if (depth_test)
@@ -183,8 +183,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			proj = proj_;
 			lock4.unlock();
 		}
-
-
 	}
 
 
@@ -214,7 +212,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		// Render fill
 		if (data.show_faces)
 		{
-
+		//	std::cout << " sf ";
 			// Texture
 			glUniform1f(texture_factori, data.show_texture ? 1.0f : 0.0f);
 			data.meshgl.draw_mesh(true);
@@ -224,6 +222,8 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		// Render wireframe
 		if (data.show_lines)
 		{
+		//	std::cout << " sl ";
+
 			glLineWidth(data.line_width);
 			glUniform4f(fixed_colori,
 				data.line_color[0],
@@ -236,6 +236,8 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 	if (data.show_overlay)
 	{
+		//std::cout << " so " << data.show_overlay_depth << " ";
+
 		if (data.show_overlay_depth)
 			glEnable(GL_DEPTH_TEST);
 		else
@@ -243,6 +245,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 		if (data.lines.rows() > 0)
 		{
+		//	std::cout << " dl ";
 			data.meshgl.bind_overlay_lines();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_lines, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_lines, "view");
@@ -260,6 +263,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 		if (data.points.rows() > 0)
 		{
+			//std::cout << " dp ";
 			data.meshgl.bind_overlay_points();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
@@ -274,6 +278,8 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		}
 
 		if (data.hand_point.rows() > 0) {
+		//	std::cout << " hp ";
+
 			data.meshgl.bind_hand_point();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
@@ -289,6 +295,8 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		}
 
 		if (data.linestrip.rows() > 0) {
+		//	std::cout << " lstr ";
+
 			data.meshgl.bind_overlay_linestrip();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
@@ -305,6 +313,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		}
 
 		if (data.volumetric_lines.rows() > 0) {
+			/*std::cout << " vl ";
 
 			glUseProgram(data.meshgl.shader_volumetric_overlay_lines); 
 
@@ -341,16 +350,20 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			data.meshgl.bind_volumetric_lines();
 		    glEnable(GL_BLEND);
 			glBlendEquation(GL_FUNC_ADD);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
 		}
 
 		glEnable(GL_DEPTH_TEST);
 	}
 
 	if (data.show_laser) {
+		//std::cout << " showlas ";
+
 		glEnable(GL_DEPTH_TEST);
 
 		if (data.laser_points.rows() > 0) {
+	//		std::cout << " lasp ";
+
 			data.meshgl.bind_laser();	
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_lines, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_lines, "view");

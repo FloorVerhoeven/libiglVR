@@ -576,7 +576,6 @@ IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P, con
 IGL_INLINE void igl::opengl::ViewerData::clear()
 {
 	std::lock_guard<std::mutex> lock(mu);
-
 	V = Eigen::MatrixXd(0, 3);
 	F = Eigen::MatrixXi(0, 3);
 

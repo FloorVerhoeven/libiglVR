@@ -756,7 +756,7 @@ void main() {
 						glGetFloatv(GL_COLOR_CLEAR_VALUE, prev_clear_color);
 						glClearColor(0, 0, 0, 0);
 						laser_buffers[eye]->OnRender();
-						core.draw(data_list[data_list.size() - 1], true, true, view, proj);
+						core.draw(data_list[laser_data_idx], true, true, view, proj);
 						laser_buffers[eye]->OnRenderFinish();
 
 						hand_buffers[eye]->OnRender();
@@ -771,6 +771,7 @@ void main() {
 						ovr_CommitTextureSwapChain(session, hand_buffers[eye]->swapTextureChain);
 					}
 					else {
+
 						eye_buffers_floor[eye]->OnRender();
 						core.draw(data_list[0], true, true, view, proj); //This will take care of the "current action" icon on the floor
 						eye_buffers_floor[eye]->OnRenderFinish();
@@ -780,9 +781,9 @@ void main() {
 						glClearColor(0, 0, 0, 0);
 						eye_buffers[eye]->OnRender();
 						for (int i = 1; i < data_list.size(); i++) {
-							std::cout << "Drawing data " << i << " with " << data_list[i].V.rows() << " vertices and " << data_list[i].F.rows() << " faces " << std::endl;
 							core.draw(data_list[i], true, true, view, proj);
 						}
+
 						if (_avatar && !_loadingAssets && !_waitingOnCombinedMesh) {
 							render_avatar(_avatar, ovrAvatarVisibilityFlag_FirstPerson, view, proj, to_Eigen(shiftedEyePos), false);
 						}
@@ -1832,17 +1833,14 @@ void main() {
 
 		IGL_INLINE Eigen::Vector3f OculusVR::get_delta_rollpitchyaw(int side) { //Side 1 is left, 2 is right
 			if (side == 1) {
-			//	std::cout << "cur: " << cur_rollpitchyawleft << std::endl;
 				OVR::Quatf diff = cur_orient_left * prev_orient_left.Inverse();
 				float yaw, pitch, roll;
 				diff.GetYawPitchRoll(&yaw, &pitch, &roll);
 				Eigen::Vector3f rollpitchyawdiff(roll, pitch, yaw);
 
 				return rollpitchyawdiff;
-				//return cur_rollpitchyawleft - prev_rollpitchyawleft;
 			}
 			else if (side == 2) {
-			//	std::cout << "cur: " << cur_rollpitchyawright << std::endl;
 				OVR::Quatf diff = cur_orient_right * prev_orient_right.Inverse() ;
 				float yaw, pitch, roll;
 				diff.GetYawPitchRoll(&yaw, &pitch, &roll);

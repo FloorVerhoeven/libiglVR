@@ -309,6 +309,7 @@ IGL_INLINE void igl::opengl::MeshGL::init()
   {
     return;
   }
+
   is_initialized = true;
   std::string mesh_vertex_shader_string =
 R"(#version 150
