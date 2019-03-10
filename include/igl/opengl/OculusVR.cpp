@@ -636,8 +636,6 @@ void main() {
 				left_touch_direction = to_Eigen(OVR::Matrix4f(handPoses[ovrHand_Left].Orientation).Transform(OVR::Vector3f(0, 0, -1)));
 				cur_orient_right = OVR::Quatf(handPoses[ovrHand_Right].Orientation);
 				cur_orient_left = OVR::Quatf(handPoses[ovrHand_Left].Orientation);
-				//cur_orient_right.GetYawPitchRoll(&yaw, &pitch, &roll);
-				//cur_orient_left.GetYawPitchRoll(&yaw, &pitch, &roll);
 				touch_dir_lock.unlock();
 
 				if (menu_active) { //The menu is open, process input in a special way
