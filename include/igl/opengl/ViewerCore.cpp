@@ -114,13 +114,18 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	/* Bind and potentially refresh mesh/line/point data */
-	std::unique_lock<std::mutex> lock1(data.mu);
-	if (data.dirty)
-	{
-		data.updateGL(data, data.invert_normals, data.meshgl);
-		data.dirty = MeshGL::DIRTY_NONE;
+	//std::unique_lock<std::mutex> lock1(data.mu);
+	{ //Block to ensure unlocking of the 2 lock_guards
+		std::lock(data.mu_overlay, data.mu_base);
+		std::lock_guard<std::recursive_mutex> lock1(data.mu_overlay, std::adopt_lock);
+		std::lock_guard<std::recursive_mutex> lock2(data.mu_base, std::adopt_lock);
+		if (data.dirty)
+		{
+			data.updateGL(data, data.invert_normals, data.meshgl);
+			data.dirty = MeshGL::DIRTY_NONE;
+		}
 	}
-	lock1.unlock();
+	//lock1.unlock();
 	data.meshgl.bind_mesh();
 
 	// Initialize uniform

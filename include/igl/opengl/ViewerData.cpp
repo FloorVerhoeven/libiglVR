@@ -49,7 +49,11 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 
 IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
 {
-	std::lock_guard<std::mutex> lock(mu);
+	//std::lock_guard<std::mutex> lock(mu);
+
+	std::lock(mu_overlay, mu_base);
+	std::lock_guard<std::recursive_mutex> lock1(mu_overlay, std::adopt_lock);
+	std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);
 
 	if (face_based != newvalue)
 	{
@@ -629,7 +633,11 @@ IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P, con
 
 IGL_INLINE void igl::opengl::ViewerData::clear()
 {
-	std::lock_guard<std::mutex> lock(mu);
+	//std::lock_guard<std::mutex> lock(mu);
+	std::lock(mu_overlay, mu_base);
+	std::lock_guard<std::recursive_mutex> lock1(mu_overlay, std::adopt_lock);
+	std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);
+
 	V = Eigen::MatrixXd(0, 3);
 	F = Eigen::MatrixXi(0, 3);
 
@@ -776,9 +784,9 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 		meshgl.init();
 	}
 
-	std::lock(mu_overlay, mu_base);
+/*	std::lock(mu_overlay, mu_base);
 	std::lock_guard<std::recursive_mutex> lock1(mu_overlay, std::adopt_lock);
-	std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);
+	std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);*/
 
 	bool per_corner_uv = (data.F_uv.rows() == data.F.rows());
 	bool per_corner_normals = (data.F_normals.rows() == 3 * data.F.rows());
@@ -1036,7 +1044,7 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 			meshgl.overlay_strip_V_colors_vbo.row(i) = data.linestrip.block<1, 3>(i, 3).transpose().cast<float>();
 		}
 	}
-
+	/*
 	if (meshgl.dirty & MeshGL::DIRTY_VOLUMETRIC_LINES) {
 		meshgl.volumetric_lines_V_vbo.resize(data.volumetric_lines.rows(), 6);
 	//	meshgl.volumetric_lines_F_vbo.resize(data.volumetric_lines.rows() * 2, 1);
@@ -1050,7 +1058,7 @@ IGL_INLINE void igl::opengl::ViewerData::updateGL(
 	//		meshgl.volumetric_lines_colors_vbo.row(2 * i + 0) = data.volumetric_lines.block<1, 3>(i, 6).transpose().cast<float>();
 		//	meshgl.volumetric_lines_normals_vbo.row(2 * i +1) = data.volumetric_lines.block<1, 3>(i, 9).transpose().cast<float>();
 		}
-	}
+	}*/
 }
 
 IGL_INLINE void igl::opengl::ViewerData::rotate() { //Takes the trackball rotation as parameter to ensure it has been updated
