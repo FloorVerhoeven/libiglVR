@@ -236,6 +236,60 @@ IGL_INLINE void igl::opengl::ViewerData::set_colors(const Eigen::MatrixXd &C)
 	dirty |= MeshGL::DIRTY_DIFFUSE;
 }
 
+IGL_INLINE void igl::opengl::ViewerData::set_face_colors(const Eigen::MatrixXd &C, Eigen::VectorXi &F_idx) {
+	using namespace std;
+	using namespace Eigen;
+	std::unique_lock<std::recursive_mutex> lck(mu_base);
+	// Ambient color should be darker color
+	const auto ambient = [](const MatrixXd & C)->MatrixXd
+	{
+		MatrixXd T = 0.1*C;
+		T.col(3) = C.col(3);
+		return T;
+	};
+	// Specular color should be a less saturated and darker color: dampened
+	// highlights
+	const auto specular = [](const MatrixXd & C)->MatrixXd
+	{
+		const double grey = 0.3;
+		MatrixXd T = grey + 0.1*(C.array() - grey);
+		T.col(3) = C.col(3);
+		return T;
+	};
+
+	if (C.rows() == 1)
+	{
+		set_face_based(true);
+		for (unsigned i = 0; i < F_idx.rows(); ++i)
+		{
+			if (C.cols() == 3)
+				F_material_diffuse.row(F_idx[i]) << C.row(0), 1;
+			else if (C.cols() == 4)
+				F_material_diffuse.row(F_idx[i]) << C.row(0);
+		}
+		F_material_ambient = ambient(F_material_diffuse);
+		F_material_specular = specular(F_material_diffuse);
+	}
+	else if (C.rows() == F_idx.rows())
+	{
+		set_face_based(true);
+		for (unsigned i = 0; i < F_idx.rows(); ++i)
+		{
+			if (C.cols() == 3)
+				F_material_diffuse.row(F_idx[i]) << C.row(i), 1;
+			else if (C.cols() == 4)
+				F_material_diffuse.row(F_idx[i]) << C.row(i);
+		}
+		F_material_ambient = ambient(F_material_diffuse);
+		F_material_specular = specular(F_material_diffuse);
+	}
+	else {
+		cerr << "ERROR (set_face_colors): Please provide a single color, or a color per face or per vertex." << endl;
+	}
+
+	dirty |= MeshGL::DIRTY_SPECULAR | MeshGL::DIRTY_DIFFUSE | MeshGL::DIRTY_AMBIENT;
+}
+
 IGL_INLINE void igl::opengl::ViewerData::set_uv(const Eigen::MatrixXd& UV)
 {
 	using namespace std;
@@ -512,7 +566,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_volumetric_lines(const Eigen::Matri
 		volumetric_lines.row(lastid + i) << pos_temp.row(i), lengths[i], dir_temp.row(i), i < C.rows() ? C.row(i) : C.row(C.rows() - 1);
 
 	dirty |= MeshGL::DIRTY_VOLUMETRIC_LINES;
-}*/
+}
 
 IGL_INLINE void igl::opengl::ViewerData::set_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N) {
 	std::unique_lock<std::recursive_mutex> lck(mu_overlay);
@@ -550,7 +604,7 @@ IGL_INLINE void igl::opengl::ViewerData::add_volumetric_lines(const Eigen::Matri
 
 
 	dirty |= MeshGL::DIRTY_VOLUMETRIC_LINES;
-}
+}*/
 
 IGL_INLINE void igl::opengl::ViewerData::add_label(const Eigen::VectorXd& P, const std::string& str)
 {

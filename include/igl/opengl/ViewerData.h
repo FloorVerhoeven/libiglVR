@@ -211,6 +211,14 @@ public:
   // Inputs:
   //   C  #V|#F|1 by 3 list of colors
   IGL_INLINE void set_colors(const Eigen::MatrixXd &C);
+
+  //Set the color of some specific faces of the mesh
+  //
+  // Inputs:
+  //  C  #F_idx|1 by 3 list of colors for the faces specified in F_idx
+  //  F_idx list of indices of the faces that need to be changed in color 
+  IGL_INLINE void set_face_colors(const Eigen::MatrixXd &C, Eigen::VectorXi &F_idx);
+
   // Set per-vertex UV coordinates
   //
   // Inputs:
