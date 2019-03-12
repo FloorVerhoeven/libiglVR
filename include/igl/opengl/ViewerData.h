@@ -35,11 +35,7 @@ public:
 
   ViewerData& operator = (const ViewerData& other) {
 	  std::lock(mu_overlay, other.mu_overlay, mu_base, other.mu_base, mu_translations, other.mu_translations, mu_trackball_angle, other.mu_trackball_angle);
-
-	//  std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base, mu_translations, other.mu_translations, mu_trackball_angle, other.mu_trackball_angle);
-	//  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
-	//  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
-	  std::lock_guard<std::mutex> self_lock3(mu_translations, std::adopt_lock);
+	 std::lock_guard<std::mutex> self_lock3(mu_translations, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock3(other.mu_translations, std::adopt_lock);
 	  std::lock_guard<std::mutex> self_lock4(mu_trackball_angle, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock4(other.mu_trackball_angle, std::adopt_lock);
@@ -116,9 +112,6 @@ public:
 
   ViewerData(const ViewerData& other) {
 	  std::lock(mu_overlay, other.mu_overlay, mu_base, other.mu_base, mu_translations, other.mu_translations, mu_trackball_angle, other.mu_trackball_angle);
-	 // std::lock(mu, other.mu, mu_overlay, other.mu_overlay, mu_base, other.mu_base, mu_translations, other.mu_translations, mu_trackball_angle, other.mu_trackball_angle);
-	//  std::lock_guard<std::mutex> self_lock(mu, std::adopt_lock);
-	//  std::lock_guard<std::mutex> other_lock(other.mu, std::adopt_lock);
 	  std::lock_guard<std::mutex> self_lock3(mu_translations, std::adopt_lock);
 	  std::lock_guard<std::mutex> other_lock3(other.mu_translations, std::adopt_lock);  
 	  std::lock_guard<std::mutex> self_lock4(mu_trackball_angle, std::adopt_lock);
@@ -329,7 +322,6 @@ public:
   IGL_INLINE void rotate();
   IGL_INLINE void rotate_points(Eigen::MatrixXd& Points);
 
-  //mutable std::mutex mu;
   mutable std::mutex mu_translations;
   mutable std::mutex mu_trackball_angle;
   mutable std::recursive_mutex mu_overlay;

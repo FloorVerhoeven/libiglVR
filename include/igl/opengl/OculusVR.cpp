@@ -70,17 +70,14 @@ namespace igl {
 
 		static int laser_data_idx = -1;
 
-	/*	static Eigen::Vector3f prev_rollpitchyawleft;
-		static Eigen::Vector3f cur_rollpitchyawleft;
-		static Eigen::Vector3f prev_rollpitchyawright;
-		static Eigen::Vector3f cur_rollpitchyawright;*/
-
 		static OVR::Quatf cur_orient_right;
 		static OVR::Quatf cur_orient_left;
 
 		static OVR::Quatf prev_orient_right;
 		static OVR::Quatf prev_orient_left;
 
+		static Eigen::Vector4f pos_tmp;
+		static bool first_round = true;
 
 		IGL_INLINE void OculusVR::init() {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
@@ -90,7 +87,6 @@ namespace igl {
 			callback_menu_closed = nullptr;
 			callback_GUI_set_mouse = nullptr;
 			callback_GUI_button_press = nullptr;
-			//callback_GUI_button_release = nullptr;
 			callback_set_laser_viewerdata_idx = nullptr;
 
 			// Initialize the OVR Platform module
@@ -725,10 +721,8 @@ void main() {
 					update_avatar(deltaSeconds);
 				}
 
-			//	update_laser(data_list[data_list.size() - 1], update_screen_while_computing);
 				if (laser_data_idx == -1) {
 					laser_data_idx = callback_set_laser_viewerdata_idx();
-					std::cout << "Test oculus: " << laser_data_idx << std::endl;
 				}
 				update_laser(data_list[laser_data_idx], update_screen_while_computing);
 
@@ -1625,12 +1619,23 @@ void main() {
 			// Compute the skinned pose
 			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * skinnedPose.jointCount);
 			_computeWorldPose(skinnedPose, skinnedPoses);
-			
+
+			if (!first_round && !left_hand) {
+				//for (int i = 0; i < skinnedPose.jointCount; i++) {
+					Eigen::Vector4f cur;
+					cur = Eigen::Vector4f((*(skinnedPoses +0))(0, 3), (*(skinnedPoses + 0))(1, 3), (*(skinnedPoses + 0))(2, 3), 1);
+					std::cout <<"joint: " << i<< "   "<< (cur-pos_tmp).transpose() << std::endl;
+				//}
+			}
+			first_round = false;
+
+		
 			if (left_hand) {
 				index_top_pose_left = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
 			}
 			else {
 				index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
+				pos_tmp = Eigen::Vector4f((*(skinnedPoses + 0))(0, 3), (*(skinnedPoses + 0))(1, 3), (*(skinnedPoses + 0))(2, 3), 1);
 			}
 			hand_base_pose = Eigen::Vector4f((*(skinnedPoses + hand_base_joint))(0, 3), (*(skinnedPoses + hand_base_joint))(1, 3), (*(skinnedPoses + hand_base_joint))(2, 3), 1);
 			index_base_pose = Eigen::Vector4f((*(skinnedPoses + index_base_joint))(0, 3), (*(skinnedPoses + index_base_joint))(1, 3), (*(skinnedPoses + index_base_joint))(2, 3), 1);
@@ -1845,7 +1850,6 @@ void main() {
 				Eigen::Vector3f rollpitchyawdiff(roll, pitch, yaw);
 
 				return rollpitchyawdiff;
-				//return cur_rollpitchyawright - prev_rollpitchyawright;
 			}
 			else {
 				std::cerr << "You chose a non-existing side. Please only choose 1 (for left) or 2 (for right)." << std::endl;

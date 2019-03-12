@@ -102,7 +102,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	using namespace std;
 	using namespace Eigen;
 
-	//std::cout << "Data id: " << data.id <<" " << depth_test;
 	glDepthRange(0.01, 1000.0);
 	glEnable(GL_FRAMEBUFFER_SRGB);
 	if (depth_test)
@@ -114,7 +113,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	/* Bind and potentially refresh mesh/line/point data */
-	//std::unique_lock<std::mutex> lock1(data.mu);
 	{ //Block to ensure unlocking of the 2 lock_guards
 		std::lock(data.mu_overlay, data.mu_base);
 		std::lock_guard<std::recursive_mutex> lock1(data.mu_overlay, std::adopt_lock);
@@ -125,7 +123,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			data.dirty = MeshGL::DIRTY_NONE;
 		}
 	}
-	//lock1.unlock();
 	data.meshgl.bind_mesh();
 
 	// Initialize uniform
@@ -217,7 +214,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		// Render fill
 		if (data.show_faces)
 		{
-		//	std::cout << " sf ";
 			// Texture
 			glUniform1f(texture_factori, data.show_texture ? 1.0f : 0.0f);
 			data.meshgl.draw_mesh(true);
@@ -227,8 +223,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		// Render wireframe
 		if (data.show_lines)
 		{
-		//	std::cout << " sl ";
-
 			glLineWidth(data.line_width);
 			glUniform4f(fixed_colori,
 				data.line_color[0],
@@ -241,8 +235,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 	if (data.show_overlay)
 	{
-		//std::cout << " so " << data.show_overlay_depth << " ";
-
 		if (data.show_overlay_depth)
 			glEnable(GL_DEPTH_TEST);
 		else
@@ -250,7 +242,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 
 		if (data.lines.rows() > 0)
 		{
-		//	std::cout << " dl ";
 			data.meshgl.bind_overlay_lines();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_lines, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_lines, "view");
@@ -266,9 +257,7 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			data.meshgl.draw_overlay_lines();
 		}
 
-		if (data.points.rows() > 0)
-		{
-			//std::cout << " dp ";
+		if (data.points.rows() > 0){
 			data.meshgl.bind_overlay_points();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
@@ -283,8 +272,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		}
 
 		if (data.hand_point.rows() > 0) {
-		//	std::cout << " hp ";
-
 			data.meshgl.bind_hand_point();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
@@ -300,8 +287,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 		}
 
 		if (data.linestrip.rows() > 0) {
-		//	std::cout << " lstr ";
-
 			data.meshgl.bind_overlay_linestrip();
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_points, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_points, "view");
@@ -315,60 +300,15 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			glLineWidth(data.linestrip_line_width);
 
 			data.meshgl.draw_overlay_linestrip();
-		}
-
-		if (data.volumetric_lines.rows() > 0) {
-			/*std::cout << " vl ";
-
-			glUseProgram(data.meshgl.shader_volumetric_overlay_lines); 
-
-			modeli = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "model");
-			viewi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "view");
-			proji = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "proj");
-
-			glUniformMatrix4fv(modeli, 1, GL_FALSE, model.data());
-			glUniformMatrix4fv(viewi, 1, GL_FALSE, view.data());
-			glUniformMatrix4fv(proji, 1, GL_FALSE, proj.data());
-
-			// Light parameters
-			GLint diffuse_materiali = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "DiffuseMaterial");
-			GLint ambient_materiali = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "AmbientMaterial");
-			GLint specular_materiali = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "SpecularMaterial");
-			GLint shininessi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "Shininess");
-			GLint volumetric_radiusi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "Radius");
-			GLint light_position_worldi = glGetUniformLocation(data.meshgl.shader_volumetric_overlay_lines, "LightDirection");
-			
-
-			glUniform3f(diffuse_materiali, data.volumetric_diffuse[0], data.volumetric_diffuse[1], data.volumetric_diffuse[2]);
-			glUniform3f(ambient_materiali, data.volumetric_ambient[0], data.volumetric_ambient[1], data.volumetric_ambient[2]);
-			glUniform3f(specular_materiali, data.volumetric_specular[0], data.volumetric_specular[1], data.volumetric_specular[2]);
-			glUniform1f(shininessi, data.volumetric_shininess);
-			glUniform1f(volumetric_radiusi, data.volumetric_radius);
-			Eigen::Vector3f rev_light = -1.*light_position;
-			Eigen::Vector4f light_pos_world;
-			light_pos_world << rev_light, 1.0f;
-			Eigen::Vector3f tmp = (view * light_pos_world).topRows(3);
-			tmp = 1 * tmp.normalized();
-			glUniform3fv(light_position_worldi, 1, tmp.data());
-			glEnable(GL_DEPTH_TEST);
-			glDisable(GL_BLEND);
-			data.meshgl.bind_volumetric_lines();
-		    glEnable(GL_BLEND);
-			glBlendEquation(GL_FUNC_ADD);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);*/
-		}
+		}	
 
 		glEnable(GL_DEPTH_TEST);
 	}
 
 	if (data.show_laser) {
-		//std::cout << " showlas ";
-
 		glEnable(GL_DEPTH_TEST);
 
 		if (data.laser_points.rows() > 0) {
-	//		std::cout << " lasp ";
-
 			data.meshgl.bind_laser();	
 			modeli = glGetUniformLocation(data.meshgl.shader_overlay_lines, "model");
 			viewi = glGetUniformLocation(data.meshgl.shader_overlay_lines, "view");
@@ -385,8 +325,6 @@ IGL_INLINE void igl::opengl::ViewerCore::draw(
 			data.meshgl.draw_laser();
 		}
 	}
-
-	
 }
 
 IGL_INLINE void igl::opengl::ViewerCore::draw_buffer(ViewerData& data,
@@ -487,7 +425,6 @@ IGL_INLINE void igl::opengl::ViewerCore::set_rotation_type(
 		snap_to_fixed_up(Quaternionf(trackball_angle), trackball_angle);
 	}
 }
-
 
 IGL_INLINE igl::opengl::ViewerCore::ViewerCore()
 {

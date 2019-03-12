@@ -63,13 +63,6 @@ IGL_INLINE void igl::opengl::MeshGL::init_buffers()
   glGenBuffers(1, &vbo_hand_point_V);
   glGenBuffers(1, &vbo_hand_point_V_colors);
 
-  //Volumetric line overlay
-  glGenVertexArrays(1, &vao_volumetric_overlay_lines);
-  glBindVertexArray(vao_volumetric_overlay_lines);
-  glGenBuffers(1, &vbo_volumetric_lines_F);
-  glGenBuffers(1, &vbo_volumetric_lines_V);
-  glGenBuffers(1, &vbo_volumetric_lines_colors);
-  glGenBuffers(1, &vbo_volumetric_lines_normals);
   dirty = MeshGL::DIRTY_ALL;
 }
 
@@ -83,7 +76,6 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteVertexArrays(1, &vao_laser_points);
 	glDeleteVertexArrays(1, &vao_overlay_strip);
 	glDeleteVertexArrays(1, &vao_hand_point);
-	glDeleteVertexArrays(1, &vao_volumetric_overlay_lines);
 
     glDeleteBuffers(1, &vbo_V);
     glDeleteBuffers(1, &vbo_V_normals);
@@ -108,10 +100,6 @@ IGL_INLINE void igl::opengl::MeshGL::free_buffers()
 	glDeleteBuffers(1, &vbo_hand_point_F);
 	glDeleteBuffers(1, &vbo_hand_point_V);
 	glDeleteBuffers(1, &vbo_hand_point_V_colors);
-	glDeleteBuffers(1, &vbo_volumetric_lines_F);
-	glDeleteBuffers(1, &vbo_volumetric_lines_V);
-	glDeleteBuffers(1, &vbo_volumetric_lines_colors);
-	glDeleteBuffers(1, &vbo_volumetric_lines_normals);
 
     glDeleteTextures(1, &vbo_tex);
   }
@@ -232,31 +220,6 @@ IGL_INLINE void igl::opengl::MeshGL::bind_hand_point()
 	}
 
 	dirty &= ~MeshGL::DIRTY_HAND_POINT;
-}
-
-IGL_INLINE void igl::opengl::MeshGL::bind_volumetric_lines() {
-	bool is_dirty = dirty & MeshGL::DIRTY_VOLUMETRIC_LINES;
-
-	int nr_segments = volumetric_lines_V_vbo.rows();
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_volumetric_lines_V);
-	if (is_dirty) {
-		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * nr_segments, volumetric_lines_V_vbo.data(), GL_STATIC_DRAW);
-	}
-
-	GLint id_pos = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("position").c_str());
-	GLint id_nor = glGetAttribLocation(shader_volumetric_overlay_lines, std::string("normal").c_str());
-	glEnableVertexAttribArray(id_pos);
-	glEnableVertexAttribArray(id_nor);
-	GLsizei stride = sizeof(float) * 6;
-	const GLvoid* normalOffset = (GLvoid*)(sizeof(float) * 3);
-	glVertexAttribPointer(id_pos, 3, GL_FLOAT, GL_FALSE, stride, 0);
-	glVertexAttribPointer(id_nor, 3, GL_FLOAT, GL_FALSE, stride, normalOffset);
-
-	glDrawArrays(GL_LINE_STRIP_ADJACENCY_EXT, 0, nr_segments);
-	glDisableVertexAttribArray(id_pos);
-	glDisableVertexAttribArray(id_nor);
-	
-	dirty &= ~MeshGL::DIRTY_VOLUMETRIC_LINES;
 }
 
 IGL_INLINE void igl::opengl::MeshGL::draw_mesh(bool solid)
@@ -459,7 +422,6 @@ IGL_INLINE void igl::opengl::MeshGL::free()
     free(shader_mesh);
     free(shader_overlay_lines);
     free(shader_overlay_points);
-	free(shader_volumetric_overlay_lines);
     free_buffers();
   }
 }

@@ -49,8 +49,6 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 
 IGL_INLINE void igl::opengl::ViewerData::set_face_based(bool newvalue)
 {
-	//std::lock_guard<std::mutex> lock(mu);
-
 	std::lock(mu_overlay, mu_base);
 	std::lock_guard<std::recursive_mutex> lock1(mu_overlay, std::adopt_lock);
 	std::lock_guard<std::recursive_mutex> lock2(mu_base, std::adopt_lock);
@@ -97,24 +95,10 @@ IGL_INLINE void igl::opengl::ViewerData::set_mesh(
 
 		//See answer 3 on https://stackoverflow.com/questions/2415082/when-to-use-recursive-mutex for an alternative, non-recursive mutex implementation
 		compute_normals();
-		/*uniform_colors(
-			Eigen::Vector3d(SILVER_AMBIENT[0], SILVER_AMBIENT[1], SILVER_AMBIENT[2]),
-			Eigen::Vector3d(SILVER_DIFFUSE[0], SILVER_DIFFUSE[1], SILVER_DIFFUSE[2]),
-			Eigen::Vector3d(SILVER_SPECULAR[0], SILVER_SPECULAR[1], SILVER_SPECULAR[2]));
 		uniform_colors(
-			Eigen::Vector3d(SILVER_AMBIENT[0], SILVER_AMBIENT[1], SILVER_AMBIENT[2]),
-			Eigen::Vector3d(SILVER_DIFFUSE2[0], SILVER_DIFFUSE2[1], SILVER_DIFFUSE2[2]),
-			Eigen::Vector3d(SILVER_SPECULAR2[0], SILVER_SPECULAR2[1], SILVER_SPECULAR2[2]));*/
-
-			uniform_colors(
 				Eigen::Vector3d(COPPER_SHINE_AMBIENT[0], COPPER_SHINE_AMBIENT[1], COPPER_SHINE_AMBIENT[2]),
 				Eigen::Vector3d(COPPER_SHINE_DIFFUSE[0], COPPER_SHINE_DIFFUSE[1], COPPER_SHINE_DIFFUSE[2]),
 				Eigen::Vector3d(COPPER_SHINE_SPECULAR[0], COPPER_SHINE_SPECULAR[1], COPPER_SHINE_SPECULAR[2]));
-		/*uniform_colors(
-			Eigen::Vector3d(CHROME_AMBIENT[0], CHROME_AMBIENT[1], CHROME_AMBIENT[2]),
-			Eigen::Vector3d(CHROME_DIFFUSE[0], CHROME_DIFFUSE[1], CHROME_DIFFUSE[2]),
-			Eigen::Vector3d(CHROME_SPECULAR[0], CHROME_SPECULAR[1], CHROME_SPECULAR[2]));*/
-
 		grid_texture();
 	}
 	else
