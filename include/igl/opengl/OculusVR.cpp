@@ -47,7 +47,7 @@ namespace igl {
 		static Eigen::Matrix4f local;
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
-		static int handpalm_joint = 2; //At palm of hand. Maybe use for grabbing a rod
+		static int handpalm_joint = 2; //At palm of hand. Maybe use for grabbing a rod	
 		static int index_base_joint = 4;
 		static Eigen::Vector3d menu_intersect_pt;
 
