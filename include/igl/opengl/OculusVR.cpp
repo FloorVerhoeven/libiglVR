@@ -47,6 +47,7 @@ namespace igl {
 		static Eigen::Matrix4f local;
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
+		static int handpalm_joint = 2; //At palm of hand. Maybe use for grabbing a rod
 		static int index_base_joint = 4;
 		static Eigen::Vector3d menu_intersect_pt;
 
@@ -602,6 +603,14 @@ void main() {
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.HandTrigger[ovrHand_Left] >= 0.995f) { //Both the left and right triggers and grips are being pressed
 					count = (prev_press == GRIPTRIGBOTH) ? count + 1 : 1;
 					prev_press = GRIPTRIGBOTH;
+				}
+				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.HandTrigger[ovrHand_Left] < 0.5f) {
+					count = (prev_press == GRIPTRIGRIGHT) ? count + 1 : 1;
+					prev_press = GRIPTRIGRIGHT;
+				}
+				else if (inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] < 0.5f) {
+					count = (prev_press == GRIPTRIGLEFT) ? count + 1 : 1;
+					prev_press = GRIPTRIGLEFT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Only the right Trigger is being pressed
 					count = (prev_press == TRIG_RIGHT) ? count + 1 : 1;
@@ -1620,22 +1629,13 @@ void main() {
 			Eigen::Matrix4f* skinnedPoses = (Eigen::Matrix4f*)alloca(sizeof(Eigen::Matrix4f) * skinnedPose.jointCount);
 			_computeWorldPose(skinnedPose, skinnedPoses);
 
-			if (!first_round && !left_hand) {
-				//for (int i = 0; i < skinnedPose.jointCount; i++) {
-					Eigen::Vector4f cur;
-					cur = Eigen::Vector4f((*(skinnedPoses +0))(0, 3), (*(skinnedPoses + 0))(1, 3), (*(skinnedPoses + 0))(2, 3), 1);
-					std::cout <<"joint: " << i<< "   "<< (cur-pos_tmp).transpose() << std::endl;
-				//}
-			}
-			first_round = false;
-
-		
+			
 			if (left_hand) {
 				index_top_pose_left = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
 			}
 			else {
 				index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
-				pos_tmp = Eigen::Vector4f((*(skinnedPoses + 0))(0, 3), (*(skinnedPoses + 0))(1, 3), (*(skinnedPoses + 0))(2, 3), 1);
+			//	index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + handpalm_joint))(0, 3), (*(skinnedPoses + handpalm_joint))(1, 3), (*(skinnedPoses + handpalm_joint))(2, 3), 1);
 			}
 			hand_base_pose = Eigen::Vector4f((*(skinnedPoses + hand_base_joint))(0, 3), (*(skinnedPoses + hand_base_joint))(1, 3), (*(skinnedPoses + hand_base_joint))(2, 3), 1);
 			index_base_pose = Eigen::Vector4f((*(skinnedPoses + index_base_joint))(0, 3), (*(skinnedPoses + index_base_joint))(1, 3), (*(skinnedPoses + index_base_joint))(2, 3), 1);
