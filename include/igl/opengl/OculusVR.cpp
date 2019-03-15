@@ -47,7 +47,7 @@ namespace igl {
 		static Eigen::Matrix4f local;
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
-		static int handpalm_joint = 2; //At palm of hand. Maybe use for grabbing a rod	
+		static int hand_palm_joint = 2; //At palm of hand. Maybe use for grabbing a rod	
 		static int index_base_joint = 4;
 		static Eigen::Vector3d menu_intersect_pt;
 
@@ -1634,8 +1634,8 @@ void main() {
 				index_top_pose_left = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
 			}
 			else {
-				index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
-			//	index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + handpalm_joint))(0, 3), (*(skinnedPoses + handpalm_joint))(1, 3), (*(skinnedPoses + handpalm_joint))(2, 3), 1);
+			//	index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
+				index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + hand_palm_joint))(0, 3), (*(skinnedPoses + hand_palm_joint))(1, 3), (*(skinnedPoses + hand_palm_joint))(2, 3), 1);
 			}
 			hand_base_pose = Eigen::Vector4f((*(skinnedPoses + hand_base_joint))(0, 3), (*(skinnedPoses + hand_base_joint))(1, 3), (*(skinnedPoses + hand_base_joint))(2, 3), 1);
 			index_base_pose = Eigen::Vector4f((*(skinnedPoses + index_base_joint))(0, 3), (*(skinnedPoses + index_base_joint))(1, 3), (*(skinnedPoses + index_base_joint))(2, 3), 1);
