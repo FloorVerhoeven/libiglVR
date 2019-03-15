@@ -69,7 +69,6 @@ namespace igl
 
   const float COPPER_SHINE_DIFFUSE[4] = { 0.5508f, 0.2118f, 0.066f, 1.0f };
   const float COPPER_SHINE_AMBIENT[4] = { 0.2295f, 0.08825f, 0.0275f, 1.0f };
- // const float COPPER_SHINE_SPECULAR[4] = { 0.580594f, 0.223257f, 0.0695701f, 1.0f };
   const float COPPER_SHINE_SPECULAR[4] = { 220.0/255.0, 124.0/255.0, 83.0/255.0, 1.0f };
 
 }

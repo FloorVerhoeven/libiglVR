@@ -96,11 +96,11 @@ public:
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
-	  volumetric_shininess = other.volumetric_shininess; 
-	  volumetric_diffuse = other.volumetric_diffuse;
-	  volumetric_ambient = other.volumetric_ambient;
-	  volumetric_specular = other.volumetric_specular;
-	  volumetric_radius = other.volumetric_radius;
+	  //volumetric_shininess = other.volumetric_shininess; 
+	//  volumetric_diffuse = other.volumetric_diffuse;
+	//  volumetric_ambient = other.volumetric_ambient;
+	//  volumetric_specular = other.volumetric_specular;
+	//  volumetric_radius = other.volumetric_radius;
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
 	  mesh_translation = other.mesh_translation;
@@ -173,11 +173,11 @@ public:
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
-	  volumetric_shininess = other.volumetric_shininess;
-	  volumetric_diffuse = other.volumetric_diffuse;
-	  volumetric_ambient = other.volumetric_ambient;
-	  volumetric_specular = other.volumetric_specular;
-	  volumetric_radius = other.volumetric_radius;
+	  //volumetric_shininess = other.volumetric_shininess;
+	//  volumetric_diffuse = other.volumetric_diffuse;
+	//  volumetric_ambient = other.volumetric_ambient;
+	//  volumetric_specular = other.volumetric_specular;
+	//  volumetric_radius = other.volumetric_radius;
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
 	  mesh_translation = other.mesh_translation;
@@ -406,12 +406,12 @@ public:
 
   // Shape material
   float shininess;
-  float volumetric_shininess = 0.3f;
+ // float volumetric_shininess = 0.3f;
 
-  Eigen::Vector3f volumetric_diffuse;
-  Eigen::Vector3f volumetric_ambient;
-  Eigen::Vector3f volumetric_specular;
-  float volumetric_radius = 0.005f;
+ // Eigen::Vector3f volumetric_diffuse;
+ // Eigen::Vector3f volumetric_ambient;
+ // Eigen::Vector3f volumetric_specular;
+  //float volumetric_radius = 0.005f;
 
   // Trackball rotator for the mesh
   Eigen::Quaternionf mesh_trackball_angle;
@@ -485,11 +485,11 @@ namespace igl
 	  SERIALIZE_MEMBER(linestrip_line_width);
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);
-	  SERIALIZE_MEMBER(volumetric_shininess);
-	  SERIALIZE_MEMBER(volumetric_diffuse);
-	  SERIALIZE_MEMBER(volumetric_ambient);
-	  SERIALIZE_MEMBER(volumetric_specular);
-	  SERIALIZE_MEMBER(volumetric_radius);
+//	  SERIALIZE_MEMBER(volumetric_shininess);
+	//  SERIALIZE_MEMBER(volumetric_diffuse);
+//	  SERIALIZE_MEMBER(volumetric_ambient);
+//	  SERIALIZE_MEMBER(volumetric_specular);
+//	  SERIALIZE_MEMBER(volumetric_radius);
 	  SERIALIZE_MEMBER(mesh_trackball_angle);
 	  SERIALIZE_MEMBER(mesh_translation);
 	  SERIALIZE_MEMBER(mesh_model_translation);

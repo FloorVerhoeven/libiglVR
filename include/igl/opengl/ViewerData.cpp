@@ -36,9 +36,9 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 	line_color(0, 0, 0, 1),
 	//shininess(35.0f),
 	shininess(80.8f),
-	volumetric_diffuse(SILVER_DIFFUSE[0], SILVER_DIFFUSE[1], SILVER_DIFFUSE[2]), // (1.0f, 0.5f, 0.125f),
-	volumetric_ambient(SILVER_AMBIENT[0], SILVER_AMBIENT[1], SILVER_AMBIENT[2]),//0.125f, 0.125f, 0.0f),
-	volumetric_specular(SILVER_SPECULAR[0], SILVER_SPECULAR[1], SILVER_SPECULAR[2]),// 0.5f, 0.5f, 0.5f),
+//	volumetric_diffuse(SILVER_DIFFUSE[0], SILVER_DIFFUSE[1], SILVER_DIFFUSE[2]), // (1.0f, 0.5f, 0.125f),
+//	volumetric_ambient(SILVER_AMBIENT[0], SILVER_AMBIENT[1], SILVER_AMBIENT[2]),//0.125f, 0.125f, 0.0f),
+//	volumetric_specular(SILVER_SPECULAR[0], SILVER_SPECULAR[1], SILVER_SPECULAR[2]),// 0.5f, 0.5f, 0.5f),
 	mesh_trackball_angle(Eigen::Quaternionf::Identity()),
 	mesh_translation(Eigen::Vector3f::Zero()),
 	mesh_model_translation(Eigen::Matrix4f::Identity()),
@@ -250,26 +250,32 @@ IGL_INLINE void igl::opengl::ViewerData::set_face_colors(const Eigen::MatrixXd &
 		set_face_based(true);
 		for (unsigned i = 0; i < F_idx.rows(); ++i)
 		{
-			if (C.cols() == 3)
+			if (C.cols() == 3) {
 				F_material_diffuse.row(F_idx[i]) << C.row(0), 1;
-			else if (C.cols() == 4)
+			}
+			else if (C.cols() == 4) {
 				F_material_diffuse.row(F_idx[i]) << C.row(0);
+			}
+			F_material_ambient.row(F_idx[i]) = ambient(F_material_diffuse.row(F_idx[i]));
+			F_material_specular.row(F_idx[i]) = ambient(F_material_specular.row(F_idx[i]));
 		}
-		F_material_ambient = ambient(F_material_diffuse);
-		F_material_specular = specular(F_material_diffuse);
 	}
 	else if (C.rows() == F_idx.rows())
 	{
-		set_face_based(true);
-		for (unsigned i = 0; i < F_idx.rows(); ++i)
-		{
-			if (C.cols() == 3)
-				F_material_diffuse.row(F_idx[i]) << C.row(i), 1;
-			else if (C.cols() == 4)
-				F_material_diffuse.row(F_idx[i]) << C.row(i);
+		if (F_idx.rows() > 0) {
+			set_face_based(true);
+			for (unsigned i = 0; i < F_idx.rows(); ++i)
+			{
+				if (C.cols() == 3) {
+					F_material_diffuse.row(F_idx[i]) << C.row(i), 1;
+				}
+				else if (C.cols() == 4) {
+					F_material_diffuse.row(F_idx[i]) << C.row(i);
+				}
+				F_material_ambient.row(F_idx[i]) = ambient(F_material_diffuse.row(F_idx[i]));
+				F_material_specular.row(F_idx[i]) = ambient(F_material_specular.row(F_idx[i]));
+			}
 		}
-		F_material_ambient = ambient(F_material_diffuse);
-		F_material_specular = specular(F_material_diffuse);
 	}
 	else {
 		cerr << "ERROR (set_face_colors): Please provide a single color, or a color per face or per vertex." << endl;
