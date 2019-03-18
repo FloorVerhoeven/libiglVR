@@ -48,6 +48,7 @@ namespace igl {
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
 		static int hand_palm_joint = 2; //At palm of hand. Maybe use for grabbing a rod	
+		static int thumb_tip_joint = 24;
 		static int index_base_joint = 4;
 		static Eigen::Vector3d menu_intersect_pt;
 
@@ -77,8 +78,13 @@ namespace igl {
 		static OVR::Quatf prev_orient_right;
 		static OVR::Quatf prev_orient_left;
 
-		static Eigen::Vector4f pos_tmp;
-		static bool first_round = true;
+		//static Eigen::Vector4f pos_tmp;
+		static Eigen::Vector4f pinch_pose_left(0.0224121, -0.0275287, -0.00846742, 1.0f);
+		static Eigen::Vector4f pinch_pose_right(-0.0224121, -0.0275287, -0.00846742, 1.0f);
+		//static bool first_round = true;
+		static Eigen::Vector3f hand_pos_left(0, 0, 0);
+		static Eigen::Vector3f hand_pos_right(0, 0, 0);
+
 
 		IGL_INLINE void OculusVR::init() {
 			eye_pos_lock = std::unique_lock<std::mutex>(mu_last_eye_origin, std::defer_lock);
@@ -576,8 +582,6 @@ void main() {
 			handPoses[ovrHand_Left] = hmdState.HandPoses[ovrHand_Left].ThePose;
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
-				Eigen::Vector3f hand_pos_left = (world_left_hand*local*index_top_pose_left).topRows(3);
-				Eigen::Vector3f hand_pos_right = (world_right_hand*local*index_top_pose_right).topRows(3);
 				
 				Eigen::Vector3d menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos))).cast<double>();
 				Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
@@ -602,27 +606,61 @@ void main() {
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.HandTrigger[ovrHand_Left] >= 0.995f) { //Both the left and right triggers and grips are being pressed
 					count = (prev_press == GRIPTRIGBOTH) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
 					prev_press = GRIPTRIGBOTH;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.HandTrigger[ovrHand_Left] < 0.5f) {
-					count = (prev_press == GRIPTRIGRIGHT) ? count + 1 : 1;
-					prev_press = GRIPTRIGRIGHT;
+					//count = (prev_press == GRIPTRIGRIGHT) ? count + 1 : 1;
+					count = (prev_press == GRIP_RIGHT) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
+				//	prev_press = GRIPTRIGRIGHT;
+					prev_press = GRIP_RIGHT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] < 0.5f) {
-					count = (prev_press == GRIPTRIGLEFT) ? count + 1 : 1;
-					prev_press = GRIPTRIGLEFT;
+					//count = (prev_press == GRIPTRIGLEFT) ? count + 1 : 1;
+					count = (prev_press == GRIP_LEFT) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
+					//prev_press = GRIPTRIGLEFT;
+					prev_press = GRIP_LEFT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Only the right Trigger is being pressed
 					count = (prev_press == TRIG_RIGHT) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
 					prev_press = TRIG_RIGHT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f) { //Only the left Trigger is being pressed
 					count = (prev_press == TRIG_LEFT) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
 					prev_press = TRIG_LEFT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Both Triggers are being pressed
 					count = (prev_press == TRIG_BOTH) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
 					prev_press = TRIG_BOTH;
+				}
+				else if (inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Only the right hand Trigger is being pressed
+					count = (prev_press == GRIP_RIGHT) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
+					prev_press = GRIP_RIGHT;
+				}
+				else if (inputState.HandTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f) { //Only the left hand Trigger is being pressed
+					count = (prev_press == GRIP_LEFT) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
+					prev_press = GRIP_LEFT;
+				}
+				else if (inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.HandTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.IndexTrigger[ovrHand_Left] < 0.5f) { //Both hand Triggers are being pressed
+					count = (prev_press == GRIP_BOTH) ? count + 1 : 1;
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
+					prev_press = GRIP_BOTH;
 				}
 				else if (inputState.Thumbstick[ovrHand_Right].x > 0.1f || inputState.Thumbstick[ovrHand_Right].x < -0.1f || inputState.Thumbstick[ovrHand_Right].y > 0.1f || inputState.Thumbstick[ovrHand_Right].y < -0.1f) {
 					navigate(inputState.Thumbstick[ovrHand_Right], data);
@@ -648,6 +686,7 @@ void main() {
 					Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
 					head_rot_tmp.normalize();
 					Eigen::Matrix3d head_rot = head_rot_tmp.toRotationMatrix().cast<double>();
+					hand_pos_right = (world_right_hand*local*index_top_pose_right).topRows(3);
 					set_menu_3D_mouse(hand_pos_right, right_touch_direction, head_rot, menu_center, hud_buffer->eyeTextureSize.w*pixels_to_meter, hud_buffer->eyeTextureSize.h*pixels_to_meter);
 					if (prev_press == TRIG_RIGHT || prev_press == A) {
 						if (prev_press == prev_unsent) {
@@ -1422,6 +1461,7 @@ void main() {
 				Eigen::Matrix4f local;
 				EigenFromOvrAvatarTransform(localPose.jointTransform[i], local);
 
+				//std::cout << i << "   " <<localPose.jointNames[i] << std::endl;
 				int parentIndex = localPose.jointParents[i];
 				if (parentIndex < 0)
 				{
@@ -1632,13 +1672,12 @@ void main() {
 			
 			if (left_hand) {
 				index_top_pose_left = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
+				hand_palm_pose_left = Eigen::Vector4f((*(skinnedPoses + hand_palm_joint))(0, 3), (*(skinnedPoses + hand_palm_joint))(1, 3), (*(skinnedPoses + hand_palm_joint))(2, 3), 1);
 			}
 			else {
-			//	index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
-				index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + hand_palm_joint))(0, 3), (*(skinnedPoses + hand_palm_joint))(1, 3), (*(skinnedPoses + hand_palm_joint))(2, 3), 1);
+				index_top_pose_right = Eigen::Vector4f((*(skinnedPoses + raycast_start_joint))(0, 3), (*(skinnedPoses + raycast_start_joint))(1, 3), (*(skinnedPoses + raycast_start_joint))(2, 3), 1);
+				hand_palm_pose_right = Eigen::Vector4f((*(skinnedPoses + hand_palm_joint))(0, 3), (*(skinnedPoses + hand_palm_joint))(1, 3), (*(skinnedPoses + hand_palm_joint))(2, 3), 1);
 			}
-			hand_base_pose = Eigen::Vector4f((*(skinnedPoses + hand_base_joint))(0, 3), (*(skinnedPoses + hand_base_joint))(1, 3), (*(skinnedPoses + hand_base_joint))(2, 3), 1);
-			index_base_pose = Eigen::Vector4f((*(skinnedPoses + index_base_joint))(0, 3), (*(skinnedPoses + index_base_joint))(1, 3), (*(skinnedPoses + index_base_joint))(2, 3), 1);
 
 			for (uint32_t i = 0; i < skinnedPose.jointCount; ++i) {
 				*(skinnedPoses + i) = *(skinnedPoses + i) * data->inverseBindPose[i];

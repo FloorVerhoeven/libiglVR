@@ -93,7 +93,7 @@ public:
 			std::unique_lock<std::mutex> eye_pos_lock;
 			std::unique_lock<std::mutex> touch_dir_lock;
 
-			enum ButtonCombo { A, B, THUMB_MOVE, TRIG_RIGHT, TRIG_LEFT, TRIG_BOTH, NONE, X, Y, GRIPTRIGBOTH, GRIPTRIGRIGHT, GRIPTRIGLEFT};
+			enum ButtonCombo { A, B, THUMB_MOVE, TRIG_RIGHT, TRIG_LEFT, TRIG_BOTH, NONE, X, Y, GRIPTRIGBOTH, GRIPTRIGRIGHT, GRIPTRIGLEFT, GRIP_RIGHT, GRIP_LEFT, GRIP_BOTH};
 
 			std::function<void(ButtonCombo buttons, Eigen::Vector3f& hand_pos_left, Eigen::Vector3f& hand_pos_right)> callback_button_down;
 			std::function<void()> callback_menu_opened;
@@ -116,8 +116,13 @@ public:
 			ovrPosef handPoses[2];
 			Eigen::Vector4f index_top_pose_left;
 			Eigen::Vector4f index_top_pose_right;
-			Eigen::Vector4f hand_base_pose;
-			Eigen::Vector4f index_base_pose;
+			Eigen::Vector4f hand_palm_pose_right;
+			Eigen::Vector4f hand_palm_pose_left;
+			//Eigen::Vector4f pinch_pose_right;
+			//Eigen::Vector4f pinch_pose_left;
+			//Eigen::Vector4f pinch_palm_pose_left;
+			//Eigen::Vector4f hand_base_pose;
+			//Eigen::Vector4f index_base_pose;
 			ovrInputState inputState;
 			double displayMidpointSeconds;
 
