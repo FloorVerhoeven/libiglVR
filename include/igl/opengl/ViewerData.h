@@ -65,7 +65,6 @@ public:
 	  linestrip = other.linestrip;
 	  labels_positions = other.labels_positions;
 	  labels_strings = other.labels_strings;
-	  volumetric_lines = other.volumetric_lines;
 
 	  laser_points = other.laser_points;
 	  hand_point = other.hand_point;
@@ -96,11 +95,6 @@ public:
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
-	  //volumetric_shininess = other.volumetric_shininess; 
-	//  volumetric_diffuse = other.volumetric_diffuse;
-	//  volumetric_ambient = other.volumetric_ambient;
-	//  volumetric_specular = other.volumetric_specular;
-	//  volumetric_radius = other.volumetric_radius;
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
 	  mesh_translation = other.mesh_translation;
@@ -142,7 +136,6 @@ public:
 	  linestrip = other.linestrip;
 	  labels_positions = other.labels_positions;
 	  labels_strings = other.labels_strings;
-	  volumetric_lines = other.volumetric_lines;
 
 	  laser_points = other.laser_points;
 	  hand_point = other.hand_point;
@@ -173,11 +166,6 @@ public:
 	  line_color = other.line_color;
 
 	  shininess = other.shininess;
-	  //volumetric_shininess = other.volumetric_shininess;
-	//  volumetric_diffuse = other.volumetric_diffuse;
-	//  volumetric_ambient = other.volumetric_ambient;
-	//  volumetric_specular = other.volumetric_specular;
-	//  volumetric_radius = other.volumetric_radius;
 
 	  mesh_trackball_angle = other.mesh_trackball_angle;
 	  mesh_translation = other.mesh_translation;
@@ -296,11 +284,6 @@ public:
   IGL_INLINE void add_edges (const Eigen::MatrixXd& P1, const Eigen::MatrixXd& P2, const Eigen::MatrixXd& C);
   IGL_INLINE void add_label (const Eigen::VectorXd& P,  const std::string& str);
 
-  //IGL_INLINE void set_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
-  //IGL_INLINE void add_volumetric_lines(const Eigen::MatrixXd& pos, const Eigen::VectorXd& lengths, const Eigen::MatrixXd& dir, const Eigen::MatrixXd& C);
-  IGL_INLINE void set_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N);
-  IGL_INLINE void add_volumetric_lines(const Eigen::MatrixXd& LP, const Eigen::MatrixXd& C, const Eigen::MatrixXd& N);
-
   // Computes the normals of the mesh
   IGL_INLINE void compute_normals();
 
@@ -371,7 +354,6 @@ public:
   Eigen::MatrixXd hand_point;
   
   Eigen::MatrixXd linestrip;
-  Eigen::MatrixXd volumetric_lines;
 
   // Text labels plotted over the scene
   // Textp contains, in the i-th row, the position in global coordinates where the i-th label should be anchored
@@ -406,12 +388,6 @@ public:
 
   // Shape material
   float shininess;
- // float volumetric_shininess = 0.3f;
-
- // Eigen::Vector3f volumetric_diffuse;
- // Eigen::Vector3f volumetric_ambient;
- // Eigen::Vector3f volumetric_specular;
-  //float volumetric_radius = 0.005f;
 
   // Trackball rotator for the mesh
   Eigen::Quaternionf mesh_trackball_angle;
@@ -485,15 +461,9 @@ namespace igl
 	  SERIALIZE_MEMBER(linestrip_line_width);
       SERIALIZE_MEMBER(line_color);
       SERIALIZE_MEMBER(shininess);
-//	  SERIALIZE_MEMBER(volumetric_shininess);
-	//  SERIALIZE_MEMBER(volumetric_diffuse);
-//	  SERIALIZE_MEMBER(volumetric_ambient);
-//	  SERIALIZE_MEMBER(volumetric_specular);
-//	  SERIALIZE_MEMBER(volumetric_radius);
 	  SERIALIZE_MEMBER(mesh_trackball_angle);
 	  SERIALIZE_MEMBER(mesh_translation);
 	  SERIALIZE_MEMBER(mesh_model_translation);
-	  SERIALIZE_MEMBER(volumetric_lines);
       SERIALIZE_MEMBER(id);
     }
     template<>
