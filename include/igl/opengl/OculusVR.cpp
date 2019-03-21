@@ -1221,12 +1221,13 @@ void main() {
 				laser_data.set_hand_point(hand_pos, inactive_color);
 			}
 			else {
-				if (menu_active) {
+				laser_data.set_hand_point(Eigen::MatrixXd(), inactive_color);
+				/*if (menu_active) {
 					laser_data.set_hand_point(hand_pos, menu_color);
 				}
 				else {
 					laser_data.set_hand_point(hand_pos, active_color);
-				}
+				}*/
 			}
 			
 			//For the laser we assume that it is only ever displayed when only the right hand is displayed
