@@ -78,16 +78,20 @@ public:
 			IGL_INLINE Eigen::Vector3f get_right_touch_direction();
 			IGL_INLINE Eigen::Vector3f get_left_touch_direction();
 			IGL_INLINE Eigen::Matrix4f get_start_action_view();
+			IGL_INLINE Eigen::Matrix4f get_start_action_proj();
 			IGL_INLINE Eigen::Vector3f get_left_hand_pos();
 			IGL_INLINE void set_start_action_view(Eigen::Matrix4f new_start_action_view);
+			IGL_INLINE void set_start_action_proj(Eigen::Matrix4f new_start_action_proj);
 			IGL_INLINE Eigen::Vector3f get_delta_rollpitchyaw(int side);
 	
 			Eigen::Matrix4f start_action_view;
+			Eigen::Matrix4f start_action_proj;
 			Eigen::Vector3f right_touch_direction;
 			Eigen::Vector3f left_touch_direction;
 			Eigen::Vector3f current_eye_origin;
 
 			std::mutex mu_start_view;
+			std::mutex mu_start_proj;
 			std::mutex mu_touch_dir;
 			std::mutex mu_last_eye_origin;
 			std::unique_lock<std::mutex> eye_pos_lock;

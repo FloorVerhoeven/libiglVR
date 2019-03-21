@@ -1863,6 +1863,11 @@ void main() {
 			return start_action_view;
 		}
 
+		IGL_INLINE Eigen::Matrix4f OculusVR::get_start_action_proj() {
+			std::lock_guard<std::mutex> guard1(mu_start_proj);
+			return start_action_proj;
+		}
+
 		IGL_INLINE Eigen::Vector3f OculusVR::get_left_hand_pos() {
 			Eigen::Vector3f left_pos = (world_left_hand*local*index_top_pose_left).topRows(3);
 			return left_pos;
@@ -1871,6 +1876,11 @@ void main() {
 		IGL_INLINE void OculusVR::set_start_action_view(Eigen::Matrix4f new_start_action_view) {
 			std::lock_guard<std::mutex> guard1(mu_start_view);
 			start_action_view = new_start_action_view;
+		}
+
+		IGL_INLINE void OculusVR::set_start_action_proj(Eigen::Matrix4f new_start_action_proj) {
+			std::lock_guard<std::mutex> guard1(mu_start_proj);
+			start_action_proj = new_start_action_proj;
 		}
 
 		IGL_INLINE Eigen::Vector3f OculusVR::get_delta_rollpitchyaw(int side) { //Side 1 is left, 2 is right

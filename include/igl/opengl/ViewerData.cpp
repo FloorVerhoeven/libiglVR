@@ -30,7 +30,7 @@ IGL_INLINE igl::opengl::ViewerData::ViewerData()
 	show_laser(true),
 	point_size(15),
 	line_width(0.5f),
-	overlay_line_width(1000.6f),
+	overlay_line_width(1.6f),
 	laser_line_width(1.6f),
 	linestrip_line_width(2.0f),
 	line_color(0, 0, 0, 1),
