@@ -725,13 +725,13 @@ void main() {
 					if (prev_press == NONE && prev_press != prev_unsent) {
 						prev_unsent = prev_press; //Update prev_unsent although we are actually sending it. Needs to get wiped out (e.g. with a NONE) before we can toggle the menu again
 					}
-					if ((prev_press == NONE && count == 3 && prev_sent != NONE)) {
+					if ((prev_press == NONE && count == 3 && prev_sent != NONE)) { //Button release after button press?
 						update_screen_while_computing = true;
 						std::thread t1(callback_button_down, prev_press, hand_pos_left, hand_pos_right);
 						t1.detach();
 					}
 					else {
-						callback_button_down(prev_press, hand_pos_left, hand_pos_right);
+						callback_button_down(prev_press, hand_pos_left, hand_pos_right); //Button press
 					}
 
 					count = 3; //Avoid overflow
