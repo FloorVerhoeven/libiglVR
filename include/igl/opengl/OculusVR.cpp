@@ -48,7 +48,7 @@ namespace igl {
 		static int raycast_start_joint = 7; //Index in the renderJoints that represents the joint that should form the origin of the raycast
 		static int hand_base_joint = 1; //Index in the renderJoints that represents the joint that shouold form the origin for the "current tool display"
 		static int hand_palm_joint = 2; //At palm of hand. Maybe use for grabbing a rod	
-		static int thumb_tip_joint = 24;
+		//static int thumb_tip_joint = 24;
 		static int index_base_joint = 4;
 		static Eigen::Vector3d menu_intersect_pt;
 
@@ -582,7 +582,11 @@ void main() {
 			handPoses[ovrHand_Left] = hmdState.HandPoses[ovrHand_Left].ThePose;
 			handPoses[ovrHand_Right] = hmdState.HandPoses[ovrHand_Right].ThePose;
 			if (OVR_SUCCESS(ovr_GetInputState(session, ovrControllerType_Touch, &inputState))) {
-				
+				//hand_pos_left = (world_left_hand*local*index_top_pose_left).topRows(3);
+				//hand_pos_right = (world_right_hand*local*index_top_pose_right).topRows(3);
+				hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+				hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
+
 				Eigen::Vector3d menu_center = to_Eigen((OVR::Vector3f)hmdState.HeadPose.ThePose.Position + ((OVR::Matrix4f)hmdState.HeadPose.ThePose.Orientation).Transform(OVR::Vector3f(0, 0, menu_z_pos))).cast<double>();
 				Eigen::Quaternionf head_rot_tmp = Eigen::Quaternionf(hmdState.HeadPose.ThePose.Orientation.w, hmdState.HeadPose.ThePose.Orientation.x, hmdState.HeadPose.ThePose.Orientation.y, hmdState.HeadPose.ThePose.Orientation.z);
 				head_rot_tmp.normalize();
@@ -628,20 +632,27 @@ void main() {
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Only the right Trigger is being pressed
 					count = (prev_press == TRIG_RIGHT) ? count + 1 : 1;
-					hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
-					hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
+					//hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
+					//hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);	
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
+
 					prev_press = TRIG_RIGHT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f && inputState.HandTrigger[ovrHand_Right] < 0.5f) { //Only the left Trigger is being pressed
 					count = (prev_press == TRIG_LEFT) ? count + 1 : 1;
-					hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
-					hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
+				//	hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
+					//hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
 					prev_press = TRIG_LEFT;
 				}
 				else if (inputState.IndexTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] >= 0.995f && inputState.HandTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Both Triggers are being pressed
 					count = (prev_press == TRIG_BOTH) ? count + 1 : 1;
-					hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
-					hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
+				//	hand_pos_left = (world_left_hand*local*pinch_pose_left).topRows(3);
+				//	hand_pos_right = (world_right_hand*local*pinch_pose_right).topRows(3);
+					hand_pos_left = (world_left_hand*local*hand_palm_pose_left).topRows(3);
+					hand_pos_right = (world_right_hand*local*hand_palm_pose_right).topRows(3);
 					prev_press = TRIG_BOTH;
 				}
 				else if (inputState.HandTrigger[ovrHand_Right] >= 0.995f && inputState.IndexTrigger[ovrHand_Left] < 0.5f && inputState.IndexTrigger[ovrHand_Right] < 0.5f && inputState.HandTrigger[ovrHand_Left] < 0.5f) { //Only the right hand Trigger is being pressed
@@ -1201,35 +1212,25 @@ void main() {
 		}
 
 		IGL_INLINE void OculusVR::update_laser(ViewerData& laser_data, bool update_screen_while_computing) {
-			Eigen::MatrixXd hand_pos(0,3), hand_dir(0,3);
+			Eigen::MatrixXd hand_pos(0, 3), hand_dir(0, 3);
 			if (right_hand_visible) {
 				hand_pos.conservativeResize(hand_pos.rows() + 1, Eigen::NoChange);
-				hand_pos.bottomRows(1) = (world_right_hand*local*index_top_pose_right).topRows(3).cast<double>().transpose();
+			//	hand_pos.bottomRows(1) = (world_right_hand*local*index_top_pose_right).topRows(3).cast<double>().transpose();
+				hand_pos.bottomRows(1) = (world_right_hand*local*hand_palm_pose_right).topRows(3).cast<double>().transpose();
 				hand_dir.conservativeResize(hand_dir.rows() + 1, Eigen::NoChange);
 				hand_dir.bottomRows(1) = get_right_touch_direction().cast<double>().transpose();
 			}
 			if(left_hand_visible) {
 				hand_pos.conservativeResize(hand_pos.rows() + 1, Eigen::NoChange);
-				hand_pos.bottomRows(1) = (world_left_hand*local*index_top_pose_left).topRows(3).cast<double>().transpose();
+				//hand_pos.bottomRows(1) = (world_left_hand*local*index_top_pose_left).topRows(3).cast<double>().transpose();
+				hand_pos.bottomRows(1) = (world_left_hand*local*hand_palm_pose_left).topRows(3).cast<double>().transpose();
 				hand_dir.conservativeResize(hand_dir.rows() + 1, Eigen::NoChange);
 				hand_dir.bottomRows(1) = get_left_touch_direction().cast<double>().transpose();
 			}
 		
 			//Normally show the right hand point, but sometimes let SketchMeshVR override this (and then it will set the left hand point there, e.g. for smoothing rub)
-			
-			if (update_screen_while_computing) {
-				laser_data.set_hand_point(hand_pos, inactive_color);
-			}
-			else {
-				laser_data.set_hand_point(Eigen::MatrixXd(), inactive_color);
-				/*if (menu_active) {
-					laser_data.set_hand_point(hand_pos, menu_color);
-				}
-				else {
-					laser_data.set_hand_point(hand_pos, active_color);
-				}*/
-			}
-			
+			laser_data.set_hand_point(Eigen::MatrixXd(), inactive_color); //Normally don
+
 			//For the laser we assume that it is only ever displayed when only the right hand is displayed
 			if (laser_data.show_laser) {
 				Eigen::MatrixX3d LP(2, 3);
@@ -1871,6 +1872,16 @@ void main() {
 
 		IGL_INLINE Eigen::Vector3f OculusVR::get_left_hand_pos() {
 			Eigen::Vector3f left_pos = (world_left_hand*local*index_top_pose_left).topRows(3);
+			return left_pos;
+		}
+
+		IGL_INLINE Eigen::Vector3f OculusVR::get_right_pinch_pos() {
+			Eigen::Vector3f right_pos = (world_right_hand*local*pinch_pose_right).topRows(3);
+			return right_pos;
+		}
+
+		IGL_INLINE Eigen::Vector3f OculusVR::get_left_pinch_pos() {
+			Eigen::Vector3f left_pos = (world_right_hand*local*pinch_pose_left).topRows(3);
 			return left_pos;
 		}
 
