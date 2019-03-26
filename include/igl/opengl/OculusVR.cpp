@@ -1881,7 +1881,7 @@ void main() {
 		}
 
 		IGL_INLINE Eigen::Vector3f OculusVR::get_left_pinch_pos() {
-			Eigen::Vector3f left_pos = (world_right_hand*local*pinch_pose_left).topRows(3);
+			Eigen::Vector3f left_pos = (world_left_hand*local*pinch_pose_left).topRows(3);
 			return left_pos;
 		}
 
