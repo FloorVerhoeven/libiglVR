@@ -1805,6 +1805,7 @@ void main() {
 		}
 
 		IGL_INLINE void OculusVR::request_recenter() {
+			ovr_RecenterTrackingOrigin(session);
 			on_render_start();
 		}
 
